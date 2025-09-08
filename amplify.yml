@@ -1,37 +1,32 @@
 version: 1
 applications:
-  - appRoot: client
+  - appRoot: server # The server is our main application
     frontend:
+      # We define a "frontend" here, but it's really our single combined app
       phases:
         preBuild:
           commands:
+            # 1. Go into the client directory
+            - cd ../client
+            # 2. Install client dependencies and build it
+            - npm ci
+            - npm run build
+            # 3. Copy the built client files into the server's public folder
+            - cp -r dist/* ../server/public/
+            # 4. Go back to the server directory
+            - cd ../server
+            # 5. Install server dependencies
             - npm ci
         build:
           commands:
+            # 6. Build the server (if it has a build step)
             - npm run build
       artifacts:
-        baseDirectory: dist
+        # The final artifacts are the entire server directory
+        baseDirectory: . # The root is the server folder itself
         files:
           - '**/*'
       cache:
         paths:
           - node_modules/**/*
-  - appRoot: server
-    backend:
-      phases:
-        preBuild:
-          commands:
-            - npm ci
-        build:
-          commands:
-            - npm run build
-        postBuild:
-          commands:
-            - echo "Build completed on `date`"
-      artifacts:
-        baseDirectory: dist
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - node_modules/**/*
+          - ../client/node_modules/**/* # Cache both node_modules
