@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
 
+//브랜치 확인용
+
 export default function KmapPage() {
 	const mapRef = useRef<HTMLDivElement>(null)
 
