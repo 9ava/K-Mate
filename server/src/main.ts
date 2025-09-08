@@ -4,17 +4,27 @@ import { AppModule } from './app.module'
 import { ValidationPipe } from '@nestjs/common'
 import cookieParser from 'cookie-parser'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { NestExpressApplication } from '@nestjs/platform-express'
+import { join } from 'path'
 
 async function bootstrap() {
 	// CORS는 아래에서 명시적으로 켬
-	const app = await NestFactory.create(AppModule, { cors: false })
+	const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false })
 
 	// ✅ HttpOnly 쿠키 파싱
 	app.use(cookieParser())
 
-	// ✅ 로컬 프론트만 허용 + 쿠키 전송 허용
+	// ✅ Static files serving for React client
+	app.useStaticAssets(join(__dirname, '..', 'public'))
+	app.setBaseViewsDir(join(__dirname, '..', 'public'))
+
+	// ✅ 로컬 및 프로덕션 프론트 허용 + 쿠키 전송 허용
 	app.enableCors({
-		origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+		origin: [
+			'http://localhost:5173', 
+			'http://127.0.0.1:5173',
+			// Add your Amplify domain here when available
+		],
 		credentials: true,
 		methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 		allowedHeaders: ['Content-Type', 'Authorization'],
