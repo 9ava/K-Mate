@@ -1,5 +1,5 @@
 version: 1
-backend:
+frontend: # 'backend'를 'frontend'로 변경
   phases:
     preBuild:
       commands:
@@ -16,11 +16,8 @@ backend:
     build:
       commands:
         - npm run build
-    postBuild:
-      commands:
-        - npm run start:prod
   artifacts:
-    baseDirectory: server
+    baseDirectory: server # 최종 결과물이 server 디렉토리
     files:
       - '**/*'
   cache:
