@@ -1,32 +1,36 @@
 version: 1
 applications:
-  - appRoot: server # The server is our main application
+  - appRoot: server
     frontend:
-      # We define a "frontend" here, but it's really our single combined app
       phases:
         preBuild:
           commands:
-            # 1. Go into the client directory
+            # 1. Set the Node.js version to 20
+            - nvm use 20
+            # 2. Go to the client directory
             - cd ../client
-            # 2. Install client dependencies and build it
+            # 3. Install client dependencies and build
             - npm ci
             - npm run build
-            # 3. Copy the built client files into the server's public folder
+            # 4. Create the public directory in the server (FIX #1)
+            - mkdir -p ../server/public
+            # 5. Copy client assets to the new directory
             - cp -r dist/* ../server/public/
-            # 4. Go back to the server directory
+            # 6. Return to the server directory
             - cd ../server
-            # 5. Install server dependencies
+            # 7. Install server dependencies
             - npm ci
         build:
           commands:
-            # 6. Build the server (if it has a build step)
             - npm run build
       artifacts:
-        # The final artifacts are the entire server directory
-        baseDirectory: . # The root is the server folder itself
+        baseDirectory: .
         files:
           - '**/*'
       cache:
         paths:
           - node_modules/**/*
-          - ../client/node_modules/**/* # Cache both node_modules
+          - ../client/node_modules/**/*
+    # Add this section to tell Amplify which Node.js version to install (FIX #2)
+    buildEnvironment:
+      nodeVersion: '20'
