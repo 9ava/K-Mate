@@ -1,36 +1,29 @@
 version: 1
-applications:
-  - appRoot: server
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            # 1. Set the Node.js version to 20
-            - nvm use 20
-            # 2. Go to the client directory
-            - cd ../client
-            # 3. Install client dependencies and build
-            - npm ci
-            - npm run build
-            # 4. Create the public directory in the server (FIX #1)
-            - mkdir -p ../server/public
-            # 5. Copy client assets to the new directory
-            - cp -r dist/* ../server/public/
-            # 6. Return to the server directory
-            - cd ../server
-            # 7. Install server dependencies
-            - npm ci
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: .
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - node_modules/**/*
-          - ../client/node_modules/**/*
-    # Add this section to tell Amplify which Node.js version to install (FIX #2)
-    buildEnvironment:
-      nodeVersion: '20'
+backend:
+  phases:
+    preBuild:
+      commands:
+        # Build client first
+        - cd client
+        - npm ci
+        - npm run build
+        # Setup server
+        - cd ../server
+        - npm ci
+        # Copy client build to server public directory
+        - mkdir -p public
+        - cp -r ../client/dist/* public/
+    build:
+      commands:
+        - npm run build
+    postBuild:
+      commands:
+        - npm run start:prod
+  artifacts:
+    baseDirectory: server
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - client/node_modules/**/*
+      - server/node_modules/**/*
