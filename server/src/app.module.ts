@@ -9,7 +9,7 @@ import { AuthModule } from './features/auth/auth.module'
 import { PostModule } from './features/posts/post.module'
 import { CommentModule } from './features/comments/comment.module'
 import { InteractionModule } from './features/interactions/interaction.module'
-import { PlaceModule } from './features/places/place.module'
+import { PlacesModule } from './features/places/places.module'
 
 /**
  * App Module - K-Buzz 애플리케이션 메인 모듈
@@ -35,7 +35,9 @@ import { PlaceModule } from './features/places/place.module'
 		PostModule,           // 게시글 시스템 (community, tips)
 		CommentModule,        // 댓글 시스템
 		InteractionModule,    // 상호작용 시스템 (좋아요, 스크랩, 북마크)
-		PlaceModule,          // 장소 관리 시스템
+		PlacesModule,
+		// UsersModule,  ... (추가 시 여기에 import)
+
 	],
 	controllers: [AppController],
 	providers: [AppService],
