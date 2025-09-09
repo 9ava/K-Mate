@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
 import { fetchPlacesByType } from '../api/places'
-import type { Place, PlaceType } from '../types/place'
+import type { Place, PlaceType } from '../lib/types/place'
 
 export default function KmapPage() {
 	const mapRef = useRef<HTMLDivElement>(null)
@@ -108,7 +108,7 @@ export default function KmapPage() {
 				position: { lat: p.lat, lng: p.lng },
 				title: p.name,
 				// 번호 뱃지 마커 (원하면 제거 가능)
-				content: makePin(String(i + 1)),
+				//content: makePin(String(i + 1)),
 			})
 
 			marker.addListener('gmp-click', () => {
