@@ -4,6 +4,7 @@ import { DatabaseModule } from './database/database.module'
 
 // feature modules
 import { AuthModule } from './features/auth/auth.module'
+import { PlacesModule } from './features/places/places.module'
 
 @Module({
 	imports: [
@@ -15,7 +16,8 @@ import { AuthModule } from './features/auth/auth.module'
 
 		// features
 		AuthModule,
-		// UsersModule, PlacesModule, ... (추가 시 여기에 import)
+		PlacesModule,
+		// UsersModule,  ... (추가 시 여기에 import)
 	],
 })
 export class AppModule {}
