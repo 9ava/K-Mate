@@ -106,31 +106,4 @@ export class User {
 	@UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
 	updated_at!: Date
 
-	// ==============================================
-	// 관계 설정 (One-to-Many)
-	// ==============================================
-
-	/**
-	 * 사용자가 작성한 게시글들 (1:N 관계)
-	 * 용도: 사용자와 게시글 간의 관계 설정
-	 * 특징: 사용자 삭제 시 관련 게시글도 함께 삭제 (CASCADE)
-	 */
-	@OneToMany('Post', 'author')
-	posts!: any[]
-
-	/**
-	 * 사용자가 작성한 댓글들 (1:N 관계)
-	 * 용도: 사용자와 댓글 간의 관계 설정
-	 * 특징: 사용자 삭제 시 관련 댓글도 함께 삭제 (CASCADE)
-	 */
-	@OneToMany('Comment', 'user')
-	comments!: any[]
-
-	/**
-	 * 사용자의 상호작용들 (1:N 관계)
-	 * 용도: 사용자와 상호작용(좋아요, 스크랩, 북마크) 간의 관계 설정
-	 * 특징: 사용자 삭제 시 관련 상호작용도 함께 삭제 (CASCADE)
-	 */
-	@OneToMany('Interaction', 'user')
-	interactions!: any[]
 }

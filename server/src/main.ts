@@ -15,8 +15,8 @@ async function bootstrap() {
 	app.use(cookieParser())
 
 	// ✅ Static files serving for React client
-	app.useStaticAssets(join(__dirname, '..', 'public'))
-	app.setBaseViewsDir(join(__dirname, '..', 'public'))
+	//app.useStaticAssets(join(__dirname, '..', 'public'))
+	//app.setBaseViewsDir(join(__dirname, '..', 'public'))
 
 	// ✅ 로컬 및 프로덕션 프론트 허용 + 쿠키 전송 허용
 	app.enableCors({
