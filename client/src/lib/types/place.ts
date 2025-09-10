@@ -20,3 +20,12 @@ export type PlaceListResponse = {
 	pageSize: number
 	totalPages: number
 }
+
+// 구글 상세를 얹어서 패널에 보여줄 때 쓰는 타입
+export type SelectedPlace = Place & {
+	photoUrl?: string
+	rating?: number
+	userRatingsTotal?: number
+	description?: string
+	reviews?: string[]
+}
