@@ -11,6 +11,12 @@ export type Place = {
 	website?: string | null
 	google_place_id?: string | null
 	distance?: number
+
+	rating?: number
+	userRatingsTotal?: number
+	photoUrl?: string
+	description?: string
+	reviews?: string[]
 }
 
 export type PlaceListResponse = {
@@ -19,13 +25,4 @@ export type PlaceListResponse = {
 	page: number
 	pageSize: number
 	totalPages: number
-}
-
-// 구글 상세를 얹어서 패널에 보여줄 때 쓰는 타입
-export type SelectedPlace = Place & {
-	photoUrl?: string
-	rating?: number
-	userRatingsTotal?: number
-	description?: string
-	reviews?: string[]
 }

@@ -1,7 +1,7 @@
-import type { SelectedPlace } from '../../lib/types/place'
+import type { Place } from '../../lib/types/place'
 
 type Props = {
-	place: SelectedPlace
+	place: Place
 	onClose: () => void
 }
 

@@ -2,34 +2,33 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
 import { fetchPlacesByType } from '../api/places'
-import type { Place, PlaceType, SelectedPlace } from '../lib/types/place'
+import type { Place, PlaceType } from '../lib/types/place'
 import SidePanel from '../components/places/SidePanel'
+import SearchList from '../components/places/SearchList'
 
 export default function KmapPage() {
 	const mapRef = useRef<HTMLDivElement>(null)
 	const mapObjRef = useRef<google.maps.Map | null>(null)
 	const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
 	const infoRef = useRef<google.maps.InfoWindow | null>(null)
+	const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
 
 	const [type, setType] = useState<PlaceType | ''>('food')
 	const [loading, setLoading] = useState(false)
-	const [selected, setSelected] = useState<SelectedPlace | null>(null)
+	const [selected, setSelected] = useState<Place | null>(null)
+	const [places, setPlaces] = useState<Place[]>([]) // ★ 목록 패널용
 
 	const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 	const ENV_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined
 	const MAP_ID = ENV_MAP_ID || 'DEMO_MAP_ID'
 
 	const loader = useMemo(() => {
-		if (!API_KEY) {
-			console.warn('VITE_GOOGLE_MAPS_API_KEY 가 설정되지 않았습니다.')
-		}
-		if (!ENV_MAP_ID) {
-			console.warn('VITE_GOOGLE_MAPS_MAP_ID 가 비어있습니다. DEMO_MAP_ID 사용')
-		}
+		if (!API_KEY) console.warn('VITE_GOOGLE_MAPS_API_KEY 가 설정되지 않았습니다.')
+		if (!ENV_MAP_ID) console.warn('VITE_GOOGLE_MAPS_MAP_ID 가 비어있습니다. DEMO_MAP_ID 사용')
 		return new Loader({
 			apiKey: API_KEY ?? '',
 			version: 'weekly',
-			libraries: ['marker', 'places'], // ★ places 추가
+			libraries: ['marker', 'places'],
 		})
 	}, [API_KEY, ENV_MAP_ID])
 
@@ -52,6 +51,8 @@ export default function KmapPage() {
 			mapObjRef.current = map
 
 			infoRef.current = new google.maps.InfoWindow()
+			// ★ PlacesService 한 번만 생성해서 재사용
+			placesServiceRef.current = new google.maps.places.PlacesService(map)
 		})()
 
 		return () => {
@@ -59,16 +60,17 @@ export default function KmapPage() {
 		}
 	}, [loader, MAP_ID])
 
-	// 타입이 바뀔 때마다 Axios로 불러와 마커 렌더
+	// 타입 변경 시: 데이터 불러와서 마커 & 목록 렌더
 	useEffect(() => {
 		if (!type || !mapObjRef.current) return
 		;(async () => {
 			setLoading(true)
 			try {
-				const items = await fetchPlacesByType(type, 200) // /places?type=food
+				const items = await fetchPlacesByType(type, 200)
+				setPlaces(items) // ★ 목록 패널 업데이트
 				await renderMarkers(items)
 				fitBounds(items)
-				setSelected(null) // 카테고리 변경 시 패널 닫기
+				setSelected(null)
 			} finally {
 				setLoading(false)
 			}
@@ -97,6 +99,53 @@ export default function KmapPage() {
 		return el
 	}
 
+	// ★ 공통: 리스트/마커에서 상세 패널 열기
+	const openPlace = (p: Place) => {
+		const map = mapObjRef.current
+		const service = placesServiceRef.current
+		if (!map) return
+
+		// 포커스 이동
+		map.panTo({ lat: p.lat, lng: p.lng })
+		map.setZoom(Math.max(map.getZoom() ?? 12, 14))
+
+		if (p.google_place_id && service) {
+			service.getDetails(
+				{
+					placeId: p.google_place_id,
+					fields: [
+						'place_id',
+						'name',
+						'formatted_address',
+						'rating',
+						'user_ratings_total',
+						'formatted_phone_number',
+						'website',
+						'photos',
+					],
+				},
+				(res, status) => {
+					if (status !== google.maps.places.PlacesServiceStatus.OK || !res) {
+						setSelected({ ...p })
+						return
+					}
+					const detail: Place = {
+						...p,
+						address: res.formatted_address ?? p.address ?? undefined,
+						phone: res.formatted_phone_number ?? p.phone ?? undefined,
+						website: res.website ?? p.website ?? undefined,
+						rating: res.rating ?? undefined,
+						userRatingsTotal: res.user_ratings_total ?? undefined,
+						photoUrl: res.photos?.[0]?.getUrl({ maxWidth: 800 }),
+					}
+					setSelected(detail)
+				}
+			)
+		} else {
+			setSelected({ ...p })
+		}
+	}
+
 	const renderMarkers = async (items: Place[]) => {
 		const map = mapObjRef.current!
 		clearMarkers()
@@ -105,87 +154,15 @@ export default function KmapPage() {
 			'marker'
 		)) as google.maps.MarkerLibrary
 
-		// ★ 구글 상세 조회 서비스
-		const service = new google.maps.places.PlacesService(map)
-
 		markersRef.current = items.map((p, i) => {
 			const marker = new AdvancedMarkerElement({
 				map,
 				position: { lat: p.lat, lng: p.lng },
 				title: p.name,
-				// 번호 뱃지 마커 (원하면 해제)
-				// content: makePin(String(i + 1)),
+				// content: makePin(String(i + 1)), // 번호 뱃지 쓰고 싶으면 주석 해제
 			})
 
-			// ★ InfoWindow 대신 사이드 패널을 사용
-			marker.addListener('gmp-click', () => {
-				if (p.google_place_id) {
-					service.getDetails(
-						{
-							placeId: p.google_place_id,
-							fields: [
-								'place_id',
-								'name',
-								'formatted_address',
-								'rating',
-								'user_ratings_total',
-								'formatted_phone_number',
-								'website',
-								'photos',
-							],
-						},
-						(res, status) => {
-							if (status !== google.maps.places.PlacesServiceStatus.OK || !res) {
-								// 실패 시 DB 데이터만으로 패널 오픈
-								setSelected({ ...p })
-								return
-							}
-
-							const detail: SelectedPlace = {
-								...p, // 필수 기본 필드 유지(id, type, lat, lng 등)
-								address: res.formatted_address ?? p.address ?? undefined,
-								phone: res.formatted_phone_number ?? p.phone ?? undefined,
-								website: res.website ?? p.website ?? undefined,
-								rating: res.rating ?? undefined,
-								userRatingsTotal: res.user_ratings_total ?? undefined,
-								photoUrl: res.photos?.[0]?.getUrl({ maxWidth: 800 }),
-							}
-
-							setSelected(detail)
-						}
-					)
-				} else {
-					// place_id가 없다면 DB 데이터만으로 패널 오픈
-					setSelected({ ...p })
-				}
-
-				// ────────────────────────────────────────────────────────────────
-				// (참고) 이전 InfoWindow 코드 — 필요하면 다시 켜서 함께 쓸 수 있음
-				// const html = `
-				//   <div style="max-width:240px">
-				//     <div style="font-weight:600">${esc(p.name)}</div>
-				//     ${
-				//       p.address
-				//         ? `<div style="color:#555;font-size:12px;margin-top:4px">${esc(p.address!)}</div>`
-				//         : ''
-				//     }
-				//     <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
-				//       ${p.phone ? `<a href="tel:${p.phone}">Call</a>` : ''}
-				//       ${p.website ? `<a href="${p.website}" target="_blank">Website</a>` : ''}
-				//       ${
-				//         p.google_place_id
-				//           ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-				//               p.name
-				//             )}&query_place_id=${p.google_place_id}" target="_blank">Maps</a>`
-				//           : ''
-				//       }
-				//     </div>
-				//   </div>`
-				// infoRef.current?.setContent(html)
-				// infoRef.current?.open(map, marker)
-				// ────────────────────────────────────────────────────────────────
-			})
-
+			marker.addListener('gmp-click', () => openPlace(p))
 			return marker
 		})
 	}
@@ -198,20 +175,21 @@ export default function KmapPage() {
 		map.fitBounds(b)
 	}
 
-	const handleClose = () => {
-		setSelected(null)
-	}
+	const handleClose = () => setSelected(null)
 
 	return (
 		<div>
 			<div className="fixed inset-x-0 bottom-0 flex top-14">
-				{/* 사이드바 */}
+				{/* 왼쪽 카테고리 사이드바 */}
 				<div className="w-16 bg-white border-r shrink-0">
 					<Sidebar active={type} onSelect={setType} />
 					<div className="p-2 text-center text-xs">{loading ? 'Loading…' : ''}</div>
 				</div>
 
-				{/* SidePanel */}
+				{/* 좌측 검색 결과 패널 */}
+				<SearchList places={places} onSelect={openPlace} />
+
+				{/* 상세 패널 */}
 				{selected && <SidePanel place={selected} onClose={handleClose} />}
 
 				{/* 지도 */}
