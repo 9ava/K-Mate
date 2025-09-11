@@ -4,8 +4,10 @@ import {
 	Get,
 	Post,
 	Delete,
+	Put,
 	Query,
 	Param,
+	Body,
 	Req,
 	Res,
 	UseGuards,
@@ -22,7 +24,13 @@ import {
 	ApiBadRequestResponse,
 } from '@nestjs/swagger'
 import { PlacesService } from './places.service'
-import { NearbyQueryDto, PhotoQueryDto, AdminAddPlaceDto } from './places.dto'
+import {
+	NearbyQueryDto,
+	PhotoQueryDto,
+	AdminAddPlaceDto,
+	ListQueryDto,
+	SetTypeDto,
+} from './places.dto'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
 import { RolesGuard } from '../../common/guards/roles.guard'
@@ -33,7 +41,24 @@ export class PlacesController {
 	constructor(private readonly places: PlacesService) {}
 
 	// ────────────────────────────────────────────────────────────────────────────
-	// 주변 검색
+	// 목록: DB 저장분 (카테고리/검색/페이지네이션)
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: 'DB 장소 목록 (카테고리/검색/페이지네이션)' })
+	@ApiOkResponse({
+		schema: { example: { success: true, data: { items: [], total: 0, page: 1, pageSize: 20 } } },
+	})
+	@ApiQuery({ name: 'type', required: false, enum: ['travel', 'food', 'cafe'] })
+	@ApiQuery({ name: 'q', required: false })
+	@ApiQuery({ name: 'page', required: false, type: Number })
+	@ApiQuery({ name: 'pageSize', required: false, type: Number })
+	@Get()
+	async list(@Query() q: ListQueryDto) {
+		const data = await this.places.listPlaces(q)
+		return { success: true, data }
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────
+	// 주변 검색 (Google v1 searchNearby)
 	// ────────────────────────────────────────────────────────────────────────────
 	@ApiOperation({ summary: '주변 장소 검색 (Places v1: searchNearby)' })
 	@ApiOkResponse({
@@ -48,20 +73,11 @@ export class PlacesController {
 						address: '...',
 						lat: 37.57,
 						lng: 126.98,
-						photoName: 'places/..../photos/...',
+						photoName: 'places/.../photos/...',
 					},
 				],
 			},
 		},
-	})
-	@ApiQuery({ name: 'lat', required: true, type: Number })
-	@ApiQuery({ name: 'lng', required: true, type: Number })
-	@ApiQuery({ name: 'radius', required: false, type: Number, description: '미터(m), 기본 2000' })
-	@ApiQuery({
-		name: 'types',
-		required: false,
-		type: String,
-		description: 'CSV (tourist_attraction,restaurant,cafe ...)',
 	})
 	@Get('nearby')
 	async nearby(@Query() q: NearbyQueryDto) {
@@ -76,7 +92,7 @@ export class PlacesController {
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────
-	// 상세 조회 (DB 없으면 동기화 후 반환)
+	// 상세 (DB 캐시 30일, 없으면 동기화)
 	// ────────────────────────────────────────────────────────────────────────────
 	@ApiOperation({ summary: '장소 상세 (DB 캐시 30일, 없으면 동기화)' })
 	@ApiOkResponse({ description: 'Place 엔티티' })
@@ -112,23 +128,39 @@ export class PlacesController {
 	@Roles('admin')
 	@Post('admin/add')
 	async adminAdd(@Query() dto: AdminAddPlaceDto, @Req() req: Request) {
-	const role = (req.user?.role ?? 'user') as 'user' | 'admin'
-	const saved = await this.places.adminAddPlace(dto.placeId, role)
-	return { success: true, data: saved }
+		const role = (req.user?.role ?? 'user') as 'user' | 'admin'
+		const saved = await this.places.adminAddPlace(dto.placeId, role)
+		return { success: true, data: saved }
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────
+	// 관리자: 카테고리 수동 지정/고정
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '관리자: 장소 카테고리 수동 지정/고정' })
+	@ApiCookieAuth('access_token')
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin')
+	@Put(':placeId/type')
+	async setType(@Param('placeId') placeId: string, @Body() body: SetTypeDto) {
+		const p = await this.places.setTypeByAdmin(placeId, body.type)
+		return {
+			success: true,
+			data: { placeId: p.googlePlaceId, type: p.type, typeSource: p.typeSource },
+		}
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────
 	// 북마크 (로그인 필요)
 	// ────────────────────────────────────────────────────────────────────────────
-	@ApiOperation({ summary: '북마크 추가(토글 X) - 장소 전용' })
+	@ApiOperation({ summary: '북마크 추가(토글 아님) - 장소 전용' })
 	@ApiCookieAuth('access_token')
 	@UseGuards(JwtAuthGuard)
 	@Post(':placeId/bookmark')
 	async addBookmark(@Param('placeId') placeId: string, @Req() req: Request) {
-	const userId = req.user?.id as number
-	if (!userId) throw new ForbiddenException('로그인이 필요합니다.')
-	const bm = await this.places.addBookmarkByGooglePlaceId(userId, placeId)
-	return { success: true, data: { placeId: bm.place.googlePlaceId } }
+		const userId = (req.user as any)?.id as number // ★ 내부 PK를 JWT에 넣어두어야 함
+		if (!userId) throw new ForbiddenException('로그인이 필요합니다.')
+		const bm = await this.places.addBookmarkByGooglePlaceId(userId, placeId)
+		return { success: true, data: { placeId: bm.place.googlePlaceId } }
 	}
 
 	@ApiOperation({ summary: '북마크 삭제 - 장소 전용' })
@@ -136,10 +168,10 @@ export class PlacesController {
 	@UseGuards(JwtAuthGuard)
 	@Delete(':placeId/bookmark')
 	async removeBookmark(@Param('placeId') placeId: string, @Req() req: Request) {
-	const userId = req.user?.id as number
-	if (!userId) throw new ForbiddenException('로그인이 필요합니다.')
-	await this.places.removeBookmarkByGooglePlaceId(userId, placeId)
-	return { success: true }
+		const userId = (req.user as any)?.id as number
+		if (!userId) throw new ForbiddenException('로그인이 필요합니다.')
+		await this.places.removeBookmarkByGooglePlaceId(userId, placeId)
+		return { success: true }
 	}
 
 	@ApiOperation({ summary: '내 북마크 목록' })
@@ -147,9 +179,9 @@ export class PlacesController {
 	@UseGuards(JwtAuthGuard)
 	@Get('bookmarks/me')
 	async myBookmarks(@Req() req: Request) {
-	const userId = req.user?.id as number
-	if (!userId) throw new ForbiddenException('로그인이 필요합니다.')
-	const data = await this.places.listMyBookmarks(userId)
-	return { success: true, data }
+		const userId = (req.user as any)?.id as number
+		if (!userId) throw new ForbiddenException('로그인이 필요합니다.')
+		const data = await this.places.listMyBookmarks(userId)
+		return { success: true, data }
 	}
 }

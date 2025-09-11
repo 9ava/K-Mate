@@ -1,6 +1,6 @@
 // src/features/places/places.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsNumber, IsOptional, IsString, IsNotEmpty, IsInt, Min } from 'class-validator'
+import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min, IsEnum } from 'class-validator'
 import { Type } from 'class-transformer'
 
 /** 주변검색 쿼리 DTO */
@@ -22,7 +22,7 @@ export class NearbyQueryDto {
 	@Min(1)
 	radius?: number
 
-	@ApiPropertyOptional({ description: '타입 (예: "food,travel,cafe")' })
+	@ApiPropertyOptional({ description: 'CSV 타입(예: "tourist_attraction,restaurant,cafe")' })
 	@IsOptional()
 	@IsString()
 	types?: string
@@ -32,7 +32,7 @@ export class NearbyQueryDto {
 export class PhotoQueryDto {
 	@ApiProperty({
 		description: 'photo 리소스 네임',
-		example: 'places/ChIJlYV9vpWifDURw8qj3W5-2qI/photos/AbCdEfGh...',
+		example: 'places/ChIJ.../photos/AbCdEf...',
 	})
 	@IsString()
 	@IsNotEmpty()
@@ -46,10 +46,44 @@ export class PhotoQueryDto {
 	maxHeightPx?: number
 }
 
-/** 관리자 수동 추가 바디/쿼리 DTO */
+/** 관리자: placeId 수동 등록/갱신 */
 export class AdminAddPlaceDto {
-	@ApiProperty({ description: 'Google Place ID', example: 'ChIJlYV9vpWifDURw8qj3W5-2qI' })
+	@ApiProperty({ description: 'Google Place ID', example: 'ChIJlYV9vpWifDUR...' })
 	@IsString()
 	@IsNotEmpty()
 	placeId!: string
+}
+
+/** 목록 조회(필터/검색/페이지네이션) */
+export class ListQueryDto {
+	@ApiPropertyOptional({ enum: ['travel', 'food', 'cafe'], description: '카테고리 필터' })
+	@IsOptional()
+	@IsEnum(['travel', 'food', 'cafe'] as const)
+	type?: 'travel' | 'food' | 'cafe'
+
+	@ApiPropertyOptional({ description: '이름/주소 검색', example: 'seoul' })
+	@IsOptional()
+	@IsString()
+	q?: string
+
+	@ApiPropertyOptional({ example: 1 })
+	@Type(() => Number)
+	@IsOptional()
+	@IsInt()
+	@Min(1)
+	page?: number = 1
+
+	@ApiPropertyOptional({ example: 20 })
+	@Type(() => Number)
+	@IsOptional()
+	@IsInt()
+	@Min(1)
+	pageSize?: number = 20
+}
+
+/** 관리자: 카테고리 수동 지정 */
+export class SetTypeDto {
+	@ApiProperty({ enum: ['travel', 'food', 'cafe'] })
+	@IsEnum(['travel', 'food', 'cafe'] as const)
+	type!: 'travel' | 'food' | 'cafe'
 }
