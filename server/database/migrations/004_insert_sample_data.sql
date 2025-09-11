@@ -7,25 +7,6 @@
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- =========================================================
--- 샘플 사용자 데이터
--- =========================================================
-INSERT INTO users (google_sub, email, name, avatar_url, email_verified, role) VALUES
-('google_123456789', 'admin@kmate.com', '관리자', 'https://example.com/admin.jpg', 1, 'admin'),
-('google_987654321', 'user1@kmate.com', '홍길동', 'https://example.com/user1.jpg', 1, 'user'),
-('google_111222333', 'user2@kmate.com', '김철수', 'https://example.com/user2.jpg', 1, 'user'),
-('google_444555666', 'user3@kmate.com', '이영희', 'https://example.com/user3.jpg', 1, 'user');
-
--- =========================================================
--- 샘플 장소 데이터
--- =========================================================
-INSERT INTO places (google_place_id, name, address, lat, lng, phone, website, google_maps_url, description) VALUES
-('ChIJN1t_tDeuEmsRUsoyG83frY4', '경복궁', '서울특별시 종로구 사직로 161', 37.5796, 126.9770, '+82-2-3700-3900', 'https://www.royalpalace.go.kr', 'https://maps.google.com/...', '조선 왕조의 대표적인 궁궐'),
-('ChIJAVkDPzdZ7jARVW8H6y1rS0Q', '명동', '서울특별시 중구 명동', 37.5636, 126.9826, NULL, NULL, 'https://maps.google.com/...', '서울의 대표적인 쇼핑과 관광지'),
-('ChIJrTLr-GyuEmsRBfy61i59si0', '남산타워', '서울특별시 용산구 남산공원길 105', 37.5512, 126.9882, '+82-2-3455-9277', 'https://www.nseoultower.co.kr', 'https://maps.google.com/...', '서울의 랜드마크 타워'),
-('ChIJKxjxuaNqEmsR0qQwQj9fD5g', '홍대입구역', '서울특별시 마포구 양화로 188', 37.5563, 126.9226, NULL, NULL, 'https://maps.google.com/...', '젊음의 거리 홍대의 중심'),
-('ChIJVwjKdD9qEmsR4LQyJc1cD5g', '강남역', '서울특별시 강남구 강남대로 396', 37.4979, 127.0276, NULL, NULL, 'https://maps.google.com/...', '서울의 비즈니스 중심가');
-
--- =========================================================
 -- 샘플 게시글 데이터
 -- =========================================================
 

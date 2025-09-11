@@ -46,8 +46,8 @@ FOR EACH ROW
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM posts
-     WHERE id = NEW.post_id
-       AND post_type IN ('community','trend')
+      WHERE id = NEW.post_id
+        AND post_type IN ('community','trend')
   ) THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Comments are allowed only on community/trend posts';
@@ -83,8 +83,8 @@ BEGIN
     -- 대상 포스트가 community 또는 trend여야 함
     IF NOT EXISTS (
       SELECT 1 FROM posts
-       WHERE id = NEW.target_id
-         AND post_type IN ('community','trend')
+        WHERE id = NEW.target_id
+          AND post_type IN ('community','trend')
     ) THEN
       SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Like/Scrap are allowed only on community/trend posts';
@@ -115,8 +115,8 @@ BEGIN
     END IF;
     IF NOT EXISTS (
       SELECT 1 FROM posts
-       WHERE id = NEW.target_id
-         AND post_type IN ('community','trend')
+        WHERE id = NEW.target_id
+          AND post_type IN ('community','trend')
     ) THEN
       SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Like/Scrap are allowed only on community/trend posts';

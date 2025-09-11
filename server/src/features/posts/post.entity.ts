@@ -34,7 +34,7 @@ export type PostStatus = 'published' | 'draft' | 'hidden'
 
 /**
  * Post 엔티티 - K-Buzz 게시글 관리
- * 
+ *
  * 주요 특징:
  * - 단일 테이블로 post_type에 따라 기능 분기
  * - community: 모든 사용자 CRUD, 댓글/좋아요/스크랩 허용
@@ -61,48 +61,56 @@ export class Post {
 	@Column({ type: 'longtext', nullable: false })
 	content!: string
 
-	@ApiProperty({ 
+	@ApiProperty({
 		description: '게시글 타입',
 		enum: ['community', 'tips', 'trend'],
-		example: 'community'
+		example: 'community',
 	})
 	@Index()
-	@Column({ 
-		type: 'enum', 
-		enum: ['community', 'tips', 'trend'], 
-		nullable: false 
+	@Column({
+		// ✅ DB 컬럼명 매핑
+		name: 'post_type',
+		type: 'enum',
+		enum: ['community', 'tips', 'trend'],
+		nullable: false,
 	})
 	postType!: PostType
 
-	@ApiProperty({ 
+	@ApiProperty({
 		description: '게시글 카테고리',
 		enum: ['travel_tip', 'food_review', 'cafe_review', 'general'],
-		required: false
+		required: false,
 	})
 	@Index()
-	@Column({ 
-		type: 'enum', 
-		enum: ['travel_tip', 'food_review', 'cafe_review', 'general'], 
-		nullable: true 
+	@Column({
+		type: 'enum',
+		enum: ['travel_tip', 'food_review', 'cafe_review', 'general'],
+		nullable: true,
 	})
 	category!: PostCategory | null
 
-	@ApiProperty({ 
+	@ApiProperty({
 		description: '게시글 상태',
 		enum: ['published', 'draft', 'hidden'],
-		default: 'published'
+		default: 'published',
 	})
 	@Index()
-	@Column({ 
-		type: 'enum', 
-		enum: ['published', 'draft', 'hidden'], 
-		nullable: false, 
-		default: 'published' 
+	@Column({
+		type: 'enum',
+		enum: ['published', 'draft', 'hidden'],
+		nullable: false,
+		default: 'published',
 	})
 	status!: PostStatus
 
 	@ApiProperty({ description: '조회수', default: 0 })
-	@Column({ type: 'int', nullable: false, default: 0 })
+	@Column({
+		// ✅ DB 컬럼명 매핑
+		name: 'view_count',
+		type: 'int',
+		nullable: false,
+		default: 0,
+	})
 	viewCount!: number
 
 	@ApiProperty({ description: '생성일시' })
@@ -114,6 +122,6 @@ export class Post {
 	updatedAt!: Date
 
 	// 관계 설정
-	@OneToMany(() => Comment, comment => comment.post, { cascade: true })
+	@OneToMany(() => Comment, (comment) => comment.post, { cascade: true })
 	comments!: Comment[]
 }
