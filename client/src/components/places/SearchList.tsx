@@ -9,14 +9,14 @@ export default function SearchList({ places, onSelect }: Props) {
 	return (
 		<aside
 			className="
-        absolute top-0 left-16 h-full w-96 max-w-[90vw]
-        bg-white shadow-2xl border-r border-gray-200 z-40
-        overflow-y-auto
+    
+        h-full w-96 shrink-0 max-w-[90vw]                 
+        bg-white border-r border-gray-200 overflow-y-auto 
       "
 			role="dialog"
-			aria-label="검색 결과"
+			aria-label="인기 장소"
 		>
-			<div className="p-4 border-b font-bold text-lg">검색 결과</div>
+			<div className="p-4 border-b font-bold text-lg"> 인기 장소 🌟</div>
 			<ul>
 				{places.map((p, i) => (
 					<li
@@ -40,3 +40,7 @@ export default function SearchList({ places, onSelect }: Props) {
 		</aside>
 	)
 }
+
+//absolute top-0 left-16 h-full w-96 max-w-[90vw]
+//bg-white shadow-2xl border-r border-gray-200 z-40
+//overflow-y-auto

@@ -8,8 +8,8 @@ type Props = {
 export default function SidePanel({ place, onClose }: Props) {
 	return (
 		<aside
-			className="absolute top-0 left-16 h-full w-[380px] max-w-[90vw]
-                 bg-white border-r border-gray-200 shadow-2xl z-50 flex flex-col"
+			className="h-full w-[400px] max-w-[95vw] shrink-0
+             bg-white border-r border-gray-200 flex flex-col"
 			role="dialog"
 			aria-label="장소 상세"
 		>
