@@ -1,0 +1,40 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      # 루트 필요 없으면 생략 가능
+      - npm ci --no-audit --no-fund || true
+
+      # 서버/클라이언트: 개발 의존성까지 설치 (nest CLI 필요)
+      - npm ci --prefix server --include=dev --no-audit --no-fund
+      - npm ci --prefix client --include=dev --no-audit --no-fund
+
+  build:
+    commands:
+      # 1) 서버 빌드 (devDeps가 있는 상태에서)
+      - npm --prefix server run build
+
+      # 2) 클라이언트 빌드
+      - npm --prefix client run build
+
+      # 3) 배포 산출물 구성
+      - mkdir -p artifact/server-dist artifact/client-dist
+
+      # 서버 산출물: dist + package.json만 복사하고,
+      - cp -r server/dist artifact/server-dist/dist
+      - cp server/package*.json artifact/server-dist/
+
+      # 산출물 디렉터리 안에서 "런타임 의존성만" 설치 (여기서만 prodDeps)
+      - (cd artifact/server-dist && cp -r ../../server/node_modules ./)
+
+      # 클라이언트 산출물
+      - cp -r client/dist artifact/client-dist/
+
+      # 인프라(AppSpec/스크립트 등) 포함
+      - cp -r infrastructure/* artifact/
+artifacts:
+  files:
+    - '**/*'
+  base-directory: artifact
