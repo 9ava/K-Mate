@@ -47,7 +47,8 @@ export class PostsController {
 	@ApiForbiddenResponse({ description: '권한 없음 (tips/trend는 관리자만)' })
 	@ApiCookieAuth('access_token')
 	@Post()
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin', 'user')
 	async createPost(@Req() req: Request, @Body() createPostDto: CreatePostDto) {
 		const userId = (req.user as any).sub
 		const data = await this.postsService.createPost(userId, createPostDto)
@@ -128,7 +129,8 @@ export class PostsController {
 	@ApiParam({ name: 'id', type: Number, description: '게시글 ID' })
 	@ApiCookieAuth('access_token')
 	@Put(':id')
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin', 'user')
 	async updatePost(
 		@Param('id', ParseIntPipe) id: number,
 		@Req() req: Request,
@@ -157,7 +159,8 @@ export class PostsController {
 	@ApiParam({ name: 'id', type: Number, description: '게시글 ID' })
 	@ApiCookieAuth('access_token')
 	@Delete(':id')
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin', 'user')
 	async deletePost(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
 		const userId = (req.user as any).sub
 		await this.postsService.deletePost(id, userId)
@@ -229,7 +232,8 @@ export class PostsController {
 	@ApiParam({ name: 'id', type: Number, description: '게시글 ID' })
 	@ApiCookieAuth('access_token')
 	@Post('buzz/:id/like')
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin', 'user')
 	async likeBuzzPost(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
 		const userId = (req.user as any).sub
 		await this.postsService.likePost(id, userId)
