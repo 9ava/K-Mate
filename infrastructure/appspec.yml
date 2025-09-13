@@ -26,6 +26,11 @@ hooks:
       runas: root
 
   AfterInstall:
+    # ✅ SSM에서 환경변수를 읽어 /srv/k-mate/shared/k-mate.env 생성
+    - location: scripts/render_env.sh
+      timeout: 180
+      runas: root
+
     - location: scripts/after_install.sh
       timeout: 300
       runas: root
@@ -37,5 +42,5 @@ hooks:
 
   ValidateService:
     - location: scripts/validate_service.sh
-      timeout: 300 # 여유를 조금 늘립니다.
+      timeout: 300
       runas: root
