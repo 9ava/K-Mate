@@ -1,4 +1,4 @@
-import type { Place } from '../../lib/types/place'
+import type { Place } from '../../types/place'
 
 type Props = {
 	places: Place[]

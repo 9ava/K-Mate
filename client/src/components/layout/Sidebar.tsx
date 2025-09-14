@@ -1,5 +1,5 @@
 import type React from 'react'
-import type { PlaceType } from '../../lib/types/place'
+import type { PlaceType } from '../../types/place'
 
 type Props = {
 	active?: PlaceType | ''

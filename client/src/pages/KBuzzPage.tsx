@@ -191,6 +191,7 @@ export default function KBuzzPage() {
 								<div
 									key={article.id}
 									data-card
+									onClick={() => navigate(`/buzz/trend/${article.id}`)}
 									className="relative shrink-0 w-[240px] rounded-xl overflow-hidden shadow hover:shadow-lg transition"
 								>
 									<img
@@ -229,7 +230,7 @@ export default function KBuzzPage() {
 						<li
 							key={post.id}
 							className="py-3 px-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-							onClick={() => navigate(`/buzz/${post.id}`)}
+							onClick={() => navigate(`/buzz/post/${post.id}`)}
 						>
 							<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 								{/* 제목: 왼쪽, 한 줄 말줄임 */}
