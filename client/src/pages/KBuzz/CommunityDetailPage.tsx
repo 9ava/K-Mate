@@ -1,6 +1,6 @@
 // src/pages/KBuzz/CommunityDetailPage.tsx
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 type Post = {
 	id: number
@@ -23,15 +23,18 @@ type Comment = {
 	createdAt: string
 	content: string
 	authorId: number
+	likeCount: number
+	isLiked: boolean
 }
 
 export default function CommunityDetailPage() {
 	const { id } = useParams()
+	const navigate = useNavigate()
 
 	// 로그인 유저 (mock)
 	const currentUser = { id: 1, name: 'Monika Dykas' }
 
-	// Post (mock)
+	// 초기 포스트 (mock)
 	const postInit: Post = useMemo(
 		() => ({
 			id: Number(id ?? 1),
@@ -53,11 +56,14 @@ export default function CommunityDetailPage() {
 		[id]
 	)
 
-	// 포스트 액션 상태
+	// ===== 포스트 상태 =====
+	const [post, setPost] = useState<Post>(postInit)
+
 	const [isLiked, setIsLiked] = useState(postInit.isLiked)
 	const [likeCount, setLikeCount] = useState(postInit.likeCount)
 	const [isScraped, setIsScraped] = useState(postInit.isScraped)
 
+	// ===== 댓글 상태 =====
 	const [comments, setComments] = useState<Comment[]>([
 		{
 			id: 1,
@@ -66,6 +72,8 @@ export default function CommunityDetailPage() {
 			content:
 				"I don't know about chanza, but if burla is at the highest degree, then I would agree with you. I'm not a native spanish speaker.",
 			authorId: 1,
+			likeCount: 3,
+			isLiked: false,
 		},
 		{
 			id: 2,
@@ -73,9 +81,12 @@ export default function CommunityDetailPage() {
 			createdAt: '2 days ago',
 			content: "maybe something like a 'masters of information systems' would be possible.",
 			authorId: 2,
+			likeCount: 1,
+			isLiked: false,
 		},
 	])
 
+	// 새 댓글 작성
 	const [draft, setDraft] = useState('')
 
 	const addComment = () => {
@@ -89,73 +100,162 @@ export default function CommunityDetailPage() {
 				createdAt: 'just now',
 				content: text,
 				authorId: currentUser.id,
+				likeCount: 0,
+				isLiked: false,
 			},
 		])
 		setDraft('')
 	}
 
-	// === Post Actions ===
-	const onEdit = () => {
-		console.log('수정 클릭')
+	// ===== 게시글 인라인 수정/삭제 =====
+	const [editingPost, setEditingPost] = useState(false)
+	const [postTitleDraft, setPostTitleDraft] = useState(post.title)
+	const [postBodyDraft, setPostBodyDraft] = useState(post.body.join('\n\n'))
+
+	const startEditPost = () => {
+		setPostTitleDraft(post.title)
+		setPostBodyDraft(post.body.join('\n\n'))
+		setEditingPost(true)
 	}
-	const onDelete = () => {
-		if (confirm('이 게시글을 삭제할까요?')) {
-			console.log('삭제 확인')
+	const cancelEditPost = () => setEditingPost(false)
+	const saveEditPost = () => {
+		const title = postTitleDraft.trim()
+		const body = postBodyDraft.trim()
+		if (!title || !body) {
+			alert('제목과 본문을 입력해 주세요.')
+			return
 		}
+		setPost((prev) => ({ ...prev, title, body: body.split(/\n{2,}/) }))
+		setEditingPost(false)
+		// TODO: await api.patch(`/posts/${post.id}`, { title, body })
+	}
+	const onDeletePost = () => {
+		if (!confirm('이 게시글을 삭제할까요?')) return
+		// TODO: await api.delete(`/posts/${post.id}`)
+		navigate('/buzz')
 	}
 
-	// 좋아요 토글 (낙관적)
+	// ===== 댓글 인라인 수정/삭제 =====
+	const [editingId, setEditingId] = useState<number | null>(null)
+	const [editDraft, setEditDraft] = useState('')
+
+	const startEditComment = (commentId: number) => {
+		const target = comments.find((c) => c.id === commentId)
+		setEditingId(commentId)
+		setEditDraft(target?.content ?? '')
+	}
+	const cancelEditComment = () => {
+		setEditingId(null)
+		setEditDraft('')
+	}
+	const saveEditComment = () => {
+		if (editingId == null) return
+		const text = editDraft.trim()
+		if (!text) {
+			alert('내용을 입력해 주세요.')
+			return
+		}
+		setComments((prev) => prev.map((c) => (c.id === editingId ? { ...c, content: text } : c)))
+		setEditingId(null)
+		setEditDraft('')
+		// TODO: await api.patch(`/comments/${editingId}`, { content: text })
+	}
+	const onDeleteComment = (commentId: number) => {
+		if (!confirm('이 댓글을 삭제할까요?')) return
+		setComments((prev) => prev.filter((c) => c.id !== commentId))
+		// TODO: await api.delete(`/comments/${commentId}`)
+	}
+
+	// ===== 좋아요(게시글/댓글) & 스크랩 =====
 	const toggleLike = () => {
 		const next = !isLiked
 		setIsLiked(next)
 		setLikeCount((c) => (next ? c + 1 : Math.max(0, c - 1)))
-		// TODO: 서버 반영 (실패 시 롤백)
+		// TODO: 서버 반영
 	}
-
-	// 스크랩 토글 (낙관적)
 	const toggleScrap = () => {
-		const next = !isScraped
-		setIsScraped(next)
-		// TODO: 서버 반영 (실패 시 롤백)
+		setIsScraped((v) => !v)
+		// TODO: 서버 반영
+	}
+	const toggleCommentLike = (commentId: number) => {
+		setComments((prev) =>
+			prev.map((c) =>
+				c.id === commentId
+					? {
+							...c,
+							isLiked: !c.isLiked,
+							likeCount: Math.max(0, c.likeCount + (c.isLiked ? -1 : 1)),
+					  }
+					: c
+			)
+		)
+		// TODO: await api.post(`/comments/${commentId}/like`, { like: next })
 	}
 
 	return (
 		<div className="min-h-screen bg-white">
 			<main className="mx-auto max-w-3xl px-5 md:px-0 py-10">
 				{/* Title */}
-				<h1 className="text-2xl md:text-[28px] font-semibold leading-snug">{postInit.title}</h1>
+				{!editingPost ? (
+					<h1 className="text-left text-2xl md:text-[28px] font-semibold leading-snug">
+						{post.title}
+					</h1>
+				) : (
+					<input
+						value={postTitleDraft}
+						onChange={(e) => setPostTitleDraft(e.target.value)}
+						className="w-full text-left text-2xl md:text-[28px] font-semibold leading-snug border rounded px-3 py-2"
+					/>
+				)}
 
 				{/* Meta line */}
 				<div className="mt-2 text-sm text-gray-500 text-right">
-					{postInit.editor && postInit.editedAt && (
+					{post.editor && post.editedAt && (
 						<>
-							by <span className="text-sky-600 font-medium">{postInit.editor}</span> on{' '}
-							{postInit.editedAt}
+							by <span className="text-sky-600 font-medium">{post.editor}</span> on {post.editedAt}
 						</>
 					)}
 				</div>
 
 				{/* Actions (Edit/Delete + Like/Scrap) */}
 				<div className="mt-3 flex justify-end gap-3 items-center">
-					{/* 글 작성자만: Edit/Delete */}
-					{currentUser.id === postInit.authorId && (
+					{currentUser.id === post.authorId && (
 						<>
-							<button
-								onClick={onEdit}
-								className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
-							>
-								Edit
-							</button>
-							<button
-								onClick={onDelete}
-								className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
-							>
-								Delete
-							</button>
+							{!editingPost ? (
+								<>
+									<button
+										onClick={startEditPost}
+										className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
+									>
+										Edit
+									</button>
+									<button
+										onClick={onDeletePost}
+										className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
+									>
+										Delete
+									</button>
+								</>
+							) : (
+								<>
+									<button
+										onClick={saveEditPost}
+										className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-sky-500 text-white hover:bg-sky-600"
+									>
+										Save
+									</button>
+									<button
+										onClick={cancelEditPost}
+										className="inline-flex items-center rounded px-2 py-0.5 text-xs border text-gray-600 hover:bg-gray-50"
+									>
+										Cancel
+									</button>
+								</>
+							)}
 						</>
 					)}
 
-					{/* Like: 빈 하트 → 빨간 하트 + 카운트 */}
+					{/* Like (post) */}
 					<button
 						onClick={toggleLike}
 						className="inline-flex items-center gap-2 select-none focus:outline-none"
@@ -179,7 +279,7 @@ export default function CommunityDetailPage() {
 						<span className={`text-sm ${isLiked ? 'font-semibold' : ''}`}>{likeCount}</span>
 					</button>
 
-					{/* Scrap: 빈 별 → 노란 별 + Saved */}
+					{/* Scrap (post) */}
 					<button
 						onClick={toggleScrap}
 						className="inline-flex items-center gap-2 select-none focus:outline-none"
@@ -210,11 +310,24 @@ export default function CommunityDetailPage() {
 				<hr className="my-5 border-gray-200" />
 
 				{/* Body */}
-				<article className="space-y-5 text-[15px] leading-7 text-gray-800">
-					{postInit.body.map((p, i) => (
-						<p key={i}>{p}</p>
-					))}
-				</article>
+				{!editingPost ? (
+					<article className="space-y-5 text-[15px] leading-7 text-gray-800 ">
+						{post.body.map((p, i) => (
+							<p key={i} className="text-left whitespace-pre-wrap">
+								{p}
+							</p>
+						))}
+					</article>
+				) : (
+					<div>
+						<textarea
+							value={postBodyDraft}
+							onChange={(e) => setPostBodyDraft(e.target.value)}
+							rows={10}
+							className="w-full rounded border px-3 py-2 text-[15px] leading-7 outline-none focus:ring-2 focus:ring-sky-200"
+						/>
+					</div>
+				)}
 
 				{/* Soft divider */}
 				<div className="my-8 border-t border-dashed border-gray-200" />
@@ -226,51 +339,120 @@ export default function CommunityDetailPage() {
 
 				{/* ===== Comments ===== */}
 				<section className="relative pl-16 space-y-6">
-					{/* vertical timeline */}
+					{/* timeline */}
 					<div className="absolute left-8 top-0 bottom-0 w-px bg-gray-200" />
 
-					{comments.map((c) => (
-						<div key={c.id} className="relative">
-							{/* avatar */}
-							<div className="absolute left-[1.25rem] top-1 h-10 w-10 rounded-full bg-gray-200 ring-2 ring-white flex items-center justify-center text-sm font-medium">
-								{c.author.charAt(0).toUpperCase()}
-							</div>
+					{comments.map((c) => {
+						const isOwner = Number(currentUser.id) === Number(c.authorId)
+						const isEditing = editingId === c.id
 
-							{/* bubble */}
-							<div
-								className="
-                  relative bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 ml-3
-                  before:content-[''] before:absolute before:-left-3 before:top-6
-                  before:border-y-[10px] before:border-y-transparent before:border-r-[10px] before:border-r-gray-200
-                  after:content-[''] after:absolute after:-left-[11px] after:top-6
-                  after:border-y-[10px] after:border-y-transparent after:border-r-[10px] after:border-r-white
-                "
-							>
-								{/* 작성자+날짜 + (본인일 때) 버튼 */}
-								<div className="mb-1 text-sm flex items-center justify-between">
-									<div className="text-left">
-										<span className="text-sky-600 font-medium">{c.author}</span>{' '}
-										<span className="text-gray-400">{c.createdAt}</span>
+						return (
+							<div key={c.id} className="relative">
+								{/* avatar */}
+								<div className="absolute left-[1.25rem] top-1 h-10 w-10 rounded-full bg-gray-200 ring-2 ring-white flex items-center justify-center text-sm font-medium">
+									{c.author.charAt(0).toUpperCase()}
+								</div>
+
+								{/* bubble */}
+								<div
+									className="
+                    relative bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 ml-3
+                    before:content-[''] before:absolute before:-left-3 before:top-6
+                    before:border-y-[10px] before:border-y-transparent before:border-r-[10px] before:border-r-gray-200
+                    after:content-[''] after:absolute after:-left-[11px] after:top-6
+                    after:border-y-[10px] after:border-y-transparent after:border-r-[10px] after:border-r-white
+                  "
+								>
+									{/* 상단: 왼쪽(닉네임/날짜) | 오른쪽(Edit/Delete → 하트) */}
+									<div className="mb-1 text-sm flex items-center justify-between">
+										{/* 왼쪽 */}
+										<div className="text-left">
+											<span className="text-sky-600 font-medium">{c.author}</span>{' '}
+											<span className="text-gray-400">{c.createdAt}</span>
+										</div>
+
+										{/* 오른쪽: 액션 → 하트 */}
+										<div className="flex items-center gap-3">
+											{isOwner &&
+												(!isEditing ? (
+													<div className="flex gap-2">
+														<button
+															onClick={() => startEditComment(c.id)}
+															className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
+														>
+															Edit
+														</button>
+														<button
+															onClick={() => onDeleteComment(c.id)}
+															className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
+														>
+															Delete
+														</button>
+													</div>
+												) : (
+													<div className="flex gap-2">
+														<button
+															onClick={saveEditComment}
+															className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-sky-500 text-white hover:bg-sky-600"
+														>
+															Save
+														</button>
+														<button
+															onClick={cancelEditComment}
+															className="inline-flex items-center rounded px-2 py-0.5 text-xs border text-gray-600 hover:bg-gray-50"
+														>
+															Cancel
+														</button>
+													</div>
+												))}
+
+											{/* 하트 */}
+											<button
+												onClick={() => toggleCommentLike(c.id)}
+												className="inline-flex items-center gap-1 select-none focus:outline-none"
+												aria-pressed={c.isLiked}
+												aria-label={c.isLiked ? 'Unlike comment' : 'Like comment'}
+												title="Like comment"
+											>
+												<svg
+													viewBox="0 0 24 24"
+													className={`w-4 h-4 transition-transform active:scale-95 ${
+														c.isLiked ? 'text-rose-500' : 'text-black'
+													}`}
+													fill={c.isLiked ? 'currentColor' : 'none'}
+													stroke="currentColor"
+													strokeWidth="2"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+												>
+													<path d="M21 8.25c0-2.485-2.239-4.5-5-4.5-1.747 0-3.298.802-4 2.163C11.298 4.552 9.747 3.75 8 3.75 5.239 3.75 3 5.765 3 8.25c0 7.22 9 11.25 9 11.25s9-4.03 9-11.25z" />
+												</svg>
+												<span className={`text-xs ${c.isLiked ? 'font-semibold' : ''}`}>
+													{c.likeCount}
+												</span>
+											</button>
+										</div>
 									</div>
 
-									{Number(currentUser.id) === Number(c.authorId) && (
-										<div className="flex gap-2">
-											<button className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200">
-												Edit
-											</button>
-											<button className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200">
-												Delete
-											</button>
+									{/* 본문 or 편집기 */}
+									{!isEditing ? (
+										<p className="text-[15px] leading-7 text-gray-800 whitespace-pre-wrap text-left">
+											{c.content}
+										</p>
+									) : (
+										<div>
+											<textarea
+												value={editDraft}
+												onChange={(e) => setEditDraft(e.target.value)}
+												rows={3}
+												className="w-full resize-none rounded border px-3 py-2 text-[15px] leading-7 outline-none focus:ring-2 focus:ring-sky-200"
+											/>
 										</div>
 									)}
 								</div>
-
-								<p className="text-[15px] leading-7 text-gray-800 whitespace-pre-wrap text-left">
-									{c.content}
-								</p>
 							</div>
-						</div>
-					))}
+						)
+					})}
 				</section>
 
 				{/* Add comment */}

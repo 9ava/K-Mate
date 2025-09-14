@@ -203,7 +203,6 @@ export default function KBuzzPage() {
 										<h3 className="font-semibold text-sm leading-snug line-clamp-2">
 											{article.title}
 										</h3>
-										<p className="text-xs opacity-80 mt-1">by {article.author}</p>
 									</div>
 								</div>
 							))}
