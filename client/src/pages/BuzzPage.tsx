@@ -49,7 +49,7 @@ const CATEGORIES = [
 ]
 
 export default function BuzzPage() {
-	const { isAuthed, user } = useAuth()
+	const { isAuthed } = useAuth()
 	const [buzzes, setBuzzes] = useState<Buzz[]>([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)

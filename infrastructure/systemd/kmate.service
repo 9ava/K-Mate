@@ -1,0 +1,33 @@
+[Unit]
+Description=K-Mate NestJS Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ec2-user
+WorkingDirectory=/var/www/k-mate/server
+
+# 프로덕션용 환경변수 파일 (render_env.sh가 생성)
+EnvironmentFile=/srv/k-mate/shared/k-mate.env
+# 필요시 NODE_ENV를 추가로 고정하고 싶다면 아래 한 줄도 유지 가능
+Environment=NODE_ENV=production
+
+# Node 20이 기본 node로 매핑돼 있다면 아래 줄 유지
+ExecStart=/usr/bin/node dist/main.js
+# (대안) alternatives 미적용 환경이라면 다음 줄을 사용하세요:
+# ExecStart=/usr/bin/node-20 dist/main.js
+
+Restart=always
+RestartSec=2
+TimeoutStopSec=15
+
+# journald 사용(기본). syslog 지정 라인 제거
+StandardOutput=journal
+StandardError=journal
+
+# (가벼운 하드닝/리소스)
+NoNewPrivileges=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
