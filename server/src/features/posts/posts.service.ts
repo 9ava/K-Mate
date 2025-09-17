@@ -22,8 +22,14 @@ export class PostsService {
 		const user = await this.userRepo.findOne({ where: { id: userId } })
 		if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.')
 
-		if ((dto.postType === 'tips' || dto.postType === 'trend') && user.role !== 'admin') {
-			throw new ForbiddenException('관리자만 tips/trend 게시글을 생성할 수 있습니다.')
+		if (dto.postType === 'community') {
+			// user, admin 모두 가능
+		} else if (dto.postType === 'tips' || dto.postType === 'trend') {
+			if (user.role !== 'admin') {
+				throw new ForbiddenException('관리자만 tips/trend 게시글을 생성할 수 있습니다.')
+			}
+		} else {
+			throw new ForbiddenException('알 수 없는 게시글 타입입니다.')
 		}
 
 		const entity = this.postRepo.create({
@@ -88,16 +94,19 @@ export class PostsService {
 		const user = await this.userRepo.findOne({ where: { id: userId } })
 		if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.')
 
-		// 권한 검증
 		const isOwner = post.author.id === userId
 		const isAdmin = user.role === 'admin'
-		if (!isOwner) {
-			if (post.postType === 'tips' || post.postType === 'trend') {
-				if (!isAdmin)
-					throw new ForbiddenException('관리자만 tips/trend 게시글을 수정할 수 있습니다.')
-			} else {
+
+		if (post.postType === 'community') {
+			if (!isOwner && !isAdmin) {
 				throw new ForbiddenException('작성자만 게시글을 수정할 수 있습니다.')
 			}
+		} else if (post.postType === 'tips' || post.postType === 'trend') {
+			if (!isAdmin) {
+				throw new ForbiddenException('관리자만 tips/trend 게시글을 수정할 수 있습니다.')
+			}
+		} else {
+			throw new ForbiddenException('알 수 없는 게시글 타입입니다.')
 		}
 
 		const updateData: Partial<Post> = {}
@@ -121,13 +130,17 @@ export class PostsService {
 
 		const isOwner = post.author.id === userId
 		const isAdmin = user.role === 'admin'
-		if (!isOwner) {
-			if (post.postType === 'tips' || post.postType === 'trend') {
-				if (!isAdmin)
-					throw new ForbiddenException('관리자만 tips/trend 게시글을 삭제할 수 있습니다.')
-			} else {
+
+		if (post.postType === 'community') {
+			if (!isOwner && !isAdmin) {
 				throw new ForbiddenException('작성자만 게시글을 삭제할 수 있습니다.')
 			}
+		} else if (post.postType === 'tips' || post.postType === 'trend') {
+			if (!isAdmin) {
+				throw new ForbiddenException('관리자만 tips/trend 게시글을 삭제할 수 있습니다.')
+			}
+		} else {
+			throw new ForbiddenException('알 수 없는 게시글 타입입니다.')
 		}
 
 		await this.postRepo.delete(id)

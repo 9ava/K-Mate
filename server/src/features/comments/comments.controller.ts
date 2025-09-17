@@ -53,7 +53,7 @@ export class CommentsController {
 		@Req() req: Request,
 		@Body() createCommentDto: CreateCommentDto
 	) {
-		const userId = (req.user as any).sub
+	const userId = (req.user as any).id
 		const data = await this.commentsService.createComment(postId, userId, createCommentDto)
 		return { success: true, data }
 	}
@@ -131,7 +131,7 @@ export class CommentsController {
 		@Req() req: Request,
 		@Body() updateCommentDto: UpdateCommentDto
 	) {
-		const userId = (req.user as any).sub
+	const userId = (req.user as any).id
 		const data = await this.commentsService.updateComment(id, userId, updateCommentDto)
 		return { success: true, data }
 	}
@@ -156,7 +156,7 @@ export class CommentsController {
 	@Delete(':id')
 	@UseGuards(JwtAuthGuard)
 	async deleteComment(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-		const userId = (req.user as any).sub
+	const userId = (req.user as any).id
 		await this.commentsService.deleteComment(id, userId)
 		return { success: true, message: '댓글이 삭제되었습니다.' }
 	}
