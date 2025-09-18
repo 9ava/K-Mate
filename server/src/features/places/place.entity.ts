@@ -108,4 +108,5 @@ export class Place {
 
 	@UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
 	updatedAt!: Date
+
 }

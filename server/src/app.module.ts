@@ -11,6 +11,7 @@ import { PostsModule } from './features/posts/posts.module'
 import { InteractionsModule } from './features/interactions/interactions.module'
 import { CommentsModule } from './features/comments/comments.module'
 
+
 /**
  * App Module - K-Buzz 애플리케이션 메인 모듈
  * 
@@ -26,6 +27,7 @@ import { CommentsModule } from './features/comments/comments.module'
 
 		// DB설정은 DatabaseModule에서 import
 		DatabaseModule,
+
 
 		// features - ERD 구조에 따른 모듈 구성
 		AuthModule,           // 인증 시스템 (Google OAuth + JWT)
