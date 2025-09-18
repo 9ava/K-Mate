@@ -37,32 +37,35 @@ export class AuthService {
 	 */
 	async upsertUser(gu: GoogleUser) {
 		if (!gu.google_sub) throw new Error('google_sub missing')
-
-		// 스키마가 email NOT NULL이면 email이 반드시 있어야 함
 		if (!gu.email) throw new Error('email missing from Google profile')
 
-		// TypeORM upsert (MySQL은 내부적으로 ON DUPLICATE KEY UPDATE 사용)
-		await this.users.upsert(
-			{
+		// 1) 기존 사용자 조회
+		let user = await this.users.findOne({
+			where: [{ google_sub: gu.google_sub }, { email: gu.email }],
+		})
+
+		if (user) {
+			// 2) 업데이트하되 role은 절대 건드리지 않음
+			user.google_sub = gu.google_sub
+			user.email = gu.email
+			user.name = gu.name ?? user.name ?? 'User'
+			user.avatar_url = gu.avatar_url ?? user.avatar_url ?? null
+			user.email_verified = gu.email_verified ? 1 : 0
+			await this.users.save(user)
+		} else {
+			// 3) 신규 생성 시에만 role 기본값
+			user = this.users.create({
 				google_sub: gu.google_sub,
 				email: gu.email,
 				name: gu.name ?? 'User',
 				avatar_url: gu.avatar_url ?? null,
 				email_verified: gu.email_verified ? 1 : 0,
-				role: 'user',
-			},
-			// conflictPaths는 MySQL에선 고유 키 기준으로 동작. 명시해도 무방.
-			{ conflictPaths: ['google_sub', 'email'], skipUpdateIfNoValuesChanged: true }
-		)
+				role: 'user', // ← 신규에만
+			})
+			await this.users.save(user)
+		}
 
-		// google_sub로 우선 조회, 없으면 email로 보조 조회
-		const user =
-			(await this.users.findOne({ where: { google_sub: gu.google_sub } })) ??
-			(await this.users.findOne({ where: { email: gu.email } }))
-
-		if (!user) throw new Error('upsert succeeded but user not found')
-
-		return user // { id, email, name, role, ... }
+		return user
 	}
 
 	async issueTokens(user: { id: number; email?: string; role?: UserRole }) {

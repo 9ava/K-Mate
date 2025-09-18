@@ -13,8 +13,8 @@ export class AppController {
 	}
 
 	// Catch-all route to serve React app for client-side routing
-	@Get('*')
-	serveFrontend(@Res() res: Response): void {
-		res.sendFile(join(__dirname, '..', 'public', 'index.html'))
-	}
+	// @Get('*')
+	// serveFrontend(@Res() res: Response): void {
+	// 	res.sendFile(join(__dirname, '..', 'public', 'index.html'))
+	// }
 }

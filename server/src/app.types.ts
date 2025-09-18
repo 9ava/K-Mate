@@ -5,6 +5,7 @@ declare global {
 	namespace Express {
 		// Passport가 채워줄 사용자 타입
 		interface User {
+			id: number
 			google_sub: string
 			email?: string
 			name?: string

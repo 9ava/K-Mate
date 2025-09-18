@@ -1,51 +1,26 @@
-// src/features/auth/useAuth.ts
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { api } from '../../api/client'
-
-type User = { sub: number | string; email?: string; role?: 'user' | 'admin' }
+import { useMemo } from 'react'
+import { useAuthStore } from './auth.store'
 
 export function useAuth() {
-	const [user, setUser] = useState<User | null>(null)
-	const [ready, setReady] = useState(false)
-	const didInitRef = useRef(false)
-
-	const refresh = useCallback(async () => {
-		try {
-			const { data } = await api.get<User | null>('/auth/me') // 항상 200
-			setUser(data ?? null)
-		} catch {
-			setUser(null) // 네트워크 에러 등
-		} finally {
-			setReady(true)
-		}
-	}, [])
-
-	useEffect(() => {
-		if (didInitRef.current) return
-		didInitRef.current = true
-		void refresh()
-	}, [refresh])
-
-	const loginWithGoogle = () => {
-		const redirectUri = `${window.location.origin}/auth/callback`
-		window.location.href = `${
-			import.meta.env.VITE_API_URL
-		}/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`
-	}
-
-	const logout = async () => {
-		try {
-			await api.post('/auth/logout') // 204 기대
-		} finally {
-			setUser(null)
-			setReady(true)
-		}
-	}
-
-	const isAuthed = !!user
+	const user = useAuthStore((s) => s.user)
+	const ready = useAuthStore((s) => s.ready)
+	const bootstrap = useAuthStore((s) => s.bootstrap)
+	const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle)
+	const logout = useAuthStore((s) => s.logout)
+	const isAuthed = useAuthStore((s) => s.isAuthed())
+	const role = (user?.role ?? 'user') as 'user' | 'admin'
 	const email = user?.email
-	const role = user?.role ?? 'user'
 	const initial = useMemo(() => (email ? (email[0] || 'U').toUpperCase() : 'U'), [email])
 
-	return { user, isAuthed, ready, email, role, initial, refresh, loginWithGoogle, logout }
+	return {
+		user,
+		isAuthed,
+		ready,
+		email,
+		role,
+		initial,
+		refresh: bootstrap,
+		loginWithGoogle,
+		logout,
+	}
 }
