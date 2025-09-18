@@ -1,0 +1,12 @@
+{
+	"app": { "title": "K-Mate" },
+	"nav": {
+		"kmap": "K-맵",
+		"kcourse": "K-코스",
+		"kbuzz": "K-버즈"
+	},
+	"auth": {
+		"continue_google": "구글로 계속하기",
+		"signout": "로그아웃"
+	}
+}

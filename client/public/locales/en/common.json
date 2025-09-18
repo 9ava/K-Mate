@@ -1,0 +1,12 @@
+{
+	"app": { "title": "K-Mate" },
+	"nav": {
+		"kmap": "K-Map",
+		"kcourse": "K-Course",
+		"kbuzz": "K-Buzz"
+	},
+	"auth": {
+		"continue_google": "Continue with Google",
+		"signout": "Sign out"
+	}
+}
