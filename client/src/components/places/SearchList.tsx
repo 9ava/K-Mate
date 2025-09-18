@@ -1,21 +1,23 @@
+// src/components/places/SearchList.tsx
 import type { Place } from '../../types/place'
 
 export type SearchListProps = {
 	places: Place[]
 	onSelect: (p: Place) => void
+	title?: string // ✅ 추가
 }
 
-export default function SearchList({ places, onSelect }: SearchListProps) {
+export default function SearchList({ places, onSelect, title = '인기 장소 🌟' }: SearchListProps) {
 	return (
 		<aside
 			className="
         h-full w-96 shrink-0 max-w-[90vw]
         bg-white border-r border-gray-200 overflow-y-auto
-      "
+    "
 			role="dialog"
-			aria-label="인기 장소"
+			aria-label={title}
 		>
-			<div className="p-4 text-lg font-bold border-b">인기 장소 🌟</div>
+			<div className="p-4 text-lg font-bold border-b">{title}</div>
 			<ul>
 				{places.map((p, i) => (
 					<li

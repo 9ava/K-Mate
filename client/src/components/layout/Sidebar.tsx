@@ -1,15 +1,17 @@
+// src/components/layout/Sidebar.tsx
 import type React from 'react'
 import type { PlaceType } from '../../types/place'
 
 type Props = {
 	active?: PlaceType | ''
-	onSelect?: (t: PlaceType) => void
+	onSelectType?: (t: PlaceType) => void
+	onShowBookmarks?: () => void // ✅ 추가
 }
 
-const Sidebar: React.FC<Props> = ({ active = '', onSelect }) => {
-	const menuItems: Array<{ icon: string; label: string; type?: PlaceType }> = [
+const Sidebar: React.FC<Props> = ({ active = '', onSelectType, onShowBookmarks }) => {
+	const menuItems: Array<{ icon: string; label: string; type?: PlaceType; action?: () => void }> = [
 		{ icon: '☰', label: 'Menu' },
-		{ icon: '🔖', label: 'Bookmark' },
+		{ icon: '🔖', label: 'Bookmark', action: onShowBookmarks }, 
 		{ icon: '📍', label: 'K-Travel', type: 'travel' },
 		{ icon: '🍽️', label: 'K-Food', type: 'food' },
 		{ icon: '☕', label: 'K-Cafe', type: 'cafe' },
@@ -24,7 +26,7 @@ const Sidebar: React.FC<Props> = ({ active = '', onSelect }) => {
 					<button
 						key={idx}
 						title={item.label}
-						onClick={() => item.type && onSelect?.(item.type)}
+						onClick={() => (item.type ? onSelectType?.(item.type) : item.action?.())}
 						className={[
 							'flex items-center justify-center w-10 h-10 rounded-lg transition-colors',
 							isCategory

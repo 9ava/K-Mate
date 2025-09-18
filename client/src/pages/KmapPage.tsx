@@ -3,9 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
 import { listPlaces, getPlaceDetail } from '../api/places'
+import { listMyBookmarks } from '../api/bookmarks' 
 import type { Place, PlaceType } from '../types/place'
 import SidePanel from '../components/places/SidePanel'
 import SearchList from '../components/places/SearchList'
+
+type Mode = 'type' | 'bookmarks'
 
 export default function KmapPage() {
 	const mapRef = useRef<HTMLDivElement>(null)
@@ -13,10 +16,12 @@ export default function KmapPage() {
 	const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
 	const infoRef = useRef<google.maps.InfoWindow | null>(null)
 
+	const [mode, setMode] = useState<Mode>('type') // ✅ 현재 보기 모드
 	const [type, setType] = useState<PlaceType | ''>('food')
 	const [loading, setLoading] = useState(false)
 	const [selected, setSelected] = useState<Place | null>(null)
 	const [places, setPlaces] = useState<Place[]>([])
+	const [listTitle, setListTitle] = useState('인기 장소 🌟')
 
 	const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 	const ENV_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined
@@ -57,23 +62,54 @@ export default function KmapPage() {
 		}
 	}, [loader, MAP_ID])
 
-	// 타입 변경 시: 서버에서 목록 로드 → 마커 렌더
+	// 모드/타입 변화에 따라 목록 불러오기
 	useEffect(() => {
-		if (!type || !mapObjRef.current) return
+		if (!mapObjRef.current) return
 		;(async () => {
 			setLoading(true)
 			try {
-				const res = await listPlaces({ type, page: 1, pageSize: 200 })
-				setPlaces(res.items || [])
-				await renderMarkers(res.items || [])
-				fitBounds(res.items || [])
-				setSelected(null)
+				if (mode === 'type') {
+					setListTitle(
+						type === 'travel' ? 'K-Travel 🌍' : type === 'food' ? 'K-Food 🍽️' : 'K-Cafe ☕'
+					)
+					const res = await listPlaces({ type: type || 'food', page: 1, pageSize: 200 })
+					setPlaces(res.items || [])
+					await renderMarkers(res.items || [])
+					fitBounds(res.items || [])
+					setSelected(null)
+				} else {
+					// bookmarks 모드
+					setListTitle('내 북마크 🔖')
+					const rows = await listMyBookmarks()
+					// 북마크 응답 -> Place 형태로 매핑 (상세는 openPlace에서 서버로 조회)
+					const items: Place[] = rows.map((r, i) => ({
+						id: i, // 임시 키
+						googlePlaceId: r.placeId,
+						type: (r.type as PlaceType | undefined) ?? null,
+						name: r.name,
+						address: r.address,
+						lat: r.lat,
+						lng: r.lng,
+						phone: null,
+						website: null,
+						googleMapsUrl: r.googleMapsUrl,
+						openingHoursJson: null,
+						photosJson: null,
+						sourceTypesJson: null,
+						typeSource: undefined,
+						description: null,
+					}))
+					setPlaces(items)
+					await renderMarkers(items)
+					fitBounds(items)
+					setSelected(null)
+				}
 			} finally {
 				setLoading(false)
 			}
 		})()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [type])
+	}, [mode, type])
 
 	const clearMarkers = () => {
 		markersRef.current.forEach((m) => (m.map = null))
@@ -88,7 +124,7 @@ export default function KmapPage() {
 			'marker'
 		)) as google.maps.MarkerLibrary
 
-		markersRef.current = items.map((p, i) => {
+		markersRef.current = items.map((p) => {
 			const marker = new AdvancedMarkerElement({
 				map,
 				position: { lat: p.lat, lng: p.lng },
@@ -112,17 +148,14 @@ export default function KmapPage() {
 		const map = mapObjRef.current
 		if (!map) return
 
-		// 지도 포커스
 		map.panTo({ lat: p.lat, lng: p.lng })
 		map.setZoom(Math.max(map.getZoom() ?? 12, 14))
 
-		// 서버 상세 호출 (DB 캐시 30일 정책)
 		try {
 			setLoading(true)
 			const full = await getPlaceDetail(p.googlePlaceId)
 			setSelected(full)
 		} catch {
-			// 실패 시 기본정보만 표시
 			setSelected(p)
 		} finally {
 			setLoading(false)
@@ -131,17 +164,30 @@ export default function KmapPage() {
 
 	const handleClose = () => setSelected(null)
 
+	// 사이드바 핸들러
+	const handleSelectType = (t: PlaceType) => {
+		setMode('type')
+		setType(t)
+	}
+	const handleShowBookmarks = () => {
+		setMode('bookmarks')
+	}
+
 	return (
 		<div>
 			<div className="fixed inset-x-0 bottom-0 flex top-14">
 				{/* 왼쪽 카테고리 사이드바 */}
 				<div className="w-16 bg-white border-r shrink-0">
-					<Sidebar active={type} onSelect={setType} />
+					<Sidebar
+						active={mode === 'type' ? type : ''}
+						onSelectType={handleSelectType}
+						onShowBookmarks={handleShowBookmarks}
+					/>
 					<div className="p-2 text-xs text-center">{loading ? 'Loading…' : ''}</div>
 				</div>
 
 				{/* 좌측 검색 결과 패널 */}
-				<SearchList places={places} onSelect={openPlace} />
+				<SearchList places={places} onSelect={openPlace} title={listTitle} />
 
 				{/* 상세 패널 */}
 				{selected && <SidePanel place={selected} onClose={handleClose} />}
