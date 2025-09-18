@@ -47,9 +47,10 @@ export class PostsController {
 	@ApiForbiddenResponse({ description: '권한 없음 (tips/trend는 관리자만)' })
 	@ApiCookieAuth('access_token')
 	@Post()
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin', 'user')
 	async createPost(@Req() req: Request, @Body() createPostDto: CreatePostDto) {
-		const userId = (req.user as any).sub
+	const userId = (req.user as any).id
 		const data = await this.postsService.createPost(userId, createPostDto)
 		return { success: true, data }
 	}
@@ -128,13 +129,14 @@ export class PostsController {
 	@ApiParam({ name: 'id', type: Number, description: '게시글 ID' })
 	@ApiCookieAuth('access_token')
 	@Put(':id')
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin', 'user')
 	async updatePost(
 		@Param('id', ParseIntPipe) id: number,
 		@Req() req: Request,
 		@Body() updatePostDto: UpdatePostDto
 	) {
-		const userId = (req.user as any).sub
+	const userId = (req.user as any).id
 		const data = await this.postsService.updatePost(id, userId, updatePostDto)
 		return { success: true, data }
 	}
@@ -157,9 +159,10 @@ export class PostsController {
 	@ApiParam({ name: 'id', type: Number, description: '게시글 ID' })
 	@ApiCookieAuth('access_token')
 	@Delete(':id')
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin', 'user')
 	async deletePost(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-		const userId = (req.user as any).sub
+	const userId = (req.user as any).id
 		await this.postsService.deletePost(id, userId)
 		return { success: true, message: '게시글이 삭제되었습니다.' }
 	}
@@ -229,9 +232,10 @@ export class PostsController {
 	@ApiParam({ name: 'id', type: Number, description: '게시글 ID' })
 	@ApiCookieAuth('access_token')
 	@Post('buzz/:id/like')
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin', 'user')
 	async likeBuzzPost(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-		const userId = (req.user as any).sub
+	const userId = (req.user as any).id
 		await this.postsService.likePost(id, userId)
 		return { success: true, message: '좋아요가 추가되었습니다.' }
 	}

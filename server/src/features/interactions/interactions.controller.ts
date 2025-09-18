@@ -66,7 +66,7 @@ export class InteractionsController {
 	@Post('toggle')
 	@UseGuards(JwtAuthGuard)
 	async toggleInteraction(@Req() req: Request, @Body() dto: CreateInteractionDto) {
-		const userId = (req.user as any).id ?? (req.user as any).sub
+	const userId = (req.user as any).id
 		const data = await this.interactionsService.toggleInteraction(userId, dto)
 		return { success: true, data }
 	}
@@ -153,7 +153,7 @@ export class InteractionsController {
 	@Delete(':id')
 	@UseGuards(JwtAuthGuard)
 	async deleteInteraction(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-		const userId = (req.user as any).id ?? (req.user as any).sub
+	const userId = (req.user as any).id
 		await this.interactionsService.deleteInteraction(id, userId)
 		return { success: true }
 	}

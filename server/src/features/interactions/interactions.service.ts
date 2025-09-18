@@ -135,7 +135,9 @@ export class InteractionsService {
 	async deleteInteraction(id: number, userId: number): Promise<void> {
 		const it = await this.interactionRepo.findOne({ where: { id }, relations: ['user'] })
 		if (!it) throw new NotFoundException('상호작용을 찾을 수 없습니다.')
-		if (it.user.id !== userId) throw new ForbiddenException('본인의 상호작용만 삭제할 수 있습니다.')
+		if (it.user.id !== userId) {
+			throw new ForbiddenException('본인의 상호작용만 삭제할 수 있습니다.')
+		}
 		await this.interactionRepo.delete(id)
 	}
 

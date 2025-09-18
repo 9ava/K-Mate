@@ -97,22 +97,20 @@ export class CommentsService {
 			where: { id },
 			relations: ['user', 'post']
 		})
-
 		if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.')
 
-		// 작성자만 수정 가능
-		if (comment.user.id !== userId) {
-			throw new ForbiddenException('작성자만 댓글을 수정할 수 있습니다.')
+		// 작성자 또는 admin만 수정 가능
+		const user = await this.userRepo.findOne({ where: { id: userId } })
+		if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.')
+		if (comment.user.id !== userId && user.role !== 'admin') {
+			throw new ForbiddenException('작성자 또는 관리자만 댓글을 수정할 수 있습니다.')
 		}
 
 		await this.commentRepo.update(id, { content: updateCommentDto.content })
-
-		// 업데이트된 댓글 조회
 		const updatedComment = await this.commentRepo.findOne({
 			where: { id },
 			relations: ['user', 'post']
 		})
-
 		return this.formatCommentResponse(updatedComment!)
 	}
 
@@ -125,12 +123,13 @@ export class CommentsService {
 			where: { id },
 			relations: ['user']
 		})
-
 		if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.')
 
-		// 작성자만 삭제 가능
-		if (comment.user.id !== userId) {
-			throw new ForbiddenException('작성자만 댓글을 삭제할 수 있습니다.')
+		// 작성자 또는 admin만 삭제 가능
+		const user = await this.userRepo.findOne({ where: { id: userId } })
+		if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.')
+		if (comment.user.id !== userId && user.role !== 'admin') {
+			throw new ForbiddenException('작성자 또는 관리자만 댓글을 삭제할 수 있습니다.')
 		}
 
 		await this.commentRepo.delete(id)
