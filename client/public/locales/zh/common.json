@@ -1,0 +1,12 @@
+{
+	"app": { "title": "K-Mate" },
+	"nav": {
+		"kmap": "K-地图",
+		"kcourse": "K-行程",
+		"kbuzz": "K-社区"
+	},
+	"auth": {
+		"continue_google": "使用 Google 继续",
+		"signout": "退出登录"
+	}
+}

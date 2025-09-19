@@ -17,6 +17,6 @@ export class JwtCookieStrategy extends PassportStrategy(Strategy, 'jwt-cookie') 
 
 	async validate(payload: any) {
 		// req.user에 들어갈 값
-		return { sub: payload.sub, email: payload.email, role: payload.role ?? 'user' }
+		return { id: payload.sub, email: payload.email, role: payload.role ?? 'user' }
 	}
 }

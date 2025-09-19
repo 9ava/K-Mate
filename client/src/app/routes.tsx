@@ -5,6 +5,9 @@ import KmapPage from '../pages/KmapPage'
 import AuthCallbackPage from '../pages/AuthCallbackPage'
 import LoginPage from '../pages/LoginPage'
 import PlannerPage from '../pages/PlannerPage'
+import KBuzzPage from '../pages/KBuzzPage'
+import CommunityDetailPage from '../pages/KBuzz/CommunityDetailPage'
+import TrendDetailPage from '../pages/KBuzz/TrendDetailPage'
 
 const AppRouter = () => {
 	return (
@@ -14,10 +17,12 @@ const AppRouter = () => {
 				<Routes>
 					<Route path="/" element={<MainPage />} />
 					<Route path="/auth/callback" element={<AuthCallbackPage />} />
-					<Route path="/kmap" element={<KmapPage />} />
 					<Route path="/login" element={<LoginPage />} />
 					<Route path="/planner" element={<PlannerPage />} />
-					{/* 여기에 /course, /buzz 도 추가 가능 */}
+					<Route path="/kmap" element={<KmapPage />} />
+					<Route path="/buzz" element={<KBuzzPage />} />
+					<Route path="/buzz/post/:id" element={<CommunityDetailPage />} />
+					<Route path="/buzz/trend/:id" element={<TrendDetailPage />} />
 				</Routes>
 			</main>
 		</BrowserRouter>
