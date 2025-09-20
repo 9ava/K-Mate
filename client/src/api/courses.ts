@@ -42,26 +42,17 @@ export async function createCourse(courseData: CreateCourseRequest): Promise<Cre
  * @returns 내가 작성한 코스 목록
  */
 export async function getMyCourses(): Promise<GetCoursesResponse> {
-	const url = `${API_BASE}/courses?me=true`
-	console.log('🔍 Requesting my courses:', url)
-	
-	const response = await fetch(url, {
+	const response = await fetch(`${API_BASE}/courses?me=true`, {
 		method: 'GET',
 		credentials: 'include', // JWT 쿠키 인증을 위해 필수
 	})
 
-	console.log('📡 My courses response status:', response.status)
-	console.log('📡 My courses response headers:', Object.fromEntries(response.headers.entries()))
-
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')
-		console.error('❌ My courses error response:', errorText)
 		throw new Error(errorText || `Failed to fetch my courses: ${response.status}`)
 	}
 
-	const data = await response.json()
-	console.log('✅ My courses data:', data)
-	return data
+	return response.json()
 }
 
 /**
@@ -74,26 +65,17 @@ export async function getPublicCourses(
 	page: number = 1,
 	limit: number = 10
 ): Promise<GetCoursesResponse> {
-	const url = `${API_BASE}/courses/public?page=${page}&limit=${limit}`
-	console.log('🔍 Requesting public courses:', url)
-	
-	const response = await fetch(url, {
+	const response = await fetch(`${API_BASE}/courses/public?page=${page}&limit=${limit}`, {
 		method: 'GET',
 		// 공개 코스는 인증 불필요
 	})
 
-	console.log('📡 Public courses response status:', response.status)
-	console.log('📡 Public courses response headers:', Object.fromEntries(response.headers.entries()))
-
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')
-		console.error('❌ Public courses error response:', errorText)
 		throw new Error(errorText || `Failed to fetch public courses: ${response.status}`)
 	}
 
-	const data = await response.json()
-	console.log('✅ Public courses data:', data)
-	return data
+	return response.json()
 }
 
 /**

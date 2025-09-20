@@ -165,9 +165,17 @@ function MyTravelCourse({ onCreate, courses, loading }: {
 
 /* --- TravelCourseCard --- */
 function TravelCourseCard({ course }: { course: TravelCourse }) {
+	const navigate = useNavigate()
+
+	const handleClick = () => {
+		navigate(`/kcourse/${course.id}`)
+	}
 
 	return (
-		<div className="overflow-hidden transition-all duration-300 border border-gray-200 rounded-lg cursor-pointer group hover:shadow-lg">
+		<div 
+			className="overflow-hidden transition-all duration-300 border border-gray-200 rounded-lg cursor-pointer group hover:shadow-lg"
+			onClick={handleClick}
+		>
 			<div className="relative">
 				<img
 					src={course.image || '/placeholder.svg'}
@@ -175,7 +183,11 @@ function TravelCourseCard({ course }: { course: TravelCourse }) {
 					className="object-cover w-full h-48 transition-transform duration-300 group-hover:scale-105"
 				/>
 
-
+				{course.category === 'cultural' && (
+					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
+						<div className="w-4 h-4 bg-blue-400 rounded-full" />
+					</div>
+				)}
 				{course.category === 'coastal' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
 						<div className="w-4 h-4 bg-gray-400 rounded-full" />
@@ -188,7 +200,7 @@ function TravelCourseCard({ course }: { course: TravelCourse }) {
 				)}
 				{course.category === 'nature' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
-						<div className="w-4 h-4 bg-blue-400 rounded-full" />
+						<div className="w-4 h-4 bg-green-400 rounded-full" />
 					</div>
 				)}
 			</div>
@@ -314,22 +326,15 @@ export default function KCoursePage() {
 
 	// 내 코스 데이터 로드
 	const loadMyCourses = async () => {
-		if (!isAuthed) {
-			console.log('🔒 User not authenticated, skipping my courses load')
-			return
-		}
+		if (!isAuthed) return
 		
 		try {
-			console.log('🔄 Loading my courses...')
 			setMyCoursesLoading(true)
 			const response = await getMyCourses()
-			console.log('✅ My courses loaded successfully:', response.data.length, 'courses')
 			const convertedCourses = response.data.map(courseToTravelCourse)
 			setMyCourses(convertedCourses)
 		} catch (error) {
-			console.error('❌ Failed to load my courses:', error)
-			// 사용자에게 친화적인 메시지 표시 (옵션)
-			// alert('내 코스를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.')
+			console.error('Failed to load my courses:', error)
 			setMyCourses([])
 		} finally {
 			setMyCoursesLoading(false)
@@ -339,15 +344,12 @@ export default function KCoursePage() {
 	// 공개 코스 데이터 로드
 	const loadPublicCourses = async () => {
 		try {
-			console.log('🔄 Loading public courses...')
 			setPublicCoursesLoading(true)
 			const response = await getPublicCourses(1, 12) // 첫 페이지에서 12개 가져오기
-			console.log('✅ Public courses loaded successfully:', response.data.length, 'courses')
 			const convertedCourses = response.data.map(courseToTravelCourse)
 			setPublicCourses(convertedCourses)
 		} catch (error) {
-			console.error('❌ Failed to load public courses:', error)
-			// 공개 코스 로드 실패 시 빈 배열로 설정 (기본 데이터가 표시됨)
+			console.error('Failed to load public courses:', error)
 			setPublicCourses([])
 		} finally {
 			setPublicCoursesLoading(false)
