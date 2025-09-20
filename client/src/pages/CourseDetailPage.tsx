@@ -1,9 +1,9 @@
 // src/pages/CourseDetailPage.tsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getCourse } from '../api/courses'
+import { getCourse, updateCourse, deleteCourse, saveCourse, unsaveCourse } from '../api/courses'
 import { useAuth } from '../features/auth/useAuth'
-import type { Course } from '../types/course'
+import type { Course, CreateCourseRequest } from '../types/course'
 import MapCanvas from '../components/map/MapCanvas'
 import CoursePanel from '../components/course/CoursePanel'
 import SearchPanel from '../components/search/SearchPanel'
@@ -20,6 +20,9 @@ export default function CourseDetailPage() {
 	const [error, setError] = useState<string | null>(null)
 	const [isEditing, setIsEditing] = useState(false)
 	const [stops, setStops] = useState<Stop[]>([])
+	const [isSaved, setIsSaved] = useState(false)
+	const [saving, setSaving] = useState(false)
+	const [actionLoading, setActionLoading] = useState(false)
 
 	// 코스 데이터를 Stop 배열로 변환
 	const convertCourseToStops = (courseData: Course): Stop[] => {
@@ -48,6 +51,10 @@ export default function CourseDetailPage() {
 				setCourse(response.data)
 				const convertedStops = convertCourseToStops(response.data)
 				setStops(convertedStops)
+				
+				// TODO: 저장 상태 확인 API 추가 시 구현
+				// 임시로 false로 설정
+				setIsSaved(false)
 			} catch (err: any) {
 				setError(err.message || '코스를 불러오는데 실패했습니다.')
 			} finally {
@@ -69,10 +76,75 @@ export default function CourseDetailPage() {
 	}
 
 	// 저장 함수 (편집 모드에서만 사용)
-	const handleSave = async (_payload: { title: string; visibility: 'public' | 'private' }) => {
-		// TODO: 코스 업데이트 API 구현 필요
-		alert('코스 업데이트 기능은 아직 구현되지 않았습니다.')
-		setIsEditing(false)
+	const handleSave = async (payload: { title: string; visibility: 'public' | 'private' }) => {
+		if (!course || !courseId) return
+
+		try {
+			setSaving(true)
+			const courseData: CreateCourseRequest = {
+				title: payload.title.trim(),
+				visibility: payload.visibility,
+				stops: stops.map((s, idx) => ({
+					order: idx + 1,
+					name: s.name,
+					lat: s.lat,
+					lng: s.lng,
+					externalId: s.id,
+					provider: 'kakao',
+				})),
+			}
+
+			const response = await updateCourse(courseId, courseData)
+			setCourse(response.data)
+			setIsEditing(false)
+			alert('코스가 수정되었습니다.')
+		} catch (error: any) {
+			alert(`수정 실패: ${error?.message ?? error}`)
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	// 코스 삭제
+	const handleDelete = async () => {
+		if (!course || !courseId) return
+
+		if (!confirm('정말로 이 코스를 삭제하시겠습니까?')) {
+			return
+		}
+
+		try {
+			setActionLoading(true)
+			await deleteCourse(courseId)
+			alert('코스가 삭제되었습니다.')
+			navigate('/kcourse')
+		} catch (error: any) {
+			alert(`삭제 실패: ${error?.message ?? error}`)
+		} finally {
+			setActionLoading(false)
+		}
+	}
+
+	// 코스 저장/저장취소
+	const handleSaveToggle = async () => {
+		if (!courseId) return
+
+		try {
+			setActionLoading(true)
+			if (isSaved) {
+				await unsaveCourse(courseId)
+				setIsSaved(false)
+				alert('코스 저장이 취소되었습니다.')
+			} else {
+				await saveCourse(courseId)
+				setIsSaved(true)
+				alert('코스가 저장되었습니다.')
+			}
+		} catch (error: any) {
+			alert(`${isSaved ? '저장취소' : '저장'} 실패: ${error?.message ?? error}`)
+		} finally {
+			setActionLoading(false)
+		}
 	}
 
 	if (loading) {
@@ -131,18 +203,45 @@ export default function CourseDetailPage() {
 							</div>
 						</div>
 					</div>
-					{isMyCase && (
-						<button
-							onClick={toggleEdit}
-							className={`px-4 py-2 rounded-lg font-medium ${
-								isEditing 
-									? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
-									: 'bg-blue-600 text-white hover:bg-blue-700'
-							}`}
-						>
-							{isEditing ? '편집 취소' : '편집'}
-						</button>
-					)}
+					<div className="flex items-center gap-2">
+						{/* 저장/저장취소 버튼 (남의 것만) */}
+						{!isMyCase && (
+							<button
+								onClick={handleSaveToggle}
+								disabled={actionLoading}
+								className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+									isSaved
+										? 'bg-green-100 text-green-700 hover:bg-green-200'
+										: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+								} disabled:opacity-50`}
+							>
+								{actionLoading ? '처리중...' : (isSaved ? '저장됨 ✓' : '저장')}
+							</button>
+						)}
+						
+						{/* 편집/삭제 버튼 (내 것만) */}
+						{isMyCase && (
+							<>
+								<button
+									onClick={handleDelete}
+									disabled={actionLoading}
+									className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
+								>
+									{actionLoading ? '삭제중...' : '삭제'}
+								</button>
+								<button
+									onClick={toggleEdit}
+									className={`px-4 py-2 rounded-lg font-medium ${
+										isEditing 
+											? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+											: 'bg-blue-600 text-white hover:bg-blue-700'
+									}`}
+								>
+									{isEditing ? '편집 취소' : '편집'}
+								</button>
+							</>
+						)}
+					</div>
 				</div>
 			</div>
 
@@ -172,7 +271,7 @@ export default function CourseDetailPage() {
 							stops={stops} 
 							setStops={setStops} 
 							onSave={handleSave}
-							saving={false}
+							saving={saving}
 						/>
 					</aside>
 				</div>

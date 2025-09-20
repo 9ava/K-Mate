@@ -4,6 +4,7 @@ import { CoursesController } from './courses.controller'
 import { CoursesService } from './courses.service'
 import { Course } from './course.entity'
 import { CourseStop } from './course-stop.entity'
+import { SavedCourse } from './saved-course.entity'
 
 /**
  * 여행 코스 모듈
@@ -12,7 +13,7 @@ import { CourseStop } from './course-stop.entity'
  * - JWT 쿠키 인증 기반 접근 제어
  */
 @Module({
-	imports: [TypeOrmModule.forFeature([Course, CourseStop])],
+	imports: [TypeOrmModule.forFeature([Course, CourseStop, SavedCourse])],
 	controllers: [CoursesController],
 	providers: [CoursesService],
 	exports: [CoursesService], 

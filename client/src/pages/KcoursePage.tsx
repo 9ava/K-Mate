@@ -85,9 +85,10 @@ function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (
 }
 
 /* --- MyTravelCourse (실제 데이터) --- */
-function MyTravelCourse({ onCreate, courses, loading }: { 
+function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: { 
 	onCreate: () => void
-	courses: TravelCourse[]
+	myCourses: TravelCourse[]
+	savedCourses: TravelCourse[]
 	loading: boolean
 }) {
 	if (loading) {
@@ -111,7 +112,9 @@ function MyTravelCourse({ onCreate, courses, loading }: {
 		)
 	}
 
-	if (courses.length === 0) {
+	const allCourses = [...myCourses, ...savedCourses]
+
+	if (allCourses.length === 0) {
 		return (
 			<section className="py-12 bg-white">
 				<div className="container px-4 mx-auto">
@@ -153,18 +156,42 @@ function MyTravelCourse({ onCreate, courses, loading }: {
 					</button>
 				</div>
 
-				<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-					{courses.map((course) => (
-						<TravelCourseCard key={course.id} course={course} />
-					))}
-				</div>
+				{/* 내가 만든 코스 섹션 */}
+				{myCourses.length > 0 && (
+					<div className="mb-12">
+						<div className="flex items-center gap-2 mb-4">
+							<h3 className="text-xl font-semibold text-gray-800">내가 만든 코스</h3>
+							<span className="text-sm text-gray-500">({myCourses.length}개)</span>
+						</div>
+						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+							{myCourses.map((course) => (
+								<TravelCourseCard key={`my-${course.id}`} course={course} isOwned={true} />
+							))}
+						</div>
+					</div>
+				)}
+
+				{/* 저장한 코스 섹션 */}
+				{savedCourses.length > 0 && (
+					<div>
+						<div className="flex items-center gap-2 mb-4">
+							<h3 className="text-xl font-semibold text-gray-800">저장한 코스</h3>
+							<span className="text-sm text-gray-500">({savedCourses.length}개)</span>
+						</div>
+						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+							{savedCourses.map((course) => (
+								<TravelCourseCard key={`saved-${course.id}`} course={course} isOwned={false} />
+							))}
+						</div>
+					</div>
+				)}
 			</div>
 		</section>
 	)
 }
 
 /* --- TravelCourseCard --- */
-function TravelCourseCard({ course }: { course: TravelCourse }) {
+function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?: boolean }) {
 	const navigate = useNavigate()
 
 	const handleClick = () => {
@@ -182,6 +209,19 @@ function TravelCourseCard({ course }: { course: TravelCourse }) {
 					alt={course.title}
 					className="object-cover w-full h-48 transition-transform duration-300 group-hover:scale-105"
 				/>
+
+				{/* 소유 여부 표시 */}
+				{isOwned !== undefined && (
+					<div className="absolute top-3 left-3">
+						<span className={`px-2 py-1 text-xs font-medium rounded-full ${
+							isOwned 
+								? 'bg-blue-100 text-blue-800' 
+								: 'bg-green-100 text-green-800'
+						}`}>
+							{isOwned ? '내 코스' : '저장됨'}
+						</span>
+					</div>
+				)}
 
 				{course.category === 'cultural' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
@@ -316,6 +356,7 @@ function TravelCourseGrid({
 export default function KCoursePage() {
 	const [activeTab, setActiveTab] = useState<Tab>('monthly-best')
 	const [myCourses, setMyCourses] = useState<TravelCourse[]>([])
+	const [savedCourses, setSavedCourses] = useState<TravelCourse[]>([])
 	const [publicCourses, setPublicCourses] = useState<TravelCourse[]>([])
 	const [myCoursesLoading, setMyCoursesLoading] = useState(false)
 	const [publicCoursesLoading, setPublicCoursesLoading] = useState(false)
@@ -331,11 +372,23 @@ export default function KCoursePage() {
 		try {
 			setMyCoursesLoading(true)
 			const response = await getMyCourses()
-			const convertedCourses = response.data.map(courseToTravelCourse)
-			setMyCourses(convertedCourses)
+			
+			// 새로운 API 응답 구조에 맞게 처리
+			if (typeof response.data === 'object' && 'myCourses' in response.data) {
+				const myConvertedCourses = response.data.myCourses.map(courseToTravelCourse)
+				const savedConvertedCourses = response.data.savedCourses.map(courseToTravelCourse)
+				setMyCourses(myConvertedCourses)
+				setSavedCourses(savedConvertedCourses)
+			} else {
+				// 기존 배열 형식인 경우 (호환성)
+				const convertedCourses = (response.data as Course[]).map(courseToTravelCourse)
+				setMyCourses(convertedCourses)
+				setSavedCourses([])
+			}
 		} catch (error) {
 			console.error('Failed to load my courses:', error)
 			setMyCourses([])
+			setSavedCourses([])
 		} finally {
 			setMyCoursesLoading(false)
 		}
@@ -346,7 +399,7 @@ export default function KCoursePage() {
 		try {
 			setPublicCoursesLoading(true)
 			const response = await getPublicCourses(1, 12) // 첫 페이지에서 12개 가져오기
-			const convertedCourses = response.data.map(courseToTravelCourse)
+			const convertedCourses = (response.data as Course[]).map(courseToTravelCourse)
 			setPublicCourses(convertedCourses)
 		} catch (error) {
 			console.error('Failed to load public courses:', error)
@@ -374,7 +427,8 @@ export default function KCoursePage() {
 			{activeTab === 'my-course' ? (
 				<MyTravelCourse 
 					onCreate={goPlanner} 
-					courses={myCourses}
+					myCourses={myCourses}
+					savedCourses={savedCourses}
 					loading={myCoursesLoading}
 				/>
 			) : (

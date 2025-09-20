@@ -56,7 +56,10 @@ export interface CreateCourseResponse {
 
 export interface GetCoursesResponse {
 	success: boolean
-	data: Course[]
+	data: Course[] | {
+		myCourses: Course[]
+		savedCourses: Course[]
+	}
 	pagination?: {
 		page: number
 		limit: number

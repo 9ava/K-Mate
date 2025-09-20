@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, DataSource } from 'typeorm'
 import { Course } from './course.entity'
 import { CourseStop } from './course-stop.entity'
+import { SavedCourse } from './saved-course.entity'
 import { CreateCourseDto } from './create-course.dto'
 
 /**
@@ -16,6 +17,7 @@ export class CoursesService {
 	constructor(
 		@InjectRepository(Course) private readonly courseRepo: Repository<Course>,
 		@InjectRepository(CourseStop) private readonly stopRepo: Repository<CourseStop>,
+		@InjectRepository(SavedCourse) private readonly savedCourseRepo: Repository<SavedCourse>,
 		private readonly dataSource: DataSource
 	) {}
 
@@ -130,5 +132,154 @@ export class CoursesService {
 				totalPages: Math.ceil(total / limit),
 			},
 		}
+	}
+
+	/**
+	 * 코스 업데이트
+	 * - 작성자만 수정 가능
+	 * - 기존 경유지들을 삭제하고 새로운 경유지들로 교체
+	 * 
+	 * @param id 수정할 코스 ID
+	 * @param dto 수정할 코스 데이터
+	 * @param requesterId 요청자 ID
+	 * @returns 수정된 코스 정보
+	 */
+	async update(id: string, dto: CreateCourseDto, requesterId: string) {
+		return this.dataSource.transaction(async (manager) => {
+			// 1. 기존 코스 조회 및 권한 확인
+			const course = await manager.findOne(Course, { where: { id } })
+			if (!course) {
+				throw new NotFoundException('Course not found')
+			}
+			if (String(course.authorId) !== String(requesterId)) {
+				throw new ForbiddenException('Only the author can update this course')
+			}
+
+			// 2. 코스 기본 정보 업데이트
+			await manager.update(Course, id, {
+				title: dto.title,
+				visibility: dto.visibility,
+				updated_at: new Date(),
+			})
+
+			// 3. 기존 경유지들 삭제
+			await manager.delete(CourseStop, { course: { id } })
+
+			// 4. 새로운 경유지들 생성
+			if (dto.stops.length > 0) {
+				const stops = dto.stops.map((s) =>
+					manager.create(CourseStop, {
+						course: { id } as Course,
+						order: s.order,
+						name: s.name,
+						lat: s.lat,
+						lng: s.lng,
+						externalId: s.externalId ?? null,
+						provider: s.provider ?? null,
+					})
+				)
+				await manager.save(stops)
+			}
+
+			// 5. 업데이트된 코스 반환
+			return await manager.findOne(Course, {
+				where: { id },
+				relations: ['author', 'stops'],
+				order: { stops: { order: 'ASC' } },
+			})
+		})
+	}
+
+	/**
+	 * 코스 삭제
+	 * - 작성자만 삭제 가능
+	 * - 관련된 경유지들도 함께 삭제 (CASCADE)
+	 * 
+	 * @param id 삭제할 코스 ID
+	 * @param requesterId 요청자 ID
+	 */
+	async delete(id: string, requesterId: string) {
+		const course = await this.courseRepo.findOne({ where: { id } })
+		if (!course) {
+			throw new NotFoundException('Course not found')
+		}
+		if (String(course.authorId) !== String(requesterId)) {
+			throw new ForbiddenException('Only the author can delete this course')
+		}
+
+		await this.courseRepo.delete(id)
+	}
+
+	/**
+	 * 코스 저장/북마크
+	 * - 다른 사용자의 코스를 내 목록에 저장
+	 * - 자신의 코스는 저장할 수 없음
+	 * - 이미 저장한 코스는 중복 저장 불가
+	 * 
+	 * @param courseId 저장할 코스 ID
+	 * @param userId 사용자 ID
+	 */
+	async saveCourse(courseId: string, userId: string) {
+		// 1. 코스 존재 확인
+		const course = await this.courseRepo.findOne({ where: { id: courseId } })
+		if (!course) {
+			throw new NotFoundException('Course not found')
+		}
+
+		// 2. 자신의 코스는 저장할 수 없음
+		if (String(course.authorId) === String(userId)) {
+			throw new BadRequestException('Cannot save your own course')
+		}
+
+		// 3. 이미 저장했는지 확인
+		const existing = await this.savedCourseRepo.findOne({
+			where: { courseId: Number(course.id), userId: Number(userId) }
+		})
+		if (existing) {
+			throw new BadRequestException('Course already saved')
+		}
+
+		// 4. 저장 레코드 생성
+		const savedCourse = this.savedCourseRepo.create({
+			courseId: Number(course.id),
+			userId: Number(userId),
+		})
+		await this.savedCourseRepo.save(savedCourse)
+	}
+
+	/**
+	 * 코스 저장 취소
+	 * - 저장했던 코스를 내 목록에서 제거
+	 * 
+	 * @param courseId 저장 취소할 코스 ID
+	 * @param userId 사용자 ID
+	 */
+	async unsaveCourse(courseId: string, userId: string) {
+		const result = await this.savedCourseRepo.delete({
+			courseId: Number(courseId),
+			userId: Number(userId),
+		})
+		
+		if (result.affected === 0) {
+			throw new NotFoundException('Saved course not found')
+		}
+	}
+
+	/**
+	 * 저장된 코스 목록 조회
+	 * - 내가 저장한 다른 사용자의 코스들
+	 * - 최신 저장일 순으로 정렬
+	 * 
+	 * @param userId 사용자 ID
+	 * @returns 저장된 코스 목록
+	 */
+	async getSavedCourses(userId: string) {
+		const savedCourses = await this.savedCourseRepo.find({
+			where: { userId: Number(userId) },
+			relations: ['course', 'course.author', 'course.stops'],
+			order: { savedAt: 'DESC' },
+		})
+
+		return savedCourses.map(sc => sc.course)
 	}
 }

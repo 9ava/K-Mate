@@ -98,10 +98,34 @@ export async function getCourse(courseId: string): Promise<GetCourseResponse> {
 }
 
 /**
- * 코스 삭제 (향후 확장용)
+ * 코스 업데이트
+ * @param courseId 수정할 코스 ID
+ * @param courseData 수정할 코스 데이터
+ * @returns 수정된 코스 정보
+ */
+export async function updateCourse(courseId: string, courseData: CreateCourseRequest): Promise<GetCourseResponse> {
+	const response = await fetch(`${API_BASE}/courses/${courseId}`, {
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		credentials: 'include',
+		body: JSON.stringify(courseData),
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to update course: ${response.status}`)
+	}
+
+	return response.json()
+}
+
+/**
+ * 코스 삭제
  * @param courseId 삭제할 코스 ID
  */
-export async function deleteCourse(courseId: string): Promise<{ success: boolean }> {
+export async function deleteCourse(courseId: string): Promise<{ success: boolean; message: string }> {
 	const response = await fetch(`${API_BASE}/courses/${courseId}`, {
 		method: 'DELETE',
 		credentials: 'include',
@@ -110,6 +134,62 @@ export async function deleteCourse(courseId: string): Promise<{ success: boolean
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')
 		throw new Error(errorText || `Failed to delete course: ${response.status}`)
+	}
+
+	return response.json()
+}
+
+/**
+ * 코스 저장/북마크
+ * @param courseId 저장할 코스 ID
+ * @returns 저장 성공 메시지
+ */
+export async function saveCourse(courseId: string): Promise<{ success: boolean; message: string }> {
+	const response = await fetch(`${API_BASE}/courses/${courseId}/save`, {
+		method: 'POST',
+		credentials: 'include',
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to save course: ${response.status}`)
+	}
+
+	return response.json()
+}
+
+/**
+ * 코스 저장 취소
+ * @param courseId 저장 취소할 코스 ID
+ * @returns 저장 취소 성공 메시지
+ */
+export async function unsaveCourse(courseId: string): Promise<{ success: boolean; message: string }> {
+	const response = await fetch(`${API_BASE}/courses/${courseId}/save`, {
+		method: 'DELETE',
+		credentials: 'include',
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to unsave course: ${response.status}`)
+	}
+
+	return response.json()
+}
+
+/**
+ * 저장된 코스 목록 조회
+ * @returns 내가 저장한 코스 목록
+ */
+export async function getSavedCourses(): Promise<GetCoursesResponse> {
+	const response = await fetch(`${API_BASE}/courses/saved/list`, {
+		method: 'GET',
+		credentials: 'include',
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to fetch saved courses: ${response.status}`)
 	}
 
 	return response.json()

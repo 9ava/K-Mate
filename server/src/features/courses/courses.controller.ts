@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req, Get, Query, Param } from '@nestjs/common'
+import { Controller, Post, Body, UseGuards, Req, Get, Query, Param, Put, Delete } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 import {
 	ApiTags,
@@ -124,12 +124,12 @@ export class CoursesController {
 
 	/**
 	 * 내 코스 목록 조회
-	 * - 로그인한 사용자의 코스만 반환
+	 * - 로그인한 사용자가 작성한 코스 + 저장한 코스
 	 * - 공개/비공개 모든 코스 포함
 	 */
 	@ApiOperation({
 		summary: '내 코스 목록 조회',
-		description: '로그인한 사용자가 작성한 모든 코스를 조회합니다.',
+		description: '로그인한 사용자가 작성한 코스와 저장한 코스를 모두 조회합니다.',
 	})
 	@ApiQuery({
 		name: 'me',
@@ -146,8 +146,19 @@ export class CoursesController {
 			properties: {
 				success: { type: 'boolean', example: true },
 				data: {
-					type: 'array',
-					items: { $ref: '#/components/schemas/Course' },
+					type: 'object',
+					properties: {
+						myCourses: {
+							type: 'array',
+							items: { $ref: '#/components/schemas/Course' },
+							description: '내가 작성한 코스들',
+						},
+						savedCourses: {
+							type: 'array',
+							items: { $ref: '#/components/schemas/Course' },
+							description: '내가 저장한 코스들',
+						},
+					},
 				},
 			},
 		},
@@ -161,11 +172,48 @@ export class CoursesController {
 	@Get()
 	async listMine(@Query('me') me: string, @Req() req: any) {
 		if (me === 'true') {
-			const rows = await this.coursesService.findMine(String(req.user.id))
-			return { success: true, data: rows }
+			const myCourses = await this.coursesService.findMine(String(req.user.id))
+			const savedCourses = await this.coursesService.getSavedCourses(String(req.user.id))
+			return { 
+				success: true, 
+				data: {
+					myCourses,
+					savedCourses,
+				}
+			}
 		}
 		// 공개 코스 목록 등 확장 가능
-		return { success: true, data: [] }
+		return { success: true, data: { myCourses: [], savedCourses: [] } }
+	}
+
+	/**
+	 * 저장된 코스 목록 조회
+	 * - 내가 저장한 다른 사용자의 코스들
+	 */
+	@ApiOperation({
+		summary: '저장된 코스 목록 조회',
+		description: '내가 저장한 다른 사용자의 코스들을 조회합니다.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '저장된 코스 목록 조회 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: {
+					type: 'array',
+					items: { $ref: '#/components/schemas/Course' },
+				},
+			},
+		},
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'))
+	@Get('saved/list')
+	async getSavedCourses(@Req() req: any) {
+		const courses = await this.coursesService.getSavedCourses(String(req.user.id))
+		return { success: true, data: courses }
 	}
 
 	/**
@@ -206,5 +254,165 @@ export class CoursesController {
 		const userId = req?.user?.id // 로그인 안 됐을 수도 있음
 		const course = await this.coursesService.findOne(id, userId ? String(userId) : undefined)
 		return { success: true, data: course }
+	}
+
+	/**
+	 * 코스 업데이트
+	 * - 작성자만 수정 가능
+	 */
+	@ApiOperation({
+		summary: '코스 수정',
+		description: '코스를 수정합니다. 작성자만 가능합니다.',
+	})
+	@ApiParam({
+		name: 'id',
+		description: '수정할 코스 ID',
+		example: '123',
+	})
+	@ApiBody({
+		type: CreateCourseDto,
+		description: '수정할 코스 정보',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '코스 수정 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: { $ref: '#/components/schemas/Course' },
+			},
+		},
+	})
+	@ApiResponse({
+		status: 403,
+		description: '수정 권한 없음',
+	})
+	@ApiResponse({
+		status: 404,
+		description: '코스를 찾을 수 없음',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'))
+	@Put(':id')
+	async update(@Param('id') id: string, @Body() dto: CreateCourseDto, @Req() req: any) {
+		const updated = await this.coursesService.update(id, dto, String(req.user.id))
+		return { success: true, data: updated }
+	}
+
+	/**
+	 * 코스 삭제
+	 * - 작성자만 삭제 가능
+	 */
+	@ApiOperation({
+		summary: '코스 삭제',
+		description: '코스를 삭제합니다. 작성자만 가능합니다.',
+	})
+	@ApiParam({
+		name: 'id',
+		description: '삭제할 코스 ID',
+		example: '123',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '코스 삭제 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				message: { type: 'string', example: '코스가 삭제되었습니다.' },
+			},
+		},
+	})
+	@ApiResponse({
+		status: 403,
+		description: '삭제 권한 없음',
+	})
+	@ApiResponse({
+		status: 404,
+		description: '코스를 찾을 수 없음',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'))
+	@Delete(':id')
+	async delete(@Param('id') id: string, @Req() req: any) {
+		await this.coursesService.delete(id, String(req.user.id))
+		return { success: true, message: '코스가 삭제되었습니다.' }
+	}
+
+	/**
+	 * 코스 저장/북마크
+	 * - 다른 사용자의 코스를 내 목록에 저장
+	 */
+	@ApiOperation({
+		summary: '코스 저장/북마크',
+		description: '다른 사용자의 코스를 내 목록에 저장합니다.',
+	})
+	@ApiParam({
+		name: 'id',
+		description: '저장할 코스 ID',
+		example: '123',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '코스 저장 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				message: { type: 'string', example: '코스가 저장되었습니다.' },
+			},
+		},
+	})
+	@ApiResponse({
+		status: 400,
+		description: '자신의 코스는 저장할 수 없음',
+	})
+	@ApiResponse({
+		status: 404,
+		description: '코스를 찾을 수 없음',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'))
+	@Post(':id/save')
+	async saveCourse(@Param('id') id: string, @Req() req: any) {
+		await this.coursesService.saveCourse(id, String(req.user.id))
+		return { success: true, message: '코스가 저장되었습니다.' }
+	}
+
+	/**
+	 * 코스 저장 취소
+	 * - 저장했던 코스를 내 목록에서 제거
+	 */
+	@ApiOperation({
+		summary: '코스 저장 취소',
+		description: '저장했던 코스를 내 목록에서 제거합니다.',
+	})
+	@ApiParam({
+		name: 'id',
+		description: '저장 취소할 코스 ID',
+		example: '123',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '코스 저장 취소 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				message: { type: 'string', example: '코스 저장이 취소되었습니다.' },
+			},
+		},
+	})
+	@ApiResponse({
+		status: 404,
+		description: '저장된 코스를 찾을 수 없음',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'))
+	@Delete(':id/save')
+	async unsaveCourse(@Param('id') id: string, @Req() req: any) {
+		await this.coursesService.unsaveCourse(id, String(req.user.id))
+		return { success: true, message: '코스 저장이 취소되었습니다.' }
 	}
 }
