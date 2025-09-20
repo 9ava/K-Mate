@@ -1,6 +1,9 @@
 // src/pages/KBuzz/CommunityDetailPage.tsx
-import { useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { fetchPostDetail, likePost, type KBuzzItem } from '../../api/kbuzz'
+import { fetchComments, createComment, deleteComment } from '../../api/comments'
+import { useAuthStore } from '../../features/auth/auth.store'
 
 type Post = {
 	id: number
@@ -14,12 +17,13 @@ type Post = {
 	likeCount: number
 	isLiked: boolean
 	isScraped: boolean
+	imageUrl?: string
 }
 
 type Comment = {
 	id: number
 	author: string
-	avatar?: string
+	avatar?: string | null
 	createdAt: string
 	content: string
 	authorId: number
@@ -31,83 +35,235 @@ export default function CommunityDetailPage() {
 	const { id } = useParams()
 	const navigate = useNavigate()
 
-	// 로그인 유저 (mock)
-	const currentUser = { id: 1, name: 'Monika Dykas' }
+	// 로그인 스토어
+	const user = useAuthStore((s) => s.user)
+	const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle)
 
-	// 초기 포스트 (mock)
-	const postInit: Post = useMemo(
-		() => ({
-			id: Number(id ?? 1),
-			title: 'Having the Master at MIT, Harvard, Yale, Berkeley, Stanford?',
-			asker: 'Monika Dykas',
-			askedAt: 'Dec 18, 2014',
-			editor: 'Asif Aleem',
-			editedAt: 'Dec 19, 2014',
-			body: [
-				`I am a 31 year old German Bachelor-student in his 5th semester in a University of Applied Sciences, studying in Business Information Systems. The total time for receiving the Bachelor is 7 semesters.`,
-				`Slowly I am starting to search for a good university for my Master (same area of studies) and I was thinking of the big ones like MIT, Harvard, Yale, Berkeley, and Stanford. Having checked on their websites, the costs got my main focus, as they are all quite expensive.`,
-				`My question here is, whether there are studentships to support the costs. Does anybody know whether my idea of studies in these universities is realistic? How big can I expect my chance given my age, nationality, university in Germany, money situation?`,
-			],
-			authorId: 1,
-			likeCount: 12,
-			isLiked: false,
-			isScraped: false,
-		}),
-		[id]
-	)
+	// 임시 현재 유저(기존 UI용)
+	const currentUser = {
+		id: user?.id ?? 0,
+		name: user?.name ?? user?.email?.split('@')[0] ?? 'User',
+	}
 
-	// ===== 포스트 상태 =====
-	const [post, setPost] = useState<Post>(postInit)
+	// 초기값 생성기
+	const makeEmptyPost = (pid?: string | number): Post => ({
+		id: Number(pid ?? 0),
+		title: '',
+		asker: '',
+		askedAt: '',
+		editor: '',
+		editedAt: '',
+		body: [],
+		authorId: 0,
+		likeCount: 0,
+		isLiked: false,
+		isScraped: false,
+		imageUrl: undefined,
+	})
 
-	const [isLiked, setIsLiked] = useState(postInit.isLiked)
-	const [likeCount, setLikeCount] = useState(postInit.likeCount)
-	const [isScraped, setIsScraped] = useState(postInit.isScraped)
+	// ===== 서버 원본/로딩 상태 =====
+	const [serverData, setServerData] = useState<KBuzzItem | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+
+	// ===== 포스트 상태 (UI용) =====
+	const [post, setPost] = useState<Post>(makeEmptyPost(id))
+	const [isLiked, setIsLiked] = useState(false)
+	const [likeCount, setLikeCount] = useState(0)
+	const [isScraped, setIsScraped] = useState(false)
+	const [liking, setLiking] = useState(false)
+
+	// ===== 서버에서 상세 읽어와서 UI 형태로 매핑 =====
+	useEffect(() => {
+		let alive = true
+		async function run() {
+			if (!id) return
+			setLoading(true)
+			setError(null)
+			try {
+				const res = await fetchPostDetail(id) // GET /posts/:id
+				if (!alive) return
+				setServerData(res)
+
+				const mapped: Post = {
+					id: Number(res.id),
+					title: res.title,
+					asker: res.author?.name ?? 'User',
+					askedAt: new Date(res.createdAt).toLocaleString(),
+					editor: res.author?.name ?? 'User',
+					editedAt: new Date(res.updatedAt).toLocaleString(),
+					body: (res.content || '').split(/\n{2,}/),
+					authorId: res.author?.id ?? 0,
+					likeCount: res.likeCount ?? 0,
+					isLiked: false,
+					isScraped: false,
+					imageUrl: undefined,
+				}
+
+				setPost(mapped)
+				setIsLiked(false)
+				setLikeCount(mapped.likeCount)
+				setIsScraped(false)
+			} catch (e: any) {
+				setError(e?.message || 'Failed to load')
+			} finally {
+				if (alive) setLoading(false)
+			}
+		}
+		run()
+		return () => {
+			alive = false
+		}
+	}, [id])
 
 	// ===== 댓글 상태 =====
-	const [comments, setComments] = useState<Comment[]>([
-		{
-			id: 1,
-			author: 'Monika',
-			createdAt: '2 days ago',
-			content:
-				"I don't know about chanza, but if burla is at the highest degree, then I would agree with you. I'm not a native spanish speaker.",
-			authorId: 1,
-			likeCount: 3,
-			isLiked: false,
-		},
-		{
-			id: 2,
-			author: 'Bobby Watson',
-			createdAt: '2 days ago',
-			content: "maybe something like a 'masters of information systems' would be possible.",
-			authorId: 2,
-			likeCount: 1,
-			isLiked: false,
-		},
-	])
+	const [comments, setComments] = useState<Comment[]>([])
+	const [commentsLoading, setCommentsLoading] = useState(false)
+
+	// 댓글 목록 로드 (items 구조 대응)
+	useEffect(() => {
+		let alive = true
+		async function loadComments() {
+			if (!id) return
+			setCommentsLoading(true)
+			try {
+				const list = await fetchComments(Number(id), 1, 50) // 필요 시 페이지/limit 조절
+				if (!alive) return
+				const mapped: Comment[] = list.items.map((i) => ({
+					id: i.id,
+					author: i.author.name,
+					avatar: i.author.avatarUrl,
+					createdAt: new Date(i.createdAt).toLocaleString(),
+					content: i.content,
+					authorId: i.author.id,
+					likeCount: 0,
+					isLiked: false,
+				}))
+				setComments(mapped)
+			} catch (e) {
+				// 목록 실패는 토스트/로깅 정도로 충분
+			} finally {
+				if (alive) setCommentsLoading(false)
+			}
+		}
+		loadComments()
+		return () => {
+			alive = false
+		}
+	}, [id])
 
 	// 새 댓글 작성
 	const [draft, setDraft] = useState('')
-
-	const addComment = () => {
+	const addComment = async () => {
 		const text = draft.trim()
-		if (!text) return
-		setComments((prev) => [
-			...prev,
-			{
-				id: Date.now(),
-				author: currentUser.name,
-				createdAt: 'just now',
-				content: text,
-				authorId: currentUser.id,
+		if (!text || !id) return
+		if (!user) {
+			loginWithGoogle()
+			return
+		}
+		try {
+			const created = await createComment(Number(id), text)
+			const mapped: Comment = {
+				id: created.id,
+				author: created.author.name,
+				avatar: created.author.avatarUrl,
+				createdAt: new Date(created.createdAt).toLocaleString(),
+				content: created.content,
+				authorId: created.author.id,
 				likeCount: 0,
 				isLiked: false,
-			},
-		])
-		setDraft('')
+			}
+			setComments((prev) => [...prev, mapped])
+			setDraft('')
+		} catch (e) {
+			alert('댓글 작성 중 오류가 발생했어요.')
+		}
 	}
 
-	// ===== 게시글 인라인 수정/삭제 =====
+	// 댓글 삭제
+	const onDeleteComment = async (commentId: number) => {
+		if (!user) {
+			loginWithGoogle()
+			return
+		}
+		if (!confirm('이 댓글을 삭제할까요?')) return
+		try {
+			await deleteComment(commentId)
+			setComments((prev) => prev.filter((c) => c.id !== commentId))
+		} catch (e) {
+			alert('댓글 삭제 중 오류가 발생했어요.')
+		}
+	}
+
+	// 댓글 인라인 수정(로컬 유지 — 서버 PUT 필요 시 추가 연결 가능)
+	const [editingId, setEditingId] = useState<number | null>(null)
+	const [editDraft, setEditDraft] = useState('')
+	const startEditComment = (commentId: number) => {
+		const target = comments.find((c) => c.id === commentId)
+		setEditingId(commentId)
+		setEditDraft(target?.content ?? '')
+	}
+	const cancelEditComment = () => {
+		setEditingId(null)
+		setEditDraft('')
+	}
+	const saveEditComment = () => {
+		if (editingId == null) return
+		const text = editDraft.trim()
+		if (!text) {
+			alert('내용을 입력해 주세요.')
+			return
+		}
+		// (서버 PUT 연동하려면 여기에서 호출)
+		setComments((prev) => prev.map((c) => (c.id === editingId ? { ...c, content: text } : c)))
+		setEditingId(null)
+		setEditDraft('')
+	}
+
+	// 스크랩/댓글 좋아요는 로컬 유지
+	const toggleScrap = () => setIsScraped((v) => !v)
+	const toggleCommentLike = (commentId: number) => {
+		setComments((prev) =>
+			prev.map((c) =>
+				c.id === commentId
+					? {
+							...c,
+							isLiked: !c.isLiked,
+							likeCount: Math.max(0, c.likeCount + (c.isLiked ? -1 : 1)),
+					  }
+					: c
+			)
+		)
+	}
+
+	// ✅ 게시글 좋아요: 서버 반영(토글) + 낙관적 업데이트 + 실패 롤백
+	async function onLike() {
+		if (!id) return
+		if (!user) {
+			loginWithGoogle()
+			return
+		}
+		setLiking(true)
+		const prevLiked = isLiked
+		const prevCount = likeCount
+		const nextLiked = !prevLiked
+		setIsLiked(nextLiked)
+		setLikeCount((c) => (nextLiked ? c + 1 : Math.max(0, c - 1)))
+		try {
+			await likePost(id) // POST /posts/buzz/:id/like
+			const fresh = await fetchPostDetail(id) // 정확한 숫자 동기화
+			setLikeCount(fresh.likeCount ?? 0)
+		} catch (e) {
+			// 롤백
+			setIsLiked(prevLiked)
+			setLikeCount(prevCount)
+			alert('좋아요 처리 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.')
+		} finally {
+			setLiking(false)
+		}
+	}
+
+	// ===== 게시글 인라인 수정/삭제 (기존 유지 — 로컬) =====
 	const [editingPost, setEditingPost] = useState(false)
 	const [postTitleDraft, setPostTitleDraft] = useState(post.title)
 	const [postBodyDraft, setPostBodyDraft] = useState(post.body.join('\n\n'))
@@ -125,71 +281,52 @@ export default function CommunityDetailPage() {
 			alert('제목과 본문을 입력해 주세요.')
 			return
 		}
-		setPost((prev) => ({ ...prev, title, body: body.split(/\n{2,}/) }))
+		const nextImageUrl = imagePreview ?? post.imageUrl
+		setPost((prev) => ({
+			...prev,
+			title,
+			body: body.split(/\n{2,}/),
+			imageUrl: nextImageUrl,
+		}))
 		setEditingPost(false)
-		// TODO: await api.patch(`/posts/${post.id}`, { title, body })
+		// TODO: 서버 PATCH 연동 필요 시 연결
 	}
 	const onDeletePost = () => {
 		if (!confirm('이 게시글을 삭제할까요?')) return
-		// TODO: await api.delete(`/posts/${post.id}`)
+		// TODO: 서버 DELETE 연동 필요 시 연결
 		navigate('/buzz')
 	}
 
-	// ===== 댓글 인라인 수정/삭제 =====
-	const [editingId, setEditingId] = useState<number | null>(null)
-	const [editDraft, setEditDraft] = useState('')
+	// ===== 이미지 업로드 상태 (로컬) =====
+	const [imageFile, setImageFile] = useState<File | null>(null)
+	const [imagePreview, setImagePreview] = useState<string | null>(null)
+	const fileInputRef = useRef<HTMLInputElement>(null)
+	const MAX_MB = 5
+	const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
 
-	const startEditComment = (commentId: number) => {
-		const target = comments.find((c) => c.id === commentId)
-		setEditingId(commentId)
-		setEditDraft(target?.content ?? '')
+	function handlePickClick() {
+		fileInputRef.current?.click()
 	}
-	const cancelEditComment = () => {
-		setEditingId(null)
-		setEditDraft('')
-	}
-	const saveEditComment = () => {
-		if (editingId == null) return
-		const text = editDraft.trim()
-		if (!text) {
-			alert('내용을 입력해 주세요.')
+	function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+		const f = e.target.files?.[0]
+		if (!f) return
+		if (!ALLOWED.includes(f.type)) {
+			alert('이미지는 JPG/PNG/WebP만 업로드할 수 있어요.')
+			e.target.value = ''
 			return
 		}
-		setComments((prev) => prev.map((c) => (c.id === editingId ? { ...c, content: text } : c)))
-		setEditingId(null)
-		setEditDraft('')
-		// TODO: await api.patch(`/comments/${editingId}`, { content: text })
+		if (f.size > MAX_MB * 1024 * 1024) {
+			alert(`파일 용량은 최대 ${MAX_MB}MB까지 가능해요.`)
+			e.target.value = ''
+			return
+		}
+		setImageFile(f)
+		setImagePreview(URL.createObjectURL(f))
 	}
-	const onDeleteComment = (commentId: number) => {
-		if (!confirm('이 댓글을 삭제할까요?')) return
-		setComments((prev) => prev.filter((c) => c.id !== commentId))
-		// TODO: await api.delete(`/comments/${commentId}`)
-	}
-
-	// ===== 좋아요(게시글/댓글) & 스크랩 =====
-	const toggleLike = () => {
-		const next = !isLiked
-		setIsLiked(next)
-		setLikeCount((c) => (next ? c + 1 : Math.max(0, c - 1)))
-		// TODO: 서버 반영
-	}
-	const toggleScrap = () => {
-		setIsScraped((v) => !v)
-		// TODO: 서버 반영
-	}
-	const toggleCommentLike = (commentId: number) => {
-		setComments((prev) =>
-			prev.map((c) =>
-				c.id === commentId
-					? {
-							...c,
-							isLiked: !c.isLiked,
-							likeCount: Math.max(0, c.likeCount + (c.isLiked ? -1 : 1)),
-					  }
-					: c
-			)
-		)
-		// TODO: await api.post(`/comments/${commentId}/like`, { like: next })
+	function clearImage() {
+		setImageFile(null)
+		setImagePreview(null)
+		if (fileInputRef.current) fileInputRef.current.value = ''
 	}
 
 	return (
@@ -198,7 +335,7 @@ export default function CommunityDetailPage() {
 				{/* Title */}
 				{!editingPost ? (
 					<h1 className="text-left text-2xl md:text-[28px] font-semibold leading-snug">
-						{post.title}
+						{post.title || (loading ? 'Loading…' : '(제목 없음)')}
 					</h1>
 				) : (
 					<input
@@ -217,21 +354,21 @@ export default function CommunityDetailPage() {
 					)}
 				</div>
 
-				{/* Actions (Edit/Delete + Like/Scrap) */}
+				{/* Actions */}
 				<div className="mt-3 flex justify-end gap-3 items-center">
-					{currentUser.id === post.authorId && (
+					{currentUser.id !== 0 && currentUser.id === post.authorId && (
 						<>
 							{!editingPost ? (
 								<>
 									<button
 										onClick={startEditPost}
-										className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
+										className="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
 									>
 										Edit
 									</button>
 									<button
 										onClick={onDeletePost}
-										className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
+										className="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
 									>
 										Delete
 									</button>
@@ -240,13 +377,13 @@ export default function CommunityDetailPage() {
 								<>
 									<button
 										onClick={saveEditPost}
-										className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-sky-500 text-white hover:bg-sky-600"
+										className="px-2 py-0.5 text-xs bg-sky-500 text-white rounded hover:bg-sky-600"
 									>
 										Save
 									</button>
 									<button
 										onClick={cancelEditPost}
-										className="inline-flex items-center rounded px-2 py-0.5 text-xs border text-gray-600 hover:bg-gray-50"
+										className="px-2 py-0.5 text-xs border text-gray-600 rounded hover:bg-gray-50"
 									>
 										Cancel
 									</button>
@@ -255,77 +392,120 @@ export default function CommunityDetailPage() {
 						</>
 					)}
 
-					{/* Like (post) */}
-					<button
-						onClick={toggleLike}
-						className="inline-flex items-center gap-2 select-none focus:outline-none"
-						aria-pressed={isLiked}
-						aria-label={isLiked ? 'Unlike' : 'Like'}
-						title="Like"
-					>
+					{/* Like (서버 반영) */}
+					<button onClick={onLike} disabled={liking} className="inline-flex items-center gap-2">
 						<svg
 							viewBox="0 0 24 24"
-							className={`w-6 h-6 transition-transform active:scale-95 ${
-								isLiked ? 'text-rose-500' : 'text-black'
-							}`}
+							className={`w-6 h-6 ${isLiked ? 'text-rose-500' : 'text-black'}`}
 							fill={isLiked ? 'currentColor' : 'none'}
 							stroke="currentColor"
-							strokeWidth="2"
-							strokeLinecap="round"
-							strokeLinejoin="round"
 						>
 							<path d="M21 8.25c0-2.485-2.239-4.5-5-4.5-1.747 0-3.298.802-4 2.163C11.298 4.552 9.747 3.75 8 3.75 5.239 3.75 3 5.765 3 8.25c0 7.22 9 11.25 9 11.25s9-4.03 9-11.25z" />
 						</svg>
-						<span className={`text-sm ${isLiked ? 'font-semibold' : ''}`}>{likeCount}</span>
+						<span>{likeCount}</span>
 					</button>
 
-					{/* Scrap (post) */}
-					<button
-						onClick={toggleScrap}
-						className="inline-flex items-center gap-2 select-none focus:outline-none"
-						aria-pressed={isScraped}
-						aria-label={isScraped ? 'Unsave' : 'Save'}
-						title="Save"
-					>
+					{/* Scrap (로컬만) */}
+					<button onClick={toggleScrap} className="inline-flex items-center gap-2">
 						<svg
 							viewBox="0 0 24 24"
-							className={`w-6 h-6 transition-transform active:scale-95 ${
-								isScraped ? 'text-amber-500' : 'text-black'
-							}`}
+							className={`w-6 h-6 ${isScraped ? 'text-amber-500' : 'text-black'}`}
 							fill={isScraped ? 'currentColor' : 'none'}
 							stroke="currentColor"
-							strokeWidth="2"
-							strokeLinecap="round"
-							strokeLinejoin="round"
 						>
 							<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z" />
 						</svg>
-						<span className={`text-sm ${isScraped ? 'text-amber-700 font-semibold' : ''}`}>
-							{isScraped ? 'Saved' : 'Save'}
-						</span>
+						<span>{isScraped ? 'Saved' : 'Save'}</span>
 					</button>
 				</div>
 
-				{/* Hairline */}
 				<hr className="my-5 border-gray-200" />
 
-				{/* Body */}
+				{/* Body & Image */}
 				{!editingPost ? (
-					<article className="space-y-5 text-[15px] leading-7 text-gray-800 ">
-						{post.body.map((p, i) => (
-							<p key={i} className="text-left whitespace-pre-wrap">
-								{p}
-							</p>
-						))}
-					</article>
+					<>
+						<article className="space-y-5 text-[15px] leading-7 text-gray-800 ">
+							{post.body.length > 0 ? (
+								post.body.map((p, i) => (
+									<p key={i} className="text-left whitespace-pre-wrap">
+										{p}
+									</p>
+								))
+							) : (
+								<p className="text-gray-400 text-left">
+									{loading ? '내용을 불러오는 중…' : '내용이 없습니다.'}
+								</p>
+							)}
+						</article>
+						{post.imageUrl && (
+							<div className="mt-5">
+								<img
+									src={post.imageUrl}
+									alt="post"
+									className="w-full rounded-lg border object-cover"
+								/>
+							</div>
+						)}
+					</>
 				) : (
 					<div>
 						<textarea
 							value={postBodyDraft}
 							onChange={(e) => setPostBodyDraft(e.target.value)}
 							rows={10}
-							className="w-full rounded border px-3 py-2 text-[15px] leading-7 outline-none focus:ring-2 focus:ring-sky-200"
+							className="w-full rounded border px-3 py-2 text-[15px] leading-7"
 						/>
+						{/* Image Upload */}
+						<div className="mt-4">
+							<label className="block text-sm font-medium mb-1">Image (optional)</label>
+							{!imagePreview ? (
+								<div className="rounded-lg border border-dashed px-4 py-6 text-center">
+									<p className="text-sm text-gray-500">첨부할 이미지를 선택해 주세요</p>
+									<div className="mt-3 flex justify-center gap-3">
+										<button
+											type="button"
+											onClick={handlePickClick}
+											className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50"
+										>
+											파일 선택
+										</button>
+										<span className="text-xs text-gray-400">JPG/PNG/WebP · 최대 5MB</span>
+									</div>
+									<input
+										ref={fileInputRef}
+										type="file"
+										accept="image/png,image/jpeg,image/webp"
+										onChange={handleFileChange}
+										className="hidden"
+									/>
+								</div>
+							) : (
+								<div className="rounded-lg border p-3 flex items-center gap-3">
+									<img
+										src={imagePreview}
+										alt="preview"
+										className="h-16 w-16 rounded object-cover border"
+									/>
+									<div className="flex-1">
+										<div className="text-sm font-medium truncate">
+											{imageFile?.name ?? '이미지'}
+										</div>
+										{imageFile && (
+											<div className="text-xs text-gray-500">
+												{(imageFile.size / 1024 / 1024).toFixed(2)} MB
+											</div>
+										)}
+									</div>
+									<button
+										type="button"
+										onClick={clearImage}
+										className="px-2.5 py-1 text-sm rounded border hover:bg-gray-50"
+									>
+										제거
+									</button>
+								</div>
+							)}
+						</div>
 					</div>
 				)}
 
@@ -334,57 +514,48 @@ export default function CommunityDetailPage() {
 
 				{/* Comments header */}
 				<div className="text-sm font-semibold text-gray-700 mb-3 text-right">
-					{comments.length} Comments
+					{commentsLoading ? 'Loading comments…' : `${comments.length} Comments`}
 				</div>
 
-				{/* ===== Comments ===== */}
+				{/* Comments */}
 				<section className="relative pl-16 space-y-6">
-					{/* timeline */}
 					<div className="absolute left-8 top-0 bottom-0 w-px bg-gray-200" />
-
 					{comments.map((c) => {
 						const isOwner = Number(currentUser.id) === Number(c.authorId)
 						const isEditing = editingId === c.id
-
 						return (
 							<div key={c.id} className="relative">
 								{/* avatar */}
-								<div className="absolute left-[1.25rem] top-1 h-10 w-10 rounded-full bg-gray-200 ring-2 ring-white flex items-center justify-center text-sm font-medium">
-									{c.author.charAt(0).toUpperCase()}
+								<div className="absolute left-[1.25rem] top-1 h-10 w-10 rounded-full bg-gray-200 ring-2 ring-white flex items-center justify-center text-sm font-medium overflow-hidden">
+									{c.avatar ? (
+										// eslint-disable-next-line @next/next/no-img-element
+										<img src={c.avatar} alt={c.author} className="h-full w-full object-cover" />
+									) : (
+										c.author.charAt(0).toUpperCase()
+									)}
 								</div>
 
 								{/* bubble */}
-								<div
-									className="
-                    relative bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 ml-3
-                    before:content-[''] before:absolute before:-left-3 before:top-6
-                    before:border-y-[10px] before:border-y-transparent before:border-r-[10px] before:border-r-gray-200
-                    after:content-[''] after:absolute after:-left-[11px] after:top-6
-                    after:border-y-[10px] after:border-y-transparent after:border-r-[10px] after:border-r-white
-                  "
-								>
-									{/* 상단: 왼쪽(닉네임/날짜) | 오른쪽(Edit/Delete → 하트) */}
+								<div className="relative bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 ml-3">
+									{/* 상단: 왼쪽(닉) | 오른쪽(액션/하트) */}
 									<div className="mb-1 text-sm flex items-center justify-between">
-										{/* 왼쪽 */}
 										<div className="text-left">
 											<span className="text-sky-600 font-medium">{c.author}</span>{' '}
 											<span className="text-gray-400">{c.createdAt}</span>
 										</div>
-
-										{/* 오른쪽: 액션 → 하트 */}
 										<div className="flex items-center gap-3">
 											{isOwner &&
 												(!isEditing ? (
 													<div className="flex gap-2">
 														<button
 															onClick={() => startEditComment(c.id)}
-															className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
+															className="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
 														>
 															Edit
 														</button>
 														<button
 															onClick={() => onDeleteComment(c.id)}
-															className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200"
+															className="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
 														>
 															Delete
 														</button>
@@ -393,32 +564,30 @@ export default function CommunityDetailPage() {
 													<div className="flex gap-2">
 														<button
 															onClick={saveEditComment}
-															className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-sky-500 text-white hover:bg-sky-600"
+															className="px-2 py-0.5 text-xs bg-sky-500 text-white rounded hover:bg-sky-600"
 														>
 															Save
 														</button>
 														<button
 															onClick={cancelEditComment}
-															className="inline-flex items-center rounded px-2 py-0.5 text-xs border text-gray-600 hover:bg-gray-50"
+															className="px-2 py-0.5 text-xs border text-gray-600 rounded hover:bg-gray-50"
 														>
 															Cancel
 														</button>
 													</div>
 												))}
 
-											{/* 하트 */}
+											{/* 하트(댓글 로컬) */}
 											<button
 												onClick={() => toggleCommentLike(c.id)}
-												className="inline-flex items-center gap-1 select-none focus:outline-none"
+												className="inline-flex items-center gap-1"
 												aria-pressed={c.isLiked}
 												aria-label={c.isLiked ? 'Unlike comment' : 'Like comment'}
 												title="Like comment"
 											>
 												<svg
 													viewBox="0 0 24 24"
-													className={`w-4 h-4 transition-transform active:scale-95 ${
-														c.isLiked ? 'text-rose-500' : 'text-black'
-													}`}
+													className={`w-4 h-4 ${c.isLiked ? 'text-rose-500' : 'text-black'}`}
 													fill={c.isLiked ? 'currentColor' : 'none'}
 													stroke="currentColor"
 													strokeWidth="2"
