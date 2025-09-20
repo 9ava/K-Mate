@@ -1,17 +1,18 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import MapCanvas from '../components/map/MapCanvas'
 import SearchPanel from '../components/search/SearchPanel'
 import CoursePanel from '../components/course/CoursePanel'
+import { createCourse } from '../api/courses'
+import type { CreateCourseRequest } from '../types/course'
 
 type Stop = { id: string; name: string; lat: number; lng: number }
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export default function PlannerPage() {
 	const [stops, setStops] = useState<Stop[]>([])
 	const [saving, setSaving] = useState(false)
+	const navigate = useNavigate()
 
-	// 백엔드로 저장
 	async function saveCourse(payload: { title: string; visibility: 'public' | 'private' }) {
 		if (!payload.title.trim()) {
 			alert('코스 제목을 입력해 주세요.')
@@ -22,17 +23,15 @@ export default function PlannerPage() {
 			return
 		}
 
-		// 서버로 보낼 데이터 형태(예시)
-		const body = {
+		// 새로운 API 형식에 맞게 데이터 변환
+		const courseData: CreateCourseRequest = {
 			title: payload.title.trim(),
 			visibility: payload.visibility,
-			// 정렬된 순서를 order로 함께 전송
 			stops: stops.map((s, idx) => ({
 				order: idx + 1,
 				name: s.name,
 				lat: s.lat,
 				lng: s.lng,
-				// placeId가 있다면 여기에 추가 (Kakao id 등)
 				externalId: s.id,
 				provider: 'kakao',
 			})),
@@ -40,21 +39,13 @@ export default function PlannerPage() {
 
 		try {
 			setSaving(true)
-			const res = await fetch(`${API_BASE}/courses`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include', // ✅ 쿠키 인증일 때 필수
-				body: JSON.stringify(body),
-			})
-			if (!res.ok) {
-				const msg = await res.text().catch(() => '')
-				throw new Error(msg || `Failed: ${res.status}`)
-			}
-			const data = await res.json().catch(() => ({}))
+			await createCourse(courseData)
 			alert('코스가 저장되었습니다!')
-			// 필요하면 저장 후 이동: navigate(`/courses/${data?.data?.id}`)
-		} catch (e: any) {
-			alert(`저장 실패: ${e?.message ?? e}`)
+			
+			// 저장 후 K-Course 페이지로 이동
+			navigate('/kcourse')
+		} catch (error: any) {
+			alert(`저장 실패: ${error?.message ?? error}`)
 		} finally {
 			setSaving(false)
 		}

@@ -1,8 +1,24 @@
 // src/pages/KCoursePage.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getMyCourses, getPublicCourses } from '../api/courses'
+import type { Course } from '../types/course'
+import { useAuth } from '../features/auth/useAuth'
 
 type Tab = 'my-course' | 'monthly-best'
+
+// Course 타입을 TravelCourse 형태로 변환하는 헬퍼 함수
+function courseToTravelCourse(course: Course): TravelCourse {
+	return {
+		id: parseInt(course.id),
+		title: course.title,
+		location: course.stops[0]?.name || '알 수 없는 위치',
+		date: new Date(course.created_at).toLocaleDateString('ko-KR'),
+		author: course.author?.name || '작성자',
+		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768', // 기본 이미지
+		category: 'cultural' as const, // 임시로 cultural로 설정
+	}
+}
 
 type TravelCourse = {
 	id: number
@@ -68,8 +84,62 @@ function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (
 	)
 }
 
-/* --- MyTravelCourse (빈 상태) --- */
-function MyTravelCourse({ onCreate }: { onCreate: () => void }) {
+/* --- MyTravelCourse (실제 데이터) --- */
+function MyTravelCourse({ onCreate, courses, loading }: { 
+	onCreate: () => void
+	courses: TravelCourse[]
+	loading: boolean
+}) {
+	if (loading) {
+		return (
+			<section className="py-12 bg-white">
+				<div className="container px-4 mx-auto">
+					<div className="flex items-center justify-between mb-8">
+						<h2 className="text-3xl font-bold text-gray-900">나의 여행코스</h2>
+						<button
+							onClick={onCreate}
+							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+						>
+							코스만들기 →
+						</button>
+					</div>
+					<div className="py-20 text-center">
+						<div className="text-lg text-gray-500">로딩중...</div>
+					</div>
+				</div>
+			</section>
+		)
+	}
+
+	if (courses.length === 0) {
+		return (
+			<section className="py-12 bg-white">
+				<div className="container px-4 mx-auto">
+					<div className="flex items-center justify-between mb-8">
+						<h2 className="text-3xl font-bold text-gray-900">나의 여행코스</h2>
+						<button
+							onClick={onCreate}
+							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+						>
+							코스만들기 →
+						</button>
+					</div>
+
+					<div className="py-20 text-center">
+						<div className="text-lg text-gray-500">아직 만든 여행코스가 없습니다.</div>
+						<div className="mt-2 text-sm text-gray-500">나만의 여행코스를 만들어보세요!</div>
+						<button
+							onClick={onCreate}
+							className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+						>
+							첫 번째 코스 만들기
+						</button>
+					</div>
+				</div>
+			</section>
+		)
+	}
+
 	return (
 		<section className="py-12 bg-white">
 			<div className="container px-4 mx-auto">
@@ -83,15 +153,10 @@ function MyTravelCourse({ onCreate }: { onCreate: () => void }) {
 					</button>
 				</div>
 
-				<div className="py-20 text-center">
-					<div className="text-lg text-gray-500">아직 만든 여행코스가 없습니다.</div>
-					<div className="mt-2 text-sm text-gray-500">나만의 여행코스를 만들어보세요!</div>
-					<button
-						onClick={onCreate}
-						className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
-					>
-						첫 번째 코스 만들기
-					</button>
+				<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+					{courses.map((course) => (
+						<TravelCourseCard key={course.id} course={course} />
+					))}
 				</div>
 			</div>
 		</section>
@@ -142,8 +207,9 @@ function TravelCourseCard({ course }: { course: TravelCourse }) {
 	)
 }
 
-/* --- TravelCourseGrid (월간 Best) --- */
-const travelCourses: TravelCourse[] = [
+/* --- TravelCourseGrid (월간 Best 또는 공개 코스) --- */
+// 임시 하드코딩 데이터 (공개 코스가 없을 때 사용)
+const defaultTravelCourses: TravelCourse[] = [
 	{
 		id: 1,
 		title: '전북 고창군 여행코스',
@@ -182,7 +248,30 @@ const travelCourses: TravelCourse[] = [
 	},
 ]
 
-function TravelCourseGrid({ onCreate }: { onCreate: () => void }) {
+function TravelCourseGrid({ 
+	onCreate, 
+	courses, 
+	loading 
+}: { 
+	onCreate: () => void
+	courses: TravelCourse[]
+	loading: boolean
+}) {
+	if (loading) {
+		return (
+			<section className="py-12 bg-white">
+				<div className="container px-4 mx-auto">
+					<div className="py-20 text-center">
+						<div className="text-lg text-gray-500">로딩중...</div>
+					</div>
+				</div>
+			</section>
+		)
+	}
+
+	// 공개 코스가 없으면 기본 데이터 사용
+	const displayCourses = courses.length > 0 ? courses : defaultTravelCourses
+
 	return (
 		<section className="py-12 bg-white">
 			<div className="container px-4 mx-auto">
@@ -202,7 +291,7 @@ function TravelCourseGrid({ onCreate }: { onCreate: () => void }) {
 				</div>
 
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-					{travelCourses.map((course) => (
+					{displayCourses.map((course) => (
 						<TravelCourseCard key={course.id} course={course} />
 					))}
 				</div>
@@ -214,16 +303,84 @@ function TravelCourseGrid({ onCreate }: { onCreate: () => void }) {
 
 export default function KCoursePage() {
 	const [activeTab, setActiveTab] = useState<Tab>('monthly-best')
+	const [myCourses, setMyCourses] = useState<TravelCourse[]>([])
+	const [publicCourses, setPublicCourses] = useState<TravelCourse[]>([])
+	const [myCoursesLoading, setMyCoursesLoading] = useState(false)
+	const [publicCoursesLoading, setPublicCoursesLoading] = useState(false)
+	
 	const navigate = useNavigate()
+	const { isAuthed } = useAuth()
 	const goPlanner = () => navigate('/planner')
+
+	// 내 코스 데이터 로드
+	const loadMyCourses = async () => {
+		if (!isAuthed) {
+			console.log('🔒 User not authenticated, skipping my courses load')
+			return
+		}
+		
+		try {
+			console.log('🔄 Loading my courses...')
+			setMyCoursesLoading(true)
+			const response = await getMyCourses()
+			console.log('✅ My courses loaded successfully:', response.data.length, 'courses')
+			const convertedCourses = response.data.map(courseToTravelCourse)
+			setMyCourses(convertedCourses)
+		} catch (error) {
+			console.error('❌ Failed to load my courses:', error)
+			// 사용자에게 친화적인 메시지 표시 (옵션)
+			// alert('내 코스를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.')
+			setMyCourses([])
+		} finally {
+			setMyCoursesLoading(false)
+		}
+	}
+
+	// 공개 코스 데이터 로드
+	const loadPublicCourses = async () => {
+		try {
+			console.log('🔄 Loading public courses...')
+			setPublicCoursesLoading(true)
+			const response = await getPublicCourses(1, 12) // 첫 페이지에서 12개 가져오기
+			console.log('✅ Public courses loaded successfully:', response.data.length, 'courses')
+			const convertedCourses = response.data.map(courseToTravelCourse)
+			setPublicCourses(convertedCourses)
+		} catch (error) {
+			console.error('❌ Failed to load public courses:', error)
+			// 공개 코스 로드 실패 시 빈 배열로 설정 (기본 데이터가 표시됨)
+			setPublicCourses([])
+		} finally {
+			setPublicCoursesLoading(false)
+		}
+	}
+
+	// 컴포넌트 마운트 시 데이터 로드
+	useEffect(() => {
+		loadPublicCourses() // 공개 코스는 항상 로드
+	}, [])
+
+	// 내 코스 탭을 선택했을 때 데이터 로드
+	useEffect(() => {
+		if (activeTab === 'my-course' && isAuthed) {
+			loadMyCourses()
+		}
+	}, [activeTab, isAuthed])
 
 	return (
 		<div className="min-h-[calc(100vh-64px)] bg-white">
 			<HeroBanner activeTab={activeTab} onTabChange={setActiveTab} />
 			{activeTab === 'my-course' ? (
-				<MyTravelCourse onCreate={goPlanner} />
+				<MyTravelCourse 
+					onCreate={goPlanner} 
+					courses={myCourses}
+					loading={myCoursesLoading}
+				/>
 			) : (
-				<TravelCourseGrid onCreate={goPlanner} />
+				<TravelCourseGrid 
+					onCreate={goPlanner} 
+					courses={publicCourses}
+					loading={publicCoursesLoading}
+				/>
 			)}
 		</div>
 	)
