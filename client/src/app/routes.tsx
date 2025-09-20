@@ -4,6 +4,7 @@ import MainPage from '../pages/MainPage'
 import KmapPage from '../pages/KmapPage'
 import AuthCallbackPage from '../pages/AuthCallbackPage'
 import LoginPage from '../pages/LoginPage'
+import KcoursePage from '../pages/KcoursePage'
 import PlannerPage from '../pages/PlannerPage'
 import KBuzzPage from '../pages/KBuzzPage'
 import CommunityDetailPage from '../pages/KBuzz/CommunityDetailPage'
@@ -18,6 +19,7 @@ const AppRouter = () => {
 					<Route path="/" element={<MainPage />} />
 					<Route path="/auth/callback" element={<AuthCallbackPage />} />
 					<Route path="/login" element={<LoginPage />} />
+					<Route path="/kcourse" element={<KcoursePage />} />
 					<Route path="/planner" element={<PlannerPage />} />
 					<Route path="/kmap" element={<KmapPage />} />
 					<Route path="/buzz" element={<KBuzzPage />} />
