@@ -2,8 +2,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
-import { listPlaces, getPlaceDetail } from '../api/places'
-import { listMyBookmarks } from '../api/bookmarks' 
+import { getPlaceDetail } from '../api/places'
+import { listMyBookmarks } from '../api/bookmarks'
+import { useMapStore } from '../features/map/map.store'
 import type { Place, PlaceType } from '../types/place'
 import SidePanel from '../components/places/SidePanel'
 import SearchList from '../components/places/SearchList'
@@ -15,6 +16,8 @@ export default function KmapPage() {
 	const mapObjRef = useRef<google.maps.Map | null>(null)
 	const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
 	const infoRef = useRef<google.maps.InfoWindow | null>(null)
+
+	const { getMarkersByPlaceType } = useMapStore()
 
 	const [mode, setMode] = useState<Mode>('type') // ✅ 현재 보기 모드
 	const [type, setType] = useState<PlaceType | ''>('food')
@@ -72,13 +75,35 @@ export default function KmapPage() {
 					setListTitle(
 						type === 'travel' ? 'K-Travel 🌍' : type === 'food' ? 'K-Food 🍽️' : 'K-Cafe ☕'
 					)
-					const res = await listPlaces({ type: type || 'food', page: 1, pageSize: 200 })
-					setPlaces(res.items || [])
-					await renderMarkers(res.items || [])
-					fitBounds(res.items || [])
+
+					console.log(`[K-Map] Loading ${type} markers...`)
+					// Use API to get markers by place type
+					const adminMarkers = await getMarkersByPlaceType(type || 'food')
+					console.log(`[K-Map] Loaded ${adminMarkers.length} markers for ${type}:`, adminMarkers)
+					const items: Place[] = adminMarkers.map((marker) => ({
+						id: marker.id!,
+						googlePlaceId: marker.place_id || `admin_${marker.id}`,
+						type: (type || 'food') as PlaceType,
+						name: marker.name,
+						address: marker.address,
+						lat: marker.latitude,
+						lng: marker.longitude,
+						phone: null,
+						website: null,
+						googleMapsUrl: `https://maps.google.com/maps?q=${marker.latitude},${marker.longitude}`,
+						openingHoursJson: null,
+						photosJson: marker.imageUrl ? [{ url: marker.imageUrl }] : null,
+						sourceTypesJson: null,
+						typeSource: undefined,
+						description: marker.description || null,
+					}))
+
+					setPlaces(items)
+					await renderMarkers(items)
+					fitBounds(items)
 					setSelected(null)
 				} else {
-					// bookmarks 모드
+					// bookmarks 모드 - keep existing functionality
 					setListTitle('내 북마크 🔖')
 					const rows = await listMyBookmarks()
 					// 북마크 응답 -> Place 형태로 매핑 (상세는 openPlace에서 서버로 조회)
@@ -109,7 +134,7 @@ export default function KmapPage() {
 			}
 		})()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [mode, type])
+	}, [mode, type, getMarkersByPlaceType])
 
 	const clearMarkers = () => {
 		markersRef.current.forEach((m) => (m.map = null))

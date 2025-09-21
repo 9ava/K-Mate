@@ -86,14 +86,14 @@ export class Place {
 	@Column({ name: 'source_types_json', type: 'json', nullable: true })
 	sourceTypesJson!: string[] | null
 
-	@ApiPropertyOptional({ enum: ['auto', 'admin'], description: '카테고리 분류 출처' })
+	@ApiPropertyOptional({ enum: ['auto', 'admin', 'user'], description: '카테고리 분류 출처' })
 	@Column({
 		name: 'type_source',
 		type: 'enum',
-		enum: ['auto', 'admin'],
+		enum: ['auto', 'admin', 'user'],
 		default: 'auto',
 	})
-	typeSource!: 'auto' | 'admin'
+	typeSource!: 'auto' | 'admin' | 'user'
 
 	@ApiPropertyOptional({ description: '설명(editorialSummary.text)' })
 	@Column({ type: 'text', nullable: true })
