@@ -11,7 +11,7 @@ type Props = {
 const Sidebar: React.FC<Props> = ({ active = '', onSelectType, onShowBookmarks }) => {
 	const menuItems: Array<{ icon: string; label: string; type?: PlaceType; action?: () => void }> = [
 		{ icon: '☰', label: 'Menu' },
-		{ icon: '🔖', label: 'Bookmark', action: onShowBookmarks }, 
+		{ icon: '🔖', label: 'Bookmark', action: onShowBookmarks },
 		{ icon: '📍', label: 'K-Travel', type: 'travel' },
 		{ icon: '🍽️', label: 'K-Food', type: 'food' },
 		{ icon: '☕', label: 'K-Cafe', type: 'cafe' },

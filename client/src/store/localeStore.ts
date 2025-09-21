@@ -20,7 +20,7 @@ export const useLocaleStore = create<LocaleState>()(
 	)
 )
 
-i18n.on('languageChanged', (lng) => {
+i18n.on('languageChanged', (lng: string) => {
 	if (internalUpdate) return
 	const { lang } = useLocaleStore.getState()
 	if (lang !== lng) useLocaleStore.setState({ lang: lng })
