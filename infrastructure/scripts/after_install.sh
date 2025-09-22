@@ -72,29 +72,79 @@ log "권한/소유권 정리"
 sudo chown -R ec2-user:ec2-user /var/www/k-mate
 sudo chmod -R u=rwX,g=rX,o=rX /var/www/k-mate || true
 
-# 3.5) ✅ NGINX upstream 중복 제거 가드 (idempotent)
-log "NGINX upstream 설정 정리(중복 제거 + 표준 파일 생성)"
+# 3.5) ✅ NGINX 설정 멱등 적용
+log "NGINX 설정 멱등 적용(디렉터리/맵/upstream/serverblock)"
 
-# 3.5.1 표준 업스트림 파일을 강제로 재작성 (항상 동일 상태 보장)
-sudo tee /etc/nginx/conf.d/10-upstreams.conf >/dev/null <<'EOF'
+# 3.5.0 디렉터리 보장
+sudo install -d -m 755 /etc/nginx/conf.d
+
+# 3.5.1 connection upgrade 맵(항상 동일 내용으로 보장)
+sudo tee /etc/nginx/conf.d/00-connection-upgrade.conf >/dev/null <<'CONF'
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+CONF
+
+# 3.5.2 표준 upstream 단일화
+sudo tee /etc/nginx/conf.d/10-upstreams.conf >/dev/null <<'CONF'
 upstream kmate_upstream {
   server 127.0.0.1:3000;
   keepalive 64;
 }
-EOF
+CONF
 
-# 3.5.2 다른 conf들에서 동일 upstream 블록이 있으면 제거
+# 3.5.3 다른 conf들에서 동일 upstream 블록이 있으면 제거(중복 방지)
 for f in /etc/nginx/conf.d/*.conf; do
   base="$(basename "$f")"
   [ "$base" = "10-upstreams.conf" ] && continue
-  # upstream kmate_upstream { ... } 블록 제거
-  sudo sed -i '/^[[:space:]]*upstream[[:space:]]\+kmate_upstream[[:space:]]*{/,/^[[:space:]]*}/d' "$f"
+  sudo sed -i '/^[[:space:]]*upstream[[:space:]]\+kmate_upstream[[:space:]]*{/,/^[[:space:]]*}/d' "$f" || true
 done
 
-# 3.5.3 (선택) connection_upgrade 맵 파일 확장자 보정
-if [ -f /etc/nginx/conf.d/00-connection-upgrade.map ] && [ ! -f /etc/nginx/conf.d/00-connection-upgrade.conf ]; then
-  sudo mv /etc/nginx/conf.d/00-connection-upgrade.map /etc/nginx/conf.d/00-connection-upgrade.conf
-fi
+# 3.5.4 k-mate.org 서버 블록 생성/갱신
+sudo tee /etc/nginx/conf.d/k-mate.conf >/dev/null <<'CONF'
+server {
+    listen 80;
+    server_name k-mate.org www.k-mate.org;
+
+    # SPA 정적 서빙
+    root /var/www/k-mate/client/dist;
+    index index.html index.htm;
+    location /assets/ { try_files $uri =404; }
+    location / { try_files $uri $uri/ /index.html; }
+
+    # 헬스 체크(항상 200)
+    location = /health { return 200; }
+
+    # 백엔드 프록시 (OAuth 등)
+    location ^~ /auth/ {
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+        proxy_read_timeout    60s;
+        proxy_connect_timeout 3s;
+        proxy_pass http://kmate_upstream;
+    }
+
+    location ^~ /api/ {
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout    60s;
+        proxy_connect_timeout 3s;
+        proxy_pass http://kmate_upstream;
+    }
+}
+CONF
+
+# 3.5.5 v0 서브도메인 conf 잔재 제거(있다면)
+sudo rm -f /etc/nginx/conf.d/kmate.conf 2>/dev/null || true
 
 # 4) systemd / nginx 재적용(문법 검사 포함)
 log "systemd daemon-reload"
@@ -102,7 +152,6 @@ sudo systemctl daemon-reload
 
 log "nginx -t"
 if ! sudo nginx -t; then
-  # 실패 시 디버깅 도움 로그
   log "nginx -T (요약)"
   sudo nginx -T 2>&1 | egrep -n 'upstream kmate_upstream|server_name|listen 80|location \^~ /auth/|try_files .* /index\.html' || true
   exit 1
