@@ -1,22 +1,68 @@
 // src/pages/KBuzz/TrendDetailPage.tsx
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../features/auth/useAuth'
-import { useContentStore } from '../../features/content/content.store'
+import { fetchPostDetail, updatePost } from '../../api/kbuzz'
+
+type ArticleView = {
+	id: number
+	title: string
+	author: string
+	image: string
+	content: string
+	aboutTitle?: string
+	aboutDescription?: string
+}
+
+// ✨ 트렌드 카드 이미지 기본값 (없을 때 보이는 플레이스홀더)
+const PLACEHOLDERS = [
+	'https://picsum.photos/1200/700?blur=1&random=11',
+	'https://picsum.photos/1200/700?blur=1&random=12',
+	'https://picsum.photos/1200/700?blur=1&random=13',
+	'https://picsum.photos/1200/700?blur=1&random=14',
+	'https://picsum.photos/1200/700?blur=1&random=15',
+]
+
+// ✨ per-post 로컬 확장 필드 저장소 키
+const lsKey = (id: number) => `kmate_trend_extra_${id}`
+
+function loadExtras(id: number) {
+	try {
+		const raw = localStorage.getItem(lsKey(id))
+		if (!raw) return {}
+		return JSON.parse(raw) as Partial<
+			Pick<ArticleView, 'image' | 'aboutTitle' | 'aboutDescription'>
+		>
+	} catch {
+		return {}
+	}
+}
+function saveExtras(
+	id: number,
+	extras: Partial<Pick<ArticleView, 'image' | 'aboutTitle' | 'aboutDescription'>>
+) {
+	try {
+		localStorage.setItem(lsKey(id), JSON.stringify(extras))
+	} catch {}
+}
 
 export default function TrendDetailPage() {
 	const { id } = useParams()
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
-	const { trendArticles, updateTrendArticle } = useContentStore()
+	const numericId = useMemo(() => parseInt(id || '0', 10), [id])
 
-	// Find the actual article from the store
-	const article = useMemo(() => {
-		const articleId = parseInt(id || '1', 10)
-		return trendArticles.find((a) => a.id === articleId) || trendArticles[0]
-	}, [id, trendArticles])
+	// 화면에 그릴 아티클 상태
+	const [article, setArticle] = useState<ArticleView | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 
-	// Edit modal state
+	// 좋아요/스크랩(로컬만)
+	const [isLiked, setIsLiked] = useState(false)
+	const [likeCount, setLikeCount] = useState(12)
+	const [isScraped, setIsScraped] = useState(false)
+
+	// ✏️ 수정 모달
 	const [editModalOpen, setEditModalOpen] = useState(false)
 	const [editDraft, setEditDraft] = useState({
 		title: '',
@@ -26,27 +72,8 @@ export default function TrendDetailPage() {
 		aboutTitle: '',
 		aboutDescription: '',
 	})
-
-	// ▼ 좋아요/스크랩 상태 (초기값은 원하는 숫자로)
-	const [isLiked, setIsLiked] = useState(false)
-	const [likeCount, setLikeCount] = useState(12)
-	const [isScraped, setIsScraped] = useState(false)
-
-	const toggleLike = () => {
-		const next = !isLiked
-		setIsLiked(next)
-		setLikeCount((c) => (next ? c + 1 : Math.max(0, c - 1)))
-		// TODO: 서버 반영
-	}
-
-	const toggleScrap = () => {
-		const next = !isScraped
-		setIsScraped(next)
-		// TODO: 서버 반영
-	}
-
-	// Edit modal handlers
-	const handleEdit = () => {
+	const openEdit = () => {
+		if (!article) return
 		setEditDraft({
 			title: article.title,
 			author: article.author,
@@ -57,8 +84,7 @@ export default function TrendDetailPage() {
 		})
 		setEditModalOpen(true)
 	}
-
-	const handleEditClose = () => {
+	const closeEdit = () => {
 		setEditModalOpen(false)
 		setEditDraft({
 			title: '',
@@ -70,34 +96,120 @@ export default function TrendDetailPage() {
 		})
 	}
 
-	const handleEditSubmit = (e: React.FormEvent) => {
-		e.preventDefault()
-		if (!editDraft.title.trim()) return
+	// 🔄 서버에서 상세 불러오기 + 로컬 확장 필드 합치기
+	useEffect(() => {
+		let alive = true
+		async function run() {
+			if (!numericId) return
+			setLoading(true)
+			setError(null)
+			try {
+				const data = await fetchPostDetail(numericId)
+				if (!alive) return
 
-		updateTrendArticle(article.id, {
-			title: editDraft.title.trim(),
-			author: editDraft.author.trim(),
-			image: editDraft.image.trim(),
-			content: editDraft.content.trim(),
-			aboutTitle: editDraft.aboutTitle.trim(),
-			aboutDescription: editDraft.aboutDescription.trim(),
-		})
+				const extras = loadExtras(numericId)
+				const fallbackImage = PLACEHOLDERS[numericId % PLACEHOLDERS.length]
 
-		handleEditClose()
-	}
+				const mapped: ArticleView = {
+					id: data.id,
+					title: data.title,
+					author: data.author?.name || 'K-Mate',
+					content: data.content || '',
+					image: extras.image || fallbackImage,
+					aboutTitle: extras.aboutTitle || 'About K-Trend',
+					aboutDescription:
+						extras.aboutDescription ||
+						"Curated insights and guides for exploring Korea's latest trends — crafted by the K-Mate team.",
+				}
 
-	// ESC key handler for edit modal
+				setArticle(mapped)
+			} catch (e: any) {
+				setError(e?.message || 'Failed to load article')
+			} finally {
+				if (alive) setLoading(false)
+			}
+		}
+		run()
+		return () => {
+			alive = false
+		}
+	}, [numericId])
+
+	// ESC로 모달 닫기
 	useEffect(() => {
 		if (!editModalOpen) return
-		const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && handleEditClose()
+		const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && closeEdit()
 		window.addEventListener('keydown', onKey)
 		return () => window.removeEventListener('keydown', onKey)
 	}, [editModalOpen])
 
+	// ❤️ / ⭐️
+	const toggleLike = () => {
+		const next = !isLiked
+		setIsLiked(next)
+		setLikeCount((c) => (next ? c + 1 : Math.max(0, c - 1)))
+		// TODO: 서버 반영이 필요하면 연결
+	}
+	const toggleScrap = () => setIsScraped((v) => !v)
+
+	// ✅ 저장: 서버에는 title / content만 반영, 이미지·ABOUT은 로컬에 저장
+	const onSubmitEdit = async (e: React.FormEvent) => {
+		e.preventDefault()
+		if (!article) return
+		const title = editDraft.title.trim()
+		const content = editDraft.content.trim()
+		if (!title) return
+
+		try {
+			// 서버 반영
+			await updatePost(article.id, { title, content })
+
+			// 프론트 확장 필드 저장
+			const extras = {
+				image: editDraft.image.trim(),
+				aboutTitle: editDraft.aboutTitle.trim(),
+				aboutDescription: editDraft.aboutDescription.trim(),
+			}
+			saveExtras(article.id, extras)
+
+			// 화면 동기화
+			setArticle((prev) =>
+				prev
+					? {
+							...prev,
+							title,
+							content,
+							image: extras.image || prev.image,
+							aboutTitle: extras.aboutTitle || prev.aboutTitle,
+							aboutDescription: extras.aboutDescription || prev.aboutDescription,
+					  }
+					: prev
+			)
+			closeEdit()
+		} catch (err: any) {
+			alert(err?.response?.data?.message ?? '수정에 실패했어요.')
+		}
+	}
+
+	if (loading) {
+		return (
+			<div className="px-6 py-10">
+				<div className="max-w-6xl mx-auto text-gray-500">불러오는 중…</div>
+			</div>
+		)
+	}
+	if (error || !article) {
+		return (
+			<div className="px-6 py-10">
+				<div className="max-w-6xl mx-auto text-red-500">로드 실패: {error || '데이터 없음'}</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="px-6 py-10">
 			<div className="max-w-6xl mx-auto">
-				{/* Top section: 큰 헤드라인(좌), 작성자 정보(우) */}
+				{/* 헤더 */}
 				<section className="grid items-end gap-8 mb-10 md:mb-14 lg:grid-cols-3">
 					<h1 className="text-3xl font-extrabold leading-tight tracking-tight lg:col-span-2 md:text-5xl">
 						{article.title}
@@ -106,10 +218,9 @@ export default function TrendDetailPage() {
 						<p>
 							by <span className="font-semibold">{article.author}</span>
 						</p>
-						{/* Admin Edit Button */}
 						{isAuthed && (
 							<button
-								onClick={handleEdit}
+								onClick={openEdit}
 								className="inline-flex items-center gap-2 px-3 py-1 text-sm text-white transition-colors bg-purple-600 rounded-lg hover:bg-purple-700"
 							>
 								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +237,7 @@ export default function TrendDetailPage() {
 					</div>
 				</section>
 
-				{/* Hero 이미지 + 우측 플로팅 인포 카드 */}
+				{/* 히어로 이미지 + 우측 정보 카드 */}
 				<section className="relative mb-16">
 					<div className="overflow-hidden border rounded-2xl">
 						<img
@@ -136,7 +247,6 @@ export default function TrendDetailPage() {
 						/>
 					</div>
 
-					{/* 화면 오른쪽 겹쳐지는 작은 카드 (모바일에서는 숨김) */}
 					<aside className="absolute hidden md:block right-6 -bottom-10">
 						<div className="w-[260px] rounded-2xl bg-white shadow-xl border">
 							<div className="p-5">
@@ -153,7 +263,7 @@ export default function TrendDetailPage() {
 					</aside>
 				</section>
 
-				{/* Article Content */}
+				{/* 본문 */}
 				<section className="mb-10 md:mb-12">
 					<div className="max-w-4xl mx-auto">
 						<div className="text-lg leading-relaxed text-gray-700 whitespace-pre-wrap md:text-xl">
@@ -162,9 +272,8 @@ export default function TrendDetailPage() {
 					</div>
 				</section>
 
-				{/* 우측 하단 목록 + 액션 버튼들 */}
+				{/* 액션 */}
 				<div className="flex items-center justify-end gap-3 mt-10">
-					{/* Like */}
 					<button
 						onClick={toggleLike}
 						className="inline-flex items-center gap-2 select-none focus:outline-none"
@@ -188,9 +297,8 @@ export default function TrendDetailPage() {
 						<span className={`text-sm ${isLiked ? 'font-semibold' : ''}`}>{likeCount}</span>
 					</button>
 
-					{/* Scrap */}
 					<button
-						onClick={toggleScrap}
+						onClick={() => setIsScraped((v) => !v)}
 						className="inline-flex items-center gap-2 select-none focus:outline-none"
 						aria-pressed={isScraped}
 						aria-label={isScraped ? 'Unsave' : 'Save'}
@@ -214,7 +322,6 @@ export default function TrendDetailPage() {
 						</span>
 					</button>
 
-					{/* 목록 버튼 */}
 					<button
 						onClick={() => navigate('/buzz')}
 						className="px-4 py-2 border rounded-lg hover:bg-gray-50"
@@ -223,15 +330,15 @@ export default function TrendDetailPage() {
 					</button>
 				</div>
 
-				{/* Edit Modal */}
+				{/* ✏️ 수정 모달 */}
 				{editModalOpen && (
 					<div className="fixed inset-0 z-50 flex items-center justify-center">
-						<div className="absolute inset-0 bg-black/40" onClick={handleEditClose} />
+						<div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
 						<div className="relative z-10 w-[92vw] max-w-xl rounded-2xl bg-white shadow-2xl p-5">
 							<div className="flex items-center justify-between mb-3">
 								<h3 className="text-lg font-semibold">트렌드 아티클 수정</h3>
 								<button
-									onClick={handleEditClose}
+									onClick={closeEdit}
 									aria-label="close"
 									className="w-8 h-8 text-gray-600 border rounded-full hover:bg-gray-50"
 								>
@@ -239,7 +346,8 @@ export default function TrendDetailPage() {
 								</button>
 							</div>
 
-							<form className="space-y-4" onSubmit={handleEditSubmit}>
+							<form className="space-y-4" onSubmit={onSubmitEdit}>
+								{/* 제목 */}
 								<div>
 									<label className="block mb-1 text-sm font-medium">제목</label>
 									<input
@@ -252,41 +360,46 @@ export default function TrendDetailPage() {
 									/>
 								</div>
 
+								{/* 작성자 (UI만, 서버 반영X) */}
 								<div>
-									<label className="block mb-1 text-sm font-medium">작성자</label>
+									<label className="block mb-1 text-sm font-medium">작성자 (화면 표시용)</label>
 									<input
 										type="text"
 										value={editDraft.author}
 										onChange={(e) => setEditDraft((d) => ({ ...d, author: e.target.value }))}
 										placeholder="작성자명을 입력하세요"
 										className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
-										required
 									/>
 								</div>
 
+								{/* 이미지 URL (UI만, 서버 반영X) */}
 								<div>
-									<label className="block mb-1 text-sm font-medium">이미지 URL</label>
+									<label className="block mb-1 text-sm font-medium">이미지 URL (화면 표시용)</label>
 									<input
 										type="url"
 										value={editDraft.image}
 										onChange={(e) => setEditDraft((d) => ({ ...d, image: e.target.value }))}
-										placeholder="이미지 URL을 입력하세요"
+										placeholder="https://…"
 										className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
-										required
 									/>
 								</div>
 
+								{/* 내용 */}
 								<div>
 									<label className="block mb-1 text-sm font-medium">내용</label>
 									<textarea
 										value={editDraft.content}
 										onChange={(e) => setEditDraft((d) => ({ ...d, content: e.target.value }))}
-										rows={6}
-										placeholder="아티클 내용을 입력하세요..."
-										className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+										rows={8}
+										placeholder="아티클 내용을 입력하세요…"
+										className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500 resize-y min-h-[200px]"
 									/>
+									<div className="mt-1 text-xs text-right text-gray-500">
+										{editDraft.content.length.toLocaleString()} chars
+									</div>
 								</div>
 
+								{/* About 섹션 (UI만, 서버 반영X) */}
 								<div>
 									<label className="block mb-1 text-sm font-medium">About 섹션 제목</label>
 									<input
@@ -297,7 +410,6 @@ export default function TrendDetailPage() {
 										className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
 									/>
 								</div>
-
 								<div>
 									<label className="block mb-1 text-sm font-medium">About 섹션 설명</label>
 									<textarea
@@ -311,17 +423,15 @@ export default function TrendDetailPage() {
 									/>
 								</div>
 
+								{/* 미리보기 */}
 								{editDraft.image && (
 									<div>
-										<label className="block mb-1 text-sm font-medium">미리보기</label>
+										<label className="block mb-1 text-sm font-medium">이미지 미리보기</label>
 										<img
 											src={editDraft.image}
-											alt="미리보기"
-											className="object-cover w-full h-32 border rounded-lg"
-											onError={(e) => {
-												const target = e.target as HTMLImageElement
-												target.style.display = 'none'
-											}}
+											alt="preview"
+											className="object-cover w-full h-40 border rounded-lg"
+											onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
 										/>
 									</div>
 								)}
@@ -329,7 +439,7 @@ export default function TrendDetailPage() {
 								<div className="flex items-center justify-end gap-3 pt-2">
 									<button
 										type="button"
-										onClick={handleEditClose}
+										onClick={closeEdit}
 										className="px-4 py-2 border rounded-lg hover:bg-gray-50"
 									>
 										취소
