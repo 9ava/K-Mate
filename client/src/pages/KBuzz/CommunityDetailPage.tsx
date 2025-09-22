@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { fetchPostDetail, likePost, type KBuzzItem } from '../../api/kbuzz'
 import { fetchComments, createComment, deleteComment } from '../../api/comments'
 import { useAuthStore } from '../../features/auth/auth.store'
+import { toKstFromUtc, toKstFromUtcShort } from '../../lib/date'
 
 type Post = {
 	id: number
@@ -82,6 +83,10 @@ export default function CommunityDetailPage() {
 			setError(null)
 			try {
 				const res = await fetchPostDetail(id) // GET /posts/:id
+
+				console.log('서버에서 받은 createdAt:', res.createdAt)
+				console.log('서버에서 받은 updatedAt:', res.updatedAt)
+
 				if (!alive) return
 				setServerData(res)
 
@@ -89,19 +94,19 @@ export default function CommunityDetailPage() {
 					id: Number(res.id),
 					title: res.title,
 					asker: res.author?.name ?? 'User',
-					askedAt: new Date(res.createdAt).toLocaleString(),
+					askedAt: toKstFromUtc(res.createdAt),
 					editor: res.author?.name ?? 'User',
-					editedAt: new Date(res.updatedAt).toLocaleString(),
+					editedAt: toKstFromUtc(res.updatedAt),
 					body: (res.content || '').split(/\n{2,}/),
 					authorId: res.author?.id ?? 0,
 					likeCount: res.likeCount ?? 0,
-					isLiked: false,
+					isLiked: res.isLiked ?? false,
 					isScraped: false,
 					imageUrl: undefined,
 				}
 
 				setPost(mapped)
-				setIsLiked(false)
+				setIsLiked(mapped.isLiked)
 				setLikeCount(mapped.likeCount)
 				setIsScraped(false)
 			} catch (e: any) {
@@ -133,7 +138,7 @@ export default function CommunityDetailPage() {
 					id: i.id,
 					author: i.author.name,
 					avatar: i.author.avatarUrl,
-					createdAt: new Date(i.createdAt).toLocaleString(),
+					createdAt: toKstFromUtcShort(i.createdAt),
 					content: i.content,
 					authorId: i.author.id,
 					likeCount: 0,
@@ -167,7 +172,7 @@ export default function CommunityDetailPage() {
 				id: created.id,
 				author: created.author.name,
 				avatar: created.author.avatarUrl,
-				createdAt: new Date(created.createdAt).toLocaleString(),
+				createdAt: toKstFromUtcShort(created.createdAt),
 				content: created.content,
 				authorId: created.author.id,
 				likeCount: 0,

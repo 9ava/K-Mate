@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../features/auth/auth.store'
 import { fetchPosts, createPost, type KBuzzList } from '../api/kbuzz'
+import { toKstShort } from '../lib/date'
+import { toKstFromUtcShort } from '../lib/date'
 
 /* ----------------------- Types ----------------------- */
 interface Article {
@@ -99,7 +101,7 @@ export default function KBuzzPage() {
 						id: it.id,
 						title: it.title,
 						author: it.author.name,
-						createdAt: new Date(it.createdAt).toLocaleString(),
+						createdAt: toKstFromUtcShort(it.createdAt),
 						replies: it.commentCount,
 					}))
 				)

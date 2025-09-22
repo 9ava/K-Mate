@@ -26,6 +26,7 @@ import {
 } from '@nestjs/swagger'
 import { PostsService } from './posts.service'
 import { CreatePostDto, UpdatePostDto, GetPostsQueryDto, PostResponseDto } from './posts.dto'
+import { JwtAuthOptionalGuard } from '../../common/guards/jwt-auth.optional.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
 import { RolesGuard } from '../../common/guards/roles.guard'
@@ -94,8 +95,10 @@ export class PostsController {
 	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10)' })
 	@ApiQuery({ name: 'search', required: false, type: String, description: '검색 키워드' })
 	@Get()
-	async getPosts(@Query() query: GetPostsQueryDto) {
-		const data = await this.postsService.getPosts(query)
+	@UseGuards(JwtAuthOptionalGuard)
+	async getPosts(@Query() query: GetPostsQueryDto, @Req() req: Request) {
+		const userId = (req.user as any)?.id
+		const data = await this.postsService.getPosts(query, userId)
 		return { success: true, data }
 	}
 
@@ -109,9 +112,12 @@ export class PostsController {
 	})
 	@ApiNotFoundResponse({ description: '게시글을 찾을 수 없음' })
 	@ApiParam({ name: 'id', type: Number, description: '게시글 ID' })
+	@ApiCookieAuth('access_token')
 	@Get(':id')
-	async getPostById(@Param('id', ParseIntPipe) id: number) {
-		const data = await this.postsService.getPostById(id)
+	@UseGuards(JwtAuthOptionalGuard)
+	async getPostById(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+		const userId = (req.user as any)?.id
+		const data = await this.postsService.getPostById(id, userId)
 		return { success: true, data }
 	}
 
