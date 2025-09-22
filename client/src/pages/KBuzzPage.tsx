@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../features/auth/auth.store'
 import { fetchPosts, createPost, type KBuzzList } from '../api/kbuzz'
-import { toKstShort } from '../lib/date'
 import { toKstFromUtcShort } from '../lib/date'
 
 /* ----------------------- Types ----------------------- */
@@ -53,7 +52,6 @@ export default function KBuzzPage() {
 		if (!ready) bootstrap()
 	}, [ready, bootstrap])
 
-	const userDisplayName = user?.name || (user?.email ? user.email.split('@')[0] : '') || 'anonymous'
 
 	/* ---- K-Trend: 서버에서 trend 목록 불러오기 ---- */
 	const [articles, setArticles] = useState<Article[]>([])
