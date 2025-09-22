@@ -3,7 +3,8 @@
 	"nav": {
 		"kmap": "K-맵",
 		"kcourse": "K-코스",
-		"kbuzz": "K-버즈"
+		"kbuzz": "K-버즈",
+		"admin": "관리자"
 	},
 	"auth": {
 		"continue_google": "구글로 계속하기",

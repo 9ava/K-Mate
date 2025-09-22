@@ -10,6 +10,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
 			callbackURL: process.env.GOOGLE_CALLBACK_URL!,
 			scope: ['email', 'profile'], // ✅ 반드시 email 포함
+			passReqToCallback: false,
+			// Force account selection every time
+			prompt: 'select_account consent',
+			accessType: 'offline',
 		})
 	}
 

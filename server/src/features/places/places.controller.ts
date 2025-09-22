@@ -28,6 +28,7 @@ import {
 	NearbyQueryDto,
 	PhotoQueryDto,
 	AdminAddPlaceDto,
+	UserAddPlaceDto,
 	ListQueryDto,
 	SetTypeDto,
 } from './places.dto'
@@ -120,6 +121,20 @@ export class PlacesController {
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────
+	// 사용자: 새 장소 추가 (로그인 필요)
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '새 장소 추가 (로그인 필요)' })
+	@ApiCookieAuth('access_token')
+	@UseGuards(JwtAuthGuard)
+	@Post('add')
+	async addPlace(@Body() dto: UserAddPlaceDto, @Req() req: Request) {
+		const userId = (req.user as any)?.id as number
+		if (!userId) throw new ForbiddenException('로그인이 필요합니다.')
+		const saved = await this.places.userAddPlace(dto, userId)
+		return { success: true, data: saved }
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────
 	// 관리자: placeId 수동 등록/갱신
 	// ────────────────────────────────────────────────────────────────────────────
 	@ApiOperation({ summary: '관리자: placeId로 DB 등록/갱신' })
@@ -127,9 +142,9 @@ export class PlacesController {
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles('admin')
 	@Post('admin/add')
-	async adminAdd(@Query() dto: AdminAddPlaceDto, @Req() req: Request) {
+	async adminAdd(@Body() dto: AdminAddPlaceDto, @Req() req: Request) {
 		const role = (req.user?.role ?? 'user') as 'user' | 'admin'
-		const saved = await this.places.adminAddPlace(dto.placeId, role)
+		const saved = await this.places.adminAddPlace(dto, role)
 		return { success: true, data: saved }
 	}
 
@@ -147,6 +162,19 @@ export class PlacesController {
 			success: true,
 			data: { placeId: p.googlePlaceId, type: p.type, typeSource: p.typeSource },
 		}
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────
+	// 관리자: 장소 삭제
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '관리자: 장소 삭제' })
+	@ApiCookieAuth('access_token')
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin')
+	@Delete('admin/:id')
+	async adminDeletePlace(@Param('id') id: number) {
+		await this.places.deletePlace(id)
+		return { success: true }
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────

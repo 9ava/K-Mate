@@ -3,7 +3,8 @@
 	"nav": {
 		"kmap": "K-地图",
 		"kcourse": "K-行程",
-		"kbuzz": "K-社区"
+		"kbuzz": "K-社区",
+		"admin": "管理员"
 	},
 	"auth": {
 		"continue_google": "使用 Google 继续",

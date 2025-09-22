@@ -3,7 +3,8 @@
 	"nav": {
 		"kmap": "K-Map",
 		"kcourse": "K-Course",
-		"kbuzz": "K-Buzz"
+		"kbuzz": "K-Buzz",
+		"admin": "Admin"
 	},
 	"auth": {
 		"continue_google": "Continue with Google",

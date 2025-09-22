@@ -6,6 +6,7 @@ export function useAuth() {
 	const ready = useAuthStore((s) => s.ready)
 	const bootstrap = useAuthStore((s) => s.bootstrap)
 	const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle)
+	const switchAccount = useAuthStore((s) => s.switchAccount)
 	const logout = useAuthStore((s) => s.logout)
 	const isAuthed = useAuthStore((s) => s.isAuthed())
 	const role = (user?.role ?? 'user') as 'user' | 'admin'
@@ -21,6 +22,7 @@ export function useAuth() {
 		initial,
 		refresh: bootstrap,
 		loginWithGoogle,
+		switchAccount,
 		logout,
 	}
 }

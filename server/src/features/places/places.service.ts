@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs'
 import { Place } from './place.entity'
 import { PlaceBookmark } from './place-bookmark.entity'
 import { User } from '../users/user.entity'
+import { AdminAddPlaceDto, UserAddPlaceDto } from './places.dto'
 
 /**
  * PlacesService
@@ -191,11 +192,67 @@ export class PlacesService {
 	}
 
 	/**
+	 * 사용자: 새 장소 추가 (로그인 필요)
+	 */
+	async userAddPlace(dto: UserAddPlaceDto, userId: number) {
+		// First, get the latest data from Google and sync it
+		const place = await this.getOrSyncByPlaceId(dto.placeId)
+
+		// Now, override with user-provided data
+		if (dto.name) {
+			place.name = dto.name
+		}
+		if (dto.description) {
+			place.description = dto.description
+		}
+		if (dto.imageUrl) {
+			// Assuming the photosJson is an array of objects with a 'url' property
+			place.photosJson = [{ url: dto.imageUrl }];
+		}
+		if (dto.category) {
+			const categoryMap: Record<string, 'travel' | 'food' | 'cafe'> = {
+				'K-Travel': 'travel',
+				'K-Food': 'food',
+				'K-Cafe': 'cafe',
+			}
+			place.type = categoryMap[dto.category] || null
+			place.typeSource = 'user'
+		}
+
+		return this.placeRepo.save(place)
+	}
+
+	/**
 	 * 관리자 전용: 특정 placeId를 DB에 수동 등록/갱신
 	 */
-	async adminAddPlace(googlePlaceId: string, userRole: 'user' | 'admin') {
+	async adminAddPlace(dto: AdminAddPlaceDto, userRole: 'user' | 'admin') {
 		if (userRole !== 'admin') throw new ForbiddenException('관리자만 가능합니다.')
-		return this.getOrSyncByPlaceId(googlePlaceId)
+
+		// First, get the latest data from Google and sync it
+		const place = await this.getOrSyncByPlaceId(dto.placeId)
+
+		// Now, override with admin-provided data
+		if (dto.name) {
+			place.name = dto.name
+		}
+		if (dto.description) {
+			place.description = dto.description
+		}
+		if (dto.imageUrl) {
+			// Assuming the photosJson is an array of objects with a 'url' property
+			place.photosJson = [{ url: dto.imageUrl }];
+		}
+		if (dto.category) {
+			const categoryMap: Record<string, 'travel' | 'food' | 'cafe'> = {
+				'K-Travel': 'travel',
+				'K-Food': 'food',
+				'K-Cafe': 'cafe',
+			}
+			place.type = categoryMap[dto.category] || null
+			place.typeSource = 'admin'
+		}
+
+		return this.placeRepo.save(place)
 	}
 
 	// ─────────────────────────────────────────────────────────
@@ -307,5 +364,22 @@ export class PlacesService {
 			type: 'type' in r.place ? r.place.type : undefined,
 			createdAt: r.createdAt,
 		}))
+	}
+
+	/** 관리자: 장소 삭제 */
+	async deletePlace(id: number): Promise<void> {
+		const place = await this.placeRepo.findOne({ where: { id } })
+		if (!place) {
+			throw new Error('Place not found')
+		}
+
+		// Remove any bookmarks for this place first
+		const bookmarks = await this.bmRepo.find({ where: { place: { id } } })
+		if (bookmarks.length > 0) {
+			await this.bmRepo.remove(bookmarks)
+		}
+
+		// Remove the place
+		await this.placeRepo.remove(place)
 	}
 }
