@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
-import { getPlaceDetail } from '../api/places'
+import { getPlaceDetail, listPlaces } from '../api/places'
 import { listMyBookmarks } from '../api/bookmarks'
 import { useMapStore } from '../features/map/map.store'
 import { useAuth } from '../features/auth/useAuth'
@@ -248,11 +248,26 @@ export default function KmapPage() {
 		setType('') // 카테고리 선택 해제
 		// SearchList는 항상 표시되어 있음
 	}
-	const handleToggleMenu = () => {
+	const handleToggleMenu = async () => {
 		// Menu는 단순히 SearchList 토글하고 모든 활성화 상태 해제
 		setShowSearchList(!showSearchList)
 		setType('') // 카테고리 활성화 해제
 		setMode('type') // 북마크 모드도 해제
+		
+		// SearchList가 열릴 때 전체 장소 데이터 로드
+		if (!showSearchList) {
+			try {
+				setLoading(true)
+				const response = await listPlaces({ pageSize: 100 }) // 전체 장소 가져오기
+				setPlaces(response.items)
+				setListTitle('전체 장소 📍')
+				await renderMarkers(response.items)
+			} catch (error) {
+				console.error('전체 장소 로드 실패:', error)
+			} finally {
+				setLoading(false)
+			}
+		}
 	}
 
 	return (
