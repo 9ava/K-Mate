@@ -29,7 +29,12 @@ export class AuthController {
 	@Get('google/callback')
 	@UseGuards(AuthGuard('google'))
 	async googleCallback(@Req() req: Request, @Res() res: Response) {
-		const frontend = process.env.FRONTEND_URL!
+		const frontend = process.env.FRONTEND_URL || 'https://k-mate.org'
+		const postLoginPath = process.env.POST_LOGIN_PATH || '/login/callback' // ✅ 프런트 라우트로 변경
+
+		// 슬래시 안전 조인
+		const redirectTo = frontend.replace(/\/+$/, '') + '/' + postLoginPath.replace(/^\/+/, '')
+
 		try {
 			const googleUser = req.user as any
 			const appUser = await this.authService.upsertUser(googleUser)
@@ -39,9 +44,9 @@ export class AuthController {
 			return res
 				.cookie('access_token', access, { ...baseCookie, maxAge: accessMaxAgeMs })
 				.cookie('refresh_token', refresh, { ...baseCookie, maxAge: refreshMaxAgeMs })
-				.redirect(`${frontend}/auth/callback`) // 쿼리 토큰 없이
+				.redirect(redirectTo) // ✅ 프런트로 바로 리다이렉트
 		} catch {
-			return res.redirect(`${frontend}/login?error=oauth_failed`)
+			return res.redirect(frontend.replace(/\/+$/, '') + '/login?error=oauth_failed')
 		}
 	}
 
