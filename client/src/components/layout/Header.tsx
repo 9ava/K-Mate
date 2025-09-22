@@ -42,7 +42,7 @@ export default function Header() {
 				{/* 중앙: Nav (번역 적용) */}
 				<nav className="flex items-center gap-6 text-sm">
 					<NavLink to="/kmap">{t('nav.kmap')}</NavLink>
-					<NavLink to="/course">{t('nav.kcourse')}</NavLink>
+					<NavLink to="/kcourse">{t('nav.kcourse')}</NavLink>
 					<NavLink to="/buzz">{t('nav.kbuzz')}</NavLink>
 				</nav>
 
