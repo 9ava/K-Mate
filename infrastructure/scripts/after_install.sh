@@ -36,8 +36,8 @@ if command -v node >/dev/null 2>&1; then
   NODE_MAJOR="${NODE_V#v}"; NODE_MAJOR="${NODE_MAJOR%%.*}"
   if [[ "${NODE_MAJOR}" =~ ^[0-9]+$ ]] && [ "${NODE_MAJOR}" -lt 20 ]; then
     log "node ${NODE_V} (<20) 감지 → alternatives 로 node-20 지정 시도"
-    alternatives --set node /usr/bin/node-20 2>/dev/null || true
-    alternatives --set npm  /usr/bin/npm-20  2>/dev/null || true
+    sudo alternatives --set node /usr/bin/node-20 2>/dev/null || true
+    sudo alternatives --set npm  /usr/bin/npm-20  2>/dev/null || true
   fi
 else
   log "경고: node 명령을 찾을 수 없습니다. before_install.sh 에서 설치되어야 합니다."
@@ -69,17 +69,26 @@ fi
 
 # 3) 권한/소유권 정리
 log "권한/소유권 정리"
-chown -R ec2-user:ec2-user /var/www/k-mate
-chmod -R u=rwX,g=rX,o=rX /var/www/k-mate || true
+sudo chown -R ec2-user:ec2-user /var/www/k-mate
+sudo chmod -R u=rwX,g=rX,o=rX /var/www/k-mate || true
+
+# ⚠️ [수정된 부분] NGINX 설정 파일 정리: 기존 upstreams.conf 파일 삭제
+# 이 단계는 중복된 upstream 정의를 제거하여 NGINX 설정 테스트 오류를 방지합니다.
+log "NGINX upstream 설정 정리"
+if [ -f "/etc/nginx/conf.d/upstreams.conf" ]; then
+    sudo rm /etc/nginx/conf.d/upstreams.conf
+    log "/etc/nginx/conf.d/upstreams.conf 파일 삭제 완료"
+fi
 
 # 4) systemd / nginx 재적용(문법 검사 포함)
 log "systemd daemon-reload"
-systemctl daemon-reload
+sudo systemctl daemon-reload
 
 log "nginx -t"
-nginx -t
+sudo nginx -t
+
 log "nginx reload"
-systemctl reload nginx || systemctl restart nginx
+sudo systemctl reload nginx || sudo systemctl restart nginx
 
 # 5) (옵션) DB 마이그레이션
 if [ "${RUN_MIGRATIONS}" = "true" ]; then
