@@ -5,7 +5,7 @@ import { loadKakao } from '../../lib/kakao'
 type Place = { id: string; name: string; lat: number; lng: number; address?: string }
 
 export default function SearchPanel({ onPick }: { onPick: (p: Place) => void }) {
-	const [q, setQ] = useState('용산공원')
+	const [q, setQ] = useState('강남취창업허브센터')
 	const [results, setResults] = useState<Place[]>([])
 
 	useEffect(() => {

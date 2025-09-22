@@ -158,10 +158,10 @@ export default function CourseDetailPage() {
 	if (error) {
 		return (
 			<div className="flex flex-col items-center justify-center min-h-screen">
-				<div className="text-lg text-red-500 mb-4">{error}</div>
+				<div className="mb-4 text-lg text-red-500">{error}</div>
 				<button
 					onClick={() => navigate('/kcourse')}
-					className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+					className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
 				>
 					코스 목록으로 돌아가기
 				</button>
@@ -172,10 +172,10 @@ export default function CourseDetailPage() {
 	if (!course) {
 		return (
 			<div className="flex flex-col items-center justify-center min-h-screen">
-				<div className="text-lg text-gray-500 mb-4">코스를 찾을 수 없습니다.</div>
+				<div className="mb-4 text-lg text-gray-500">코스를 찾을 수 없습니다.</div>
 				<button
 					onClick={() => navigate('/kcourse')}
-					className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+					className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
 				>
 					코스 목록으로 돌아가기
 				</button>
@@ -186,8 +186,8 @@ export default function CourseDetailPage() {
 	return (
 		<div className="min-h-screen bg-gray-50">
 			{/* 헤더 */}
-			<div className="bg-white border-b px-4 py-3">
-				<div className="max-w-7xl mx-auto flex items-center justify-between">
+			<div className="px-4 py-3 bg-white border-b">
+				<div className="flex items-center justify-between mx-auto max-w-7xl">
 					<div className="flex items-center gap-4">
 						<button
 							onClick={() => navigate('/kcourse')}
@@ -225,7 +225,7 @@ export default function CourseDetailPage() {
 								<button
 									onClick={handleDelete}
 									disabled={actionLoading}
-									className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
+									className="px-4 py-2 font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
 								>
 									{actionLoading ? '삭제중...' : '삭제'}
 								</button>
@@ -262,7 +262,7 @@ export default function CourseDetailPage() {
 
 					{/* 지도 칼럼 */}
 					<main className="relative z-0">
-						<MapCanvas stops={stops} />
+						<MapCanvas key={`edit-map-${courseId}-${stops.length}`} stops={stops} />
 					</main>
 
 					{/* 우 패널 - 코스 편집 */}
@@ -272,28 +272,36 @@ export default function CourseDetailPage() {
 							setStops={setStops} 
 							onSave={handleSave}
 							saving={saving}
+							initialTitle={course?.title}
+							initialVisibility={course?.visibility}
 						/>
 					</aside>
 				</div>
 			) : (
 				// 읽기 모드: 지도만 표시
 				<div className="relative" style={{ height: 'calc(100vh - 120px)' }}>
-					<MapCanvas stops={stops} />
-					
-					{/* 코스 정보 오버레이 */}
-					{stops.length > 0 && (
-						<div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 max-w-sm z-10">
-							<h3 className="font-semibold mb-2">여행 경로</h3>
-							<div className="space-y-2">
-								{stops.map((stop, index) => (
-									<div key={stop.id} className="flex items-center gap-2">
-										<div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-											{index + 1}
+					{stops.length > 0 ? (
+						<>
+							<MapCanvas key={`course-map-${courseId}-${stops.length}`} stops={stops} />
+							
+							{/* 코스 정보 오버레이 */}
+							<div className="absolute z-10 max-w-sm p-4 bg-white rounded-lg shadow-lg top-4 left-4">
+								<h3 className="mb-2 font-semibold">여행 경로</h3>
+								<div className="space-y-2">
+									{stops.map((stop, index) => (
+										<div key={stop.id} className="flex items-center gap-2">
+											<div className="flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-blue-600 rounded-full">
+												{index + 1}
+											</div>
+											<span className="text-sm">{stop.name}</span>
 										</div>
-										<span className="text-sm">{stop.name}</span>
-									</div>
-								))}
+									))}
+								</div>
 							</div>
+						</>
+					) : (
+						<div className="flex items-center justify-center h-full">
+							<div className="text-lg text-gray-500">경로를 불러오는 중...</div>
 						</div>
 					)}
 				</div>
