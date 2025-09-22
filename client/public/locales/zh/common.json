@@ -1,5 +1,4 @@
 {
-	"app": { "title": "K-Mate" },
 	"nav": {
 		"kmap": "K-地图",
 		"kcourse": "K-行程",
@@ -18,6 +17,34 @@
 			"cafe": "K-咖啡 ☕",
 			"bookmarks": "我的收藏 🔖",
 			"popular": "热门地点 🌟"
+		}
+	},
+	"kcourse": {
+		"tabs": {
+			"my_course": "我的旅行路线",
+			"monthly_best": "月度最佳"
+		},
+		"buttons": {
+			"create_course": "创建路线",
+			"first_course": "创建第一个路线"
+		},
+		"titles": {
+			"my_travel_course": "我的旅行路线",
+			"monthly_best_9": "月度最佳 9",
+			"my_courses": "我创建的路线",
+			"saved_courses": "已保存路线"
+		},
+		"labels": {
+			"my_course": "我的路线",
+			"saved": "已保存",
+			"created_date": "创建日期",
+			"unknown_location": "未知位置",
+			"author": "作者"
+		},
+		"messages": {
+			"loading": "加载中...",
+			"no_courses": "还没有创建旅行路线。",
+			"create_course_message": "创建属于你的旅行路线吧！"
 		}
 	}
 }

@@ -1,7 +1,4 @@
 {
-	"app": { 
-		"title": "K-Mate" 
-	},
 	"nav": {
 		"kmap": "K-Map",
 		"kcourse": "K-Course",
@@ -20,6 +17,34 @@
 			"cafe": "K-Cafe ☕",
 			"bookmarks": "My Bookmarks 🔖",
 			"popular": "Popular Places 🌟"
+		}
+	},
+	"kcourse": {
+		"tabs": {
+			"my_course": "My Travel Courses",
+			"monthly_best": "Monthly Best"
+		},
+		"buttons": {
+			"create_course": "Create Course",
+			"first_course": "Create First Course"
+		},
+		"titles": {
+			"my_travel_course": "My Travel Courses",
+			"monthly_best_9": "Monthly Best 9",
+			"my_courses": "My Courses",
+			"saved_courses": "Saved Courses"
+		},
+		"labels": {
+			"my_course": "My Course",
+			"saved": "Saved",
+			"created_date": "Created",
+			"unknown_location": "Unknown Location",
+			"author": "Author"
+		},
+		"messages": {
+			"loading": "Loading...",
+			"no_courses": "No travel courses created yet.",
+			"create_course_message": "Create your own travel course!"
 		}
 	}
 }
