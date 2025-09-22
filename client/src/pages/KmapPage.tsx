@@ -30,9 +30,29 @@ export default function KmapPage() {
 	const [places, setPlaces] = useState<Place[]>([])
 	const [titleKey, setTitleKey] = useState<string>('popular') // 번역 키만 저장
 	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
+	const [bookmarkedPlaces, setBookmarkedPlaces] = useState<Set<string>>(new Set()) // 북마크된 장소 ID 목록
 	
 	// 실시간 번역 적용되는 title
 	const listTitle = t(`kmap.titles.${titleKey}`)
+	
+	// 로그인 상태 변경 시 북마크 목록 로드
+	useEffect(() => {
+		if (isAuthed) {
+			loadBookmarkedPlaces()
+		} else {
+			setBookmarkedPlaces(new Set())
+		}
+	}, [isAuthed])
+
+	const loadBookmarkedPlaces = async () => {
+		try {
+			const bookmarks = await listMyBookmarks()
+			const bookmarkedIds = new Set(bookmarks.map(b => b.placeId))
+			setBookmarkedPlaces(bookmarkedIds)
+		} catch (error) {
+			console.error('북마크 목록 로드 실패:', error)
+		}
+	}
 	
 	// 강남취창업허브센터 Google Place ID
 	const GANGNAM_HUB_PLACE_ID = 'ChIJm3FERJShfDURNVIQh8yZWFQ'
@@ -277,6 +297,36 @@ export default function KmapPage() {
 		}
 	}
 
+	// 북마크 변경 시 북마크 리스트 새로고침
+	const handleBookmarkChange = async () => {
+		// 북마크 목록 새로고침
+		await loadBookmarkedPlaces()
+		
+		// 북마크 모드인 경우 리스트도 새로고침
+		if (mode === 'bookmarks' && isAuthed) {
+			try {
+				const rows = await listMyBookmarks()
+				const items: Place[] = rows.map((r, i) => ({
+					id: i,
+					googlePlaceId: r.placeId,
+					type: r.type || null,
+					name: r.name,
+					address: r.address,
+					lat: r.lat,
+					lng: r.lng,
+					phone: null,
+					website: null,
+					googleMapsUrl: r.googleMapsUrl,
+					description: null, // 필수 필드 추가
+				}))
+				setPlaces(items)
+				await renderMarkers(items)
+			} catch (error) {
+				console.error('북마크 새로고침 실패:', error)
+			}
+		}
+	}
+
 	return (
 		<div>
 			<div className="fixed inset-x-0 bottom-0 flex top-14">
@@ -304,7 +354,14 @@ export default function KmapPage() {
 				)}
 
 				{/* 상세 패널 */}
-				{selected && <SidePanel place={selected} onClose={handleClose} />}
+				{selected && (
+					<SidePanel 
+						place={selected} 
+						onClose={handleClose} 
+						onBookmarkChange={handleBookmarkChange}
+						isBookmarked={bookmarkedPlaces.has(selected.googlePlaceId)}
+					/>
+				)}
 
 				{/* 지도 */}
 				<div className="relative flex-1">
