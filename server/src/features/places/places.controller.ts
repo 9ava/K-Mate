@@ -92,17 +92,6 @@ export class PlacesController {
 		return { success: true, data }
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────
-	// 상세 (DB 캐시 30일, 없으면 동기화)
-	// ────────────────────────────────────────────────────────────────────────────
-	@ApiOperation({ summary: '장소 상세 (DB 캐시 30일, 없으면 동기화)' })
-	@ApiOkResponse({ description: 'Place 엔티티' })
-	@ApiParam({ name: 'placeId', description: 'Google Place ID' })
-	@Get(':placeId')
-	async getDetail(@Param('placeId') placeId: string) {
-		const data = await this.places.getOrSyncByPlaceId(placeId)
-		return { success: true, data }
-	}
 
 	// ────────────────────────────────────────────────────────────────────────────
 	// 사진 프록시 (리다이렉트)
@@ -119,6 +108,19 @@ export class PlacesController {
 		)
 		return res.redirect(url)
 	}
+
+		// ────────────────────────────────────────────────────────────────────────────
+	// 상세 (DB 캐시 30일, 없으면 동기화)
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '장소 상세 (DB 캐시 30일, 없으면 동기화)' })
+	@ApiOkResponse({ description: 'Place 엔티티' })
+	@ApiParam({ name: 'placeId', description: 'Google Place ID' })
+	@Get(':placeId')
+	async getDetail(@Param('placeId') placeId: string) {
+		const data = await this.places.getOrSyncByPlaceId(placeId)
+		return { success: true, data }
+	}
+
 
 	// ────────────────────────────────────────────────────────────────────────────
 	// 사용자: 새 장소 추가 (로그인 필요)
