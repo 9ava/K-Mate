@@ -4,7 +4,7 @@ phases:
     runtime-versions:
       nodejs: 20
     commands:
-      # 루트 패키지 (필요 없으면 무시)
+      # 루트 패키지(모노레포 루트에 package.json이 없으면 실패하므로 관대하게)
       - npm ci --no-audit --no-fund || true
 
       # 서버/클라이언트 devDeps 포함 설치(빌드 도구용)
@@ -19,28 +19,30 @@ phases:
       # 2) 클라이언트 빌드 (프로덕션 API URL 주입)
       - VITE_API_URL="https://k-mate.org" npm --prefix client run build
 
-      # 3) 배포 산출물 구성
-      - mkdir -p artifact/server-dist artifact/client-dist artifact/scripts artifact/systemd
+      # 3) 배포 산출물 디렉터리 구성
+      - rm -rf artifact
+      - mkdir -p artifact/server-dist artifact/client-dist artifact/scripts artifact/systemd artifact/nginx
 
-      # 서버 산출물: dist + package*.json
+      # 3-1) 서버 산출물: dist + package*.json + prod node_modules
       - cp -r server/dist artifact/server-dist/dist
       - cp server/package*.json artifact/server-dist/
-
-      # ⚠️ 여기서 "런타임 의존성만" 설치 (prod 전용)
       - (cd artifact/server-dist && npm ci --omit=dev --no-audit --no-fund)
 
-      # 클라이언트 산출물
+      # 3-2) 클라이언트 산출물
       - cp -r client/dist artifact/client-dist/
 
-      # AppSpec 및 인프라(스크립트/유닛) 포함
-      - cp appspec.yml artifact/
-      - cp -r infrastructure/scripts artifact/scripts
-      - cp -r infrastructure/systemd artifact/systemd
+      # 3-3) 스크립트/설정/유닛 파일 복사  (⚠️ 디렉터리 '내용물'만 복사)
+      - cp -r infrastructure/scripts/*  artifact/scripts/
+      - cp -r infrastructure/systemd/*  artifact/systemd/
+      - cp -r infrastructure/nginx/*    artifact/nginx/
 
-      # 스크립트 실행 권한 보장
+      # 3-4) 실행 권한
       - find artifact/scripts -type f -name '*.sh' -exec chmod +x {} \;
 
+      # 3-5) appspec.yml 루트에 배치
+      - cp appspec.yml artifact/
+
 artifacts:
+  base-directory: artifact
   files:
     - '**/*'
-  base-directory: artifact
