@@ -4,20 +4,52 @@ import { useNavigate } from 'react-router-dom'
 import { getMyCourses, getPublicCourses } from '../api/courses'
 import type { Course } from '../types/course'
 import { useAuth } from '../features/auth/useAuth'
+import { getPlaceDetails } from '../lib/kakao'
 
 type Tab = 'my-course' | 'monthly-best'
 
+// 코스 변환 결과를 캐싱하는 Map
+const courseCache = new Map<string, TravelCourse>()
+
 // Course 타입을 TravelCourse 형태로 변환하는 헬퍼 함수
-function courseToTravelCourse(course: Course): TravelCourse {
-	return {
+async function courseToTravelCourse(course: Course): Promise<TravelCourse> {
+	// 캐시에서 먼저 확인
+	const cacheKey = course.id
+	if (courseCache.has(cacheKey)) {
+		return courseCache.get(cacheKey)!
+	}
+
+	let image = 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768' // 기본 이미지
+	let category: 'cultural' | 'cafe' | 'food' | 'nature' = 'cultural' // 기본 카테고리
+	
+	// 첫 번째 장소의 카카오맵 정보 가져오기
+	const firstStop = course.stops[0]
+	if (firstStop?.externalId) {
+		try {
+			const placeDetails = await getPlaceDetails(firstStop.externalId, firstStop.name)
+			if (placeDetails) {
+				image = placeDetails.image
+				category = placeDetails.category
+			}
+		} catch (error) {
+			console.warn('Failed to get place details for course:', course.id, error)
+		}
+	}
+	
+	const travelCourse: TravelCourse = {
 		id: parseInt(course.id),
 		title: course.title,
-		location: course.stops[0]?.name || '알 수 없는 위치',
+		location: firstStop?.name || '알 수 없는 위치',
 		date: new Date(course.created_at).toLocaleDateString('ko-KR'),
 		author: course.author?.name || '작성자',
-		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768', // 기본 이미지
-		category: 'cultural' as const, // 임시로 cultural로 설정
+		image,
+		category,
 	}
+
+	// 캐시에 저장
+	courseCache.set(cacheKey, travelCourse)
+	
+	return travelCourse
 }
 
 type TravelCourse = {
@@ -27,7 +59,7 @@ type TravelCourse = {
 	date: string
 	author: string
 	image: string
-	category: 'cultural' | 'coastal' | 'exhibition' | 'nature'
+	category: 'cultural' | 'cafe' | 'food' | 'nature'
 }
 
 /* --- HeroBanner --- */
@@ -228,14 +260,14 @@ function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?:
 						<div className="w-4 h-4 bg-blue-400 rounded-full" />
 					</div>
 				)}
-				{course.category === 'coastal' && (
+				{course.category === 'cafe' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
-						<div className="w-4 h-4 bg-gray-400 rounded-full" />
+						<div className="w-4 h-4 bg-amber-400 rounded-full" />
 					</div>
 				)}
-				{course.category === 'exhibition' && (
+				{course.category === 'food' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
-						<div className="w-4 h-4 bg-orange-400 rounded-full" />
+						<div className="w-4 h-4 bg-red-400 rounded-full" />
 					</div>
 				)}
 				{course.category === 'nature' && (
@@ -264,8 +296,8 @@ function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?:
 const defaultTravelCourses: TravelCourse[] = [
 	{
 		id: 1,
-		title: '전북 고창군 여행코스',
-		location: '전북 고창',
+		title: '서울 궁궐 투어 코스',
+		location: '서울 종로구',
 		date: '2024. 2. 21.',
 		author: '만든날짜',
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768',
@@ -273,26 +305,26 @@ const defaultTravelCourses: TravelCourse[] = [
 	},
 	{
 		id: 2,
-		title: '제주도 여행코스',
-		location: '제주',
+		title: '홍대 카페 투어',
+		location: '서울 마포구',
 		date: '2024. 2. 12.',
 		author: '만든날짜',
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1c256b80-a500-4556-b7f9-08a94e389cbf',
-		category: 'coastal',
+		category: 'cafe',
 	},
 	{
 		id: 3,
-		title: '2025 대한민국 정원산업박람회 1박2일',
-		location: '경남 진주시',
+		title: '명동 맛집 투어',
+		location: '서울 중구',
 		date: '2025. 6. 10.',
 		author: '만든날짜',
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=b8b85fc6-5719-473d-90d4-74efe761319a',
-		category: 'exhibition',
+		category: 'food',
 	},
 	{
 		id: 4,
-		title: '충남 금산군 여행코스',
-		location: '충남 금산',
+		title: '한강공원 피크닉 코스',
+		location: '서울 영등포구',
 		date: '2024. 1. 25.',
 		author: '만든날짜',
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=c25671f8-f713-4b60-96b4-caf3950a8bd4',
@@ -375,13 +407,13 @@ export default function KCoursePage() {
 			
 			// 새로운 API 응답 구조에 맞게 처리
 			if (typeof response.data === 'object' && 'myCourses' in response.data) {
-				const myConvertedCourses = response.data.myCourses.map(courseToTravelCourse)
-				const savedConvertedCourses = response.data.savedCourses.map(courseToTravelCourse)
+				const myConvertedCourses = await Promise.all(response.data.myCourses.map(courseToTravelCourse))
+				const savedConvertedCourses = await Promise.all(response.data.savedCourses.map(courseToTravelCourse))
 				setMyCourses(myConvertedCourses)
 				setSavedCourses(savedConvertedCourses)
 			} else {
 				// 기존 배열 형식인 경우 (호환성)
-				const convertedCourses = (response.data as Course[]).map(courseToTravelCourse)
+				const convertedCourses = await Promise.all((response.data as Course[]).map(courseToTravelCourse))
 				setMyCourses(convertedCourses)
 				setSavedCourses([])
 			}
@@ -399,7 +431,7 @@ export default function KCoursePage() {
 		try {
 			setPublicCoursesLoading(true)
 			const response = await getPublicCourses(1, 12) // 첫 페이지에서 12개 가져오기
-			const convertedCourses = (response.data as Course[]).map(courseToTravelCourse)
+			const convertedCourses = await Promise.all((response.data as Course[]).map(courseToTravelCourse))
 			setPublicCourses(convertedCourses)
 		} catch (error) {
 			console.error('Failed to load public courses:', error)

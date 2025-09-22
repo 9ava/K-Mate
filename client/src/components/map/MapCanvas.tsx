@@ -12,19 +12,28 @@ export default function MapCanvas({ stops }: { stops: Stop[] }) {
 
 	useEffect(() => {
 		;(async () => {
-			const kakao = await loadKakao()
-			if (!hostRef.current) return
-			mapRef.current = new kakao.maps.Map(hostRef.current, {
-				center: new kakao.maps.LatLng(37.5665, 126.978),
-				level: 6,
-			})
+			try {
+				const kakao = await loadKakao()
+				if (!hostRef.current || mapRef.current) return // 이미 지도가 있으면 리턴
+				
+				mapRef.current = new kakao.maps.Map(hostRef.current, {
+					center: new kakao.maps.LatLng(37.5665, 126.978),
+					level: 6,
+				})
+				
+				// 지도 초기화 완료 후 stops가 있으면 바로 표시
+				if (stops.length > 0) {
+					updateMapStops(kakao, mapRef.current, stops)
+				}
+			} catch (error) {
+				console.error('Failed to load Kakao map:', error)
+			}
 		})()
 	}, [])
 
-	useEffect(() => {
-		const kakao = window.kakao
-		const map = mapRef.current
-		if (!kakao || !map) return
+	// stops 업데이트를 위한 별도 함수
+	const updateMapStops = (kakao: any, map: any, currentStops: Stop[]) => {
+		if (!kakao || !map || !currentStops) return
 
 		// 기존 오버레이/라인 제거
 		overlaysRef.current.forEach((o) => o.setMap(null))
@@ -34,10 +43,10 @@ export default function MapCanvas({ stops }: { stops: Stop[] }) {
 			polylineRef.current = null
 		}
 
-		if (stops.length === 0) return
+		if (currentStops.length === 0) return
 
 		const bounds = new kakao.maps.LatLngBounds()
-		const path = stops.map((s, idx) => {
+		const path = currentStops.map((s, idx) => {
 			const pos = new kakao.maps.LatLng(s.lat, s.lng)
 			bounds.extend(pos)
 			const content = `
@@ -59,6 +68,21 @@ export default function MapCanvas({ stops }: { stops: Stop[] }) {
 			strokeOpacity: 0.85,
 			strokeStyle: 'solid',
 		})
+	}
+
+	useEffect(() => {
+		const map = mapRef.current
+		if (!map) return
+
+		// 카카오맵이 로드되었는지 확인하고 stops 업데이트
+		;(async () => {
+			try {
+				const kakao = await loadKakao()
+				updateMapStops(kakao, map, stops)
+			} catch (error) {
+				console.error('Failed to update map stops:', error)
+			}
+		})()
 	}, [stops])
 
 	// ✅ 부모가 relative일 때, 지도 div는 absolute로 해당 칼럼만 꽉 채움
