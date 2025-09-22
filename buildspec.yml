@@ -32,8 +32,10 @@ phases:
       # 클라이언트 산출물
       - cp -r client/dist artifact/client-dist/
 
-      # 인프라(AppSpec/스크립트 등) 포함
+      # ⚠️ [수정된 부분] 인프라(AppSpec/스크립트 등) 포함
+      - cp appspec.yml artifact/
       - cp -r infrastructure/* artifact/
+
 artifacts:
   files:
     - '**/*'
