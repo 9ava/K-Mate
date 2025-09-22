@@ -46,5 +46,32 @@
 			"no_courses": "아직 만든 여행코스가 없습니다.",
 			"create_course_message": "나만의 여행코스를 만들어보세요!"
 		}
+	},
+	"planner": {
+		"search": {
+			"placeholder": "장소 검색(영/한글)",
+			"button": "검색",
+			"add": "담기"
+		},
+		"course": {
+			"title": "내 코스",
+			"course_title_label": "코스 제목",
+			"course_title_placeholder": "예) 제주 2박3일 카페투어",
+			"visibility_label": "공개 범위",
+			"public": "공개",
+			"private": "비공개",
+			"places_count": "담긴 장소",
+			"places_unit": "개",
+			"reset": "초기화",
+			"save_course": "코스 저장",
+			"saving": "저장중…",
+			"default_title": "나의 첫 여행코스"
+		},
+		"messages": {
+			"enter_course_title": "코스 제목을 입력해 주세요.",
+			"add_at_least_one_place": "최소 1개 이상의 장소를 담아주세요.",
+			"course_saved": "코스가 저장되었습니다!",
+			"save_failed": "저장 실패"
+		}
 	}
 }

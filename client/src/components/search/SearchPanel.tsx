@@ -1,10 +1,12 @@
 // src/components/search/SearchPanel.tsx
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { loadKakao } from '../../lib/kakao'
 
 type Place = { id: string; name: string; lat: number; lng: number; address?: string }
 
 export default function SearchPanel({ onPick }: { onPick: (p: Place) => void }) {
+	const { t } = useTranslation()
 	const [q, setQ] = useState('강남취창업허브센터')
 	const [results, setResults] = useState<Place[]>([])
 
@@ -43,10 +45,10 @@ export default function SearchPanel({ onPick }: { onPick: (p: Place) => void }) 
 					value={q}
 					onChange={(e) => setQ(e.target.value)}
 					className="w-full input input-bordered"
-					placeholder="장소 검색(영/한글)"
+					placeholder={t('planner.search.placeholder')}
 				/>
 				<button onClick={search} className="btn btn-primary">
-					검색
+					{t('planner.search.button')}
 				</button>
 			</div>
 			<ul className="space-y-2">
@@ -57,7 +59,7 @@ export default function SearchPanel({ onPick }: { onPick: (p: Place) => void }) 
 							<div className="text-xs text-gray-500">{r.address}</div>
 						</div>
 						<button className="btn btn-sm" onClick={() => onPick(r)}>
-							담기
+							{t('planner.search.add')}
 						</button>
 					</li>
 				))}

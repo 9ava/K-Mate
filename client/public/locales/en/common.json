@@ -46,5 +46,32 @@
 			"no_courses": "No travel courses created yet.",
 			"create_course_message": "Create your own travel course!"
 		}
+	},
+	"planner": {
+		"search": {
+			"placeholder": "Search places (En/Ko)",
+			"button": "Search",
+			"add": "Add"
+		},
+		"course": {
+			"title": "My Course",
+			"course_title_label": "Course Title",
+			"course_title_placeholder": "e.g.) Jeju 2-night 3-day Cafe Tour",
+			"visibility_label": "Visibility",
+			"public": "Public",
+			"private": "Private",
+			"places_count": "Places added",
+			"places_unit": "",
+			"reset": "Reset",
+			"save_course": "Save Course",
+			"saving": "Saving…",
+			"default_title": "My First Travel Course"
+		},
+		"messages": {
+			"enter_course_title": "Please enter a course title.",
+			"add_at_least_one_place": "Please add at least one place.",
+			"course_saved": "Course saved successfully!",
+			"save_failed": "Failed to save"
+		}
 	}
 }
