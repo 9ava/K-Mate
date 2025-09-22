@@ -28,8 +28,11 @@ export default function KmapPage() {
 	const [loading, setLoading] = useState(false)
 	const [selected, setSelected] = useState<Place | null>(null)
 	const [places, setPlaces] = useState<Place[]>([])
-	const [listTitle, setListTitle] = useState(t('kmap.titles.popular'))
+	const [titleKey, setTitleKey] = useState<string>('popular') // 번역 키만 저장
 	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
+	
+	// 실시간 번역 적용되는 title
+	const listTitle = t(`kmap.titles.${titleKey}`)
 	
 	// 강남취창업허브센터 Google Place ID
 	const GANGNAM_HUB_PLACE_ID = 'ChIJm3FERJShfDURNVIQh8yZWFQ'
@@ -111,10 +114,10 @@ export default function KmapPage() {
 			setLoading(true)
 			try {
 				if (mode === 'type' && type) { // ✅ type이 있을 때만 로드
-					setListTitle(
-						type === 'travel' ? t('kmap.titles.travel') : 
-						type === 'food' ? t('kmap.titles.food') : 
-						t('kmap.titles.cafe')
+					setTitleKey(
+						type === 'travel' ? 'travel' : 
+						type === 'food' ? 'food' : 
+						'cafe'
 					)
 
 					console.log(`[K-Map] Loading ${type} markers...`)
@@ -147,7 +150,7 @@ export default function KmapPage() {
 					setSelected(null)
 				} else if (mode === 'bookmarks') {
 					// bookmarks 모드 - 로그인 상태 확인
-					setListTitle(t('kmap.titles.bookmarks'))
+					setTitleKey('bookmarks')
 					
 					if (!isAuthed) {
 						// 비로그인 상태: 빈 배열과 특별한 처리
@@ -264,7 +267,7 @@ export default function KmapPage() {
 				setLoading(true)
 				const response = await listPlaces({ pageSize: 100 }) // 전체 장소 가져오기
 				setPlaces(response.items)
-				setListTitle(t('kmap.titles.all_places'))
+				setTitleKey('all_places')
 				await renderMarkers(response.items)
 			} catch (error) {
 				console.error('전체 장소 로드 실패:', error)
