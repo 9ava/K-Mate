@@ -30,7 +30,7 @@ if [ ! -f "${APP_DIR}/dist/main.js" ]; then
 fi
 log "OK: dist/main.js 존재"
 
-# 1) Node 20 보장(가능 시 대체)
+# 1) Node 20 보장
 if command -v node >/dev/null 2>&1; then
   NODE_V="$(node -v 2>/dev/null || echo v0.0.0)"
   NODE_MAJOR="${NODE_V#v}"; NODE_MAJOR="${NODE_MAJOR%%.*}"
@@ -72,12 +72,28 @@ log "권한/소유권 정리"
 sudo chown -R ec2-user:ec2-user /var/www/k-mate
 sudo chmod -R u=rwX,g=rX,o=rX /var/www/k-mate || true
 
-# ⚠️ [수정된 부분] NGINX 설정 파일 정리: 기존 upstreams.conf 파일 삭제
-# 이 단계는 중복된 upstream 정의를 제거하여 NGINX 설정 테스트 오류를 방지합니다.
-log "NGINX upstream 설정 정리"
-if [ -f "/etc/nginx/conf.d/upstreams.conf" ]; then
-    sudo rm /etc/nginx/conf.d/upstreams.conf
-    log "/etc/nginx/conf.d/upstreams.conf 파일 삭제 완료"
+# 3.5) ✅ NGINX upstream 중복 제거 가드 (idempotent)
+log "NGINX upstream 설정 정리(중복 제거 + 표준 파일 생성)"
+
+# 3.5.1 표준 업스트림 파일을 강제로 재작성 (항상 동일 상태 보장)
+sudo tee /etc/nginx/conf.d/10-upstreams.conf >/dev/null <<'EOF'
+upstream kmate_upstream {
+  server 127.0.0.1:3000;
+  keepalive 64;
+}
+EOF
+
+# 3.5.2 다른 conf들에서 동일 upstream 블록이 있으면 제거
+for f in /etc/nginx/conf.d/*.conf; do
+  base="$(basename "$f")"
+  [ "$base" = "10-upstreams.conf" ] && continue
+  # upstream kmate_upstream { ... } 블록 제거
+  sudo sed -i '/^[[:space:]]*upstream[[:space:]]\+kmate_upstream[[:space:]]*{/,/^[[:space:]]*}/d' "$f"
+done
+
+# 3.5.3 (선택) connection_upgrade 맵 파일 확장자 보정
+if [ -f /etc/nginx/conf.d/00-connection-upgrade.map ] && [ ! -f /etc/nginx/conf.d/00-connection-upgrade.conf ]; then
+  sudo mv /etc/nginx/conf.d/00-connection-upgrade.map /etc/nginx/conf.d/00-connection-upgrade.conf
 fi
 
 # 4) systemd / nginx 재적용(문법 검사 포함)
@@ -85,7 +101,12 @@ log "systemd daemon-reload"
 sudo systemctl daemon-reload
 
 log "nginx -t"
-sudo nginx -t
+if ! sudo nginx -t; then
+  # 실패 시 디버깅 도움 로그
+  log "nginx -T (요약)"
+  sudo nginx -T 2>&1 | egrep -n 'upstream kmate_upstream|server_name|listen 80|location \^~ /auth/|try_files .* /index\.html' || true
+  exit 1
+fi
 
 log "nginx reload"
 sudo systemctl reload nginx || sudo systemctl restart nginx
@@ -93,11 +114,8 @@ sudo systemctl reload nginx || sudo systemctl restart nginx
 # 5) (옵션) DB 마이그레이션
 if [ "${RUN_MIGRATIONS}" = "true" ]; then
   log "DB 마이그레이션 실행"
-  # 프로젝트에 맞게 커맨드 조정:
-  # 예) Nest + TypeORM:
-  # npm run migration:run
-  # 또는
-  # npx typeorm migration:run -d dist/database/data-source.js
+  # 예) npm run migration:run
+  # 또는 npx typeorm migration:run -d dist/database/data-source.js
 fi
 
 log "after_install 완료"
