@@ -45,7 +45,10 @@ export class PostsService {
 	}
 
 	/** 게시글 목록 (검색/필터/페이지네이션) */
-	async getPosts(query: GetPostsQueryDto): Promise<{ posts: PostResponseDto[]; total: number }> {
+	async getPosts(
+		query: GetPostsQueryDto,
+		userId?: number,
+	): Promise<{ posts: PostResponseDto[]; total: number }> {
 		const { page = 1, limit = 10, postType, category, status, search } = query
 		const skip = (page - 1) * limit
 
@@ -71,19 +74,19 @@ export class PostsService {
 		}
 
 		const [rows, total] = await this.postRepo.findAndCount(findOptions)
-		const posts = await Promise.all(rows.map((p) => this.formatPostResponse(p)))
+		const posts = await Promise.all(rows.map((p) => this.formatPostResponse(p, userId)))
 		return { posts, total }
 	}
 
 	/** 게시글 상세 (조회수 +1) */
-	async getPostById(id: number): Promise<PostResponseDto> {
+	async getPostById(id: number, userId?: number): Promise<PostResponseDto> {
 		const post = await this.postRepo.findOne({ where: { id }, relations: ['author'] })
 		if (!post) throw new NotFoundException('게시글을 찾을 수 없습니다.')
 
 		await this.postRepo.update(id, { viewCount: post.viewCount + 1 })
 		post.viewCount += 1
 
-		return this.formatPostResponse(post)
+		return this.formatPostResponse(post, userId)
 	}
 
 	/** 게시글 수정 (작성자 or tips/trend=관리자) */
@@ -286,12 +289,20 @@ export class PostsService {
 	}
 
 	/** 공통 응답 포맷 (like/scrap/comment 수 포함) */
-	private async formatPostResponse(post: Post): Promise<PostResponseDto> {
+	private async formatPostResponse(post: Post, userId?: number): Promise<PostResponseDto> {
 		const [likeCount, scrapCount, commentCount] = await Promise.all([
 			this.interactionRepo.count({ where: { post: { id: post.id }, interactionType: 'like' } }),
 			this.interactionRepo.count({ where: { post: { id: post.id }, interactionType: 'scrap' } }),
 			this.commentRepo.count({ where: { post: { id: post.id } } }),
 		])
+
+		let isLiked = false
+		if (userId) {
+			const userLike = await this.interactionRepo.findOne({
+				where: { post: { id: post.id }, user: { id: userId }, interactionType: 'like' },
+			})
+			isLiked = !!userLike
+		}
 
 		return {
 			id: post.id,
@@ -312,6 +323,7 @@ export class PostsService {
 			commentCount,
 			createdAt: post.createdAt,
 			updatedAt: post.updatedAt,
+			isLiked,
 		}
 	}
 }

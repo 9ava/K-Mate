@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { join } from 'path'
+import { DateInterceptor } from './common/interceptors/date.interceptor'
 
 async function bootstrap() {
 	// CORS는 아래에서 명시적으로 켬
@@ -21,7 +22,7 @@ async function bootstrap() {
 	// ✅ 로컬 및 프로덕션 프론트 허용 + 쿠키 전송 허용
 	app.enableCors({
 		origin: [
-			'http://localhost:5173', 
+			'http://localhost:5173',
 			'http://127.0.0.1:5173',
 			// Add your Amplify domain here when available
 		],
@@ -31,6 +32,8 @@ async function bootstrap() {
 	})
 
 	app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))
+
+	app.useGlobalInterceptors(new DateInterceptor())
 
 	// ✅ Swagger에서 쿠키 인증 사용 가능하도록 (access_token 쿠키)
 	const config = new DocumentBuilder()

@@ -174,4 +174,7 @@ export class PostResponseDto {
 
 	@ApiProperty({ description: '수정일시' })
 	updatedAt!: Date
+
+	@ApiPropertyOptional({ description: '현재 사용자의 좋아요 여부' })
+	isLiked?: boolean
 }
