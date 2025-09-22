@@ -272,6 +272,8 @@ export default function CourseDetailPage() {
 							setStops={setStops} 
 							onSave={handleSave}
 							saving={saving}
+							initialTitle={course?.title}
+							initialVisibility={course?.visibility}
 						/>
 					</aside>
 				</div>

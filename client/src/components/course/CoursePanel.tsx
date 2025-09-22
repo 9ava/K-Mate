@@ -12,17 +12,21 @@ export default function CoursePanel({
 	setStops,
 	onSave,
 	saving,
+	initialTitle,
+	initialVisibility,
 }: {
 	stops: Stop[]
 	setStops: (s: Stop[]) => void
 	onSave: (payload: { title: string; visibility: 'public' | 'private' }) => void
 	saving?: boolean
+	initialTitle?: string
+	initialVisibility?: 'public' | 'private'
 }) {
 	const sensors = useSensors(useSensor(PointerSensor))
 	const ids = useMemo(() => stops.map((s) => s.id), [stops])
 
-	const [title, setTitle] = useState('나의 첫 여행코스')
-	const [visibility, setVisibility] = useState<'public' | 'private'>('public')
+	const [title, setTitle] = useState(initialTitle || '나의 첫 여행코스')
+	const [visibility, setVisibility] = useState<'public' | 'private'>(initialVisibility || 'public')
 
 	const onDragEnd = (e: DragEndEvent) => {
 		const { active, over } = e
