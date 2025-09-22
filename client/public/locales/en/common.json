@@ -1,5 +1,7 @@
 {
-	"app": { "title": "K-Mate" },
+	"app": { 
+		"title": "K-Mate" 
+	},
 	"nav": {
 		"kmap": "K-Map",
 		"kcourse": "K-Course",
@@ -9,5 +11,15 @@
 	"auth": {
 		"continue_google": "Continue with Google",
 		"signout": "Sign out"
+	},
+	"kmap": {
+		"titles": {
+			"all_places": "All Places 📍",
+			"travel": "K-Travel ✈️",
+			"food": "K-Food 🍽️",
+			"cafe": "K-Cafe ☕",
+			"bookmarks": "My Bookmarks 🔖",
+			"popular": "Popular Places 🌟"
+		}
 	}
 }

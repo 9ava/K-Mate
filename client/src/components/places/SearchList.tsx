@@ -10,7 +10,7 @@ export type SearchListProps = {
 	isBookmarkMode?: boolean // ✅ 북마크 모드 여부
 }
 
-export default function SearchList({ places, onSelect, title = '인기 장소 🌟', isBookmarkMode = false }: SearchListProps) {
+export default function SearchList({ places, onSelect, title = '장소 목록', isBookmarkMode = false }: SearchListProps) {
 	const { isAuthed, role } = useAuth()
 
 	// 비로그인 상태에서 북마크 모드인 경우 안내 메시지 표시

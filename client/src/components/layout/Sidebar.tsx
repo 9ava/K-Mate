@@ -15,7 +15,7 @@ const Sidebar: React.FC<Props> = ({ active = '', onSelectType, onShowBookmarks, 
 	const menuItems: Array<{ icon: string; label: string; type?: PlaceType; action?: () => void; id: string }> = [
 		{ icon: '☰', label: 'Menu', action: onToggleMenu, id: 'menu' },
 		{ icon: '🔖', label: 'Bookmark', action: onShowBookmarks, id: 'bookmark' },
-		{ icon: '📍', label: 'K-Travel', type: 'travel', id: 'travel' },
+		{ icon: '🌆', label: 'K-Travel', type: 'travel', id: 'travel' },
 		{ icon: '🍽️', label: 'K-Food', type: 'food', id: 'food' },
 		{ icon: '☕', label: 'K-Cafe', type: 'cafe', id: 'cafe' },
 	]

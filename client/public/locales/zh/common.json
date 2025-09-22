@@ -9,5 +9,15 @@
 	"auth": {
 		"continue_google": "使用 Google 继续",
 		"signout": "退出登录"
+	},
+	"kmap": {
+		"titles": {
+			"all_places": "所有地点 📍",
+			"travel": "K-旅游 ✈️",
+			"food": "K-美食 🍽️",
+			"cafe": "K-咖啡 ☕",
+			"bookmarks": "我的收藏 🔖",
+			"popular": "热门地点 🌟"
+		}
 	}
 }

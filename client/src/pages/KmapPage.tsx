@@ -1,5 +1,6 @@
 // src/pages/KmapPage.tsx
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
 import { getPlaceDetail, listPlaces } from '../api/places'
@@ -13,6 +14,7 @@ import SearchList from '../components/places/SearchList'
 type Mode = 'type' | 'bookmarks'
 
 export default function KmapPage() {
+	const { t } = useTranslation()
 	const mapRef = useRef<HTMLDivElement>(null)
 	const mapObjRef = useRef<google.maps.Map | null>(null)
 	const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
@@ -26,7 +28,7 @@ export default function KmapPage() {
 	const [loading, setLoading] = useState(false)
 	const [selected, setSelected] = useState<Place | null>(null)
 	const [places, setPlaces] = useState<Place[]>([])
-	const [listTitle, setListTitle] = useState('인기 장소 🌟')
+	const [listTitle, setListTitle] = useState(t('kmap.titles.popular'))
 	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
 	
 	// 강남취창업허브센터 Google Place ID
@@ -110,7 +112,9 @@ export default function KmapPage() {
 			try {
 				if (mode === 'type' && type) { // ✅ type이 있을 때만 로드
 					setListTitle(
-						type === 'travel' ? 'K-Travel 🌍' : type === 'food' ? 'K-Food 🍽️' : 'K-Cafe ☕'
+						type === 'travel' ? t('kmap.titles.travel') : 
+						type === 'food' ? t('kmap.titles.food') : 
+						t('kmap.titles.cafe')
 					)
 
 					console.log(`[K-Map] Loading ${type} markers...`)
@@ -143,7 +147,7 @@ export default function KmapPage() {
 					setSelected(null)
 				} else if (mode === 'bookmarks') {
 					// bookmarks 모드 - 로그인 상태 확인
-					setListTitle('내 북마크 🔖')
+					setListTitle(t('kmap.titles.bookmarks'))
 					
 					if (!isAuthed) {
 						// 비로그인 상태: 빈 배열과 특별한 처리
@@ -241,12 +245,12 @@ export default function KmapPage() {
 	const handleSelectType = (t: PlaceType) => {
 		setMode('type')
 		setType(t)
-		// SearchList는 항상 표시되어 있음
+		setShowSearchList(true) // 카테고리 선택 시 SearchList 바로 열기
 	}
 	const handleShowBookmarks = () => {
 		setMode('bookmarks')
 		setType('') // 카테고리 선택 해제
-		// SearchList는 항상 표시되어 있음
+		setShowSearchList(true) // 북마크 클릭 시 SearchList 바로 열기
 	}
 	const handleToggleMenu = async () => {
 		// Menu는 단순히 SearchList 토글하고 모든 활성화 상태 해제
@@ -260,7 +264,7 @@ export default function KmapPage() {
 				setLoading(true)
 				const response = await listPlaces({ pageSize: 100 }) // 전체 장소 가져오기
 				setPlaces(response.items)
-				setListTitle('전체 장소 📍')
+				setListTitle(t('kmap.titles.all_places'))
 				await renderMarkers(response.items)
 			} catch (error) {
 				console.error('전체 장소 로드 실패:', error)
