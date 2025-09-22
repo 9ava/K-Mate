@@ -1,44 +1,41 @@
 // src/features/places/places.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min, IsEnum } from 'class-validator'
-import { Type } from 'class-transformer'
+import { IsString, IsNotEmpty, IsOptional, IsIn, IsUrl, IsEnum, IsInt, Min } from 'class-validator'
+import { Type, Transform } from 'class-transformer'
 
-/** 주변검색 쿼리 DTO */
+/** Nearby places query DTO */
 export class NearbyQueryDto {
-	@ApiProperty({ description: '위도', example: 37.5665 })
+	@ApiProperty({ description: 'Latitude' })
 	@Type(() => Number)
-	@IsNumber()
-	lat!: number
+	@IsNotEmpty()
+	lat: number
 
-	@ApiProperty({ description: '경도', example: 126.978 })
+	@ApiProperty({ description: 'Longitude' })
 	@Type(() => Number)
-	@IsNumber()
-	lng!: number
+	@IsNotEmpty()
+	lng: number
 
-	@ApiPropertyOptional({ description: '반경(m)', example: 2000 })
+	@ApiPropertyOptional({ description: 'Search radius in meters', example: 1000 })
 	@Type(() => Number)
 	@IsOptional()
 	@IsInt()
 	@Min(1)
-	radius?: number
+	radius?: number = 1000
 
-	@ApiPropertyOptional({ description: 'CSV 타입(예: "tourist_attraction,restaurant,cafe")' })
+	@ApiPropertyOptional({ description: 'Comma-separated types filter', example: 'travel,food' })
 	@IsOptional()
 	@IsString()
 	types?: string
 }
 
-/** 사진 조회 쿼리 DTO (v1 photo name 그대로) */
+/** Photo query DTO */
 export class PhotoQueryDto {
-	@ApiProperty({
-		description: 'photo 리소스 네임',
-		example: 'places/ChIJ.../photos/AbCdEf...',
-	})
+	@ApiProperty({ description: 'Photo name from Google Places API' })
 	@IsString()
 	@IsNotEmpty()
-	name!: string
+	name: string
 
-	@ApiPropertyOptional({ description: '최대 높이(px)', example: 800 })
+	@ApiPropertyOptional({ description: 'Maximum height in pixels', example: 400 })
 	@Type(() => Number)
 	@IsOptional()
 	@IsInt()
@@ -46,13 +43,36 @@ export class PhotoQueryDto {
 	maxHeightPx?: number
 }
 
-/** 관리자: placeId 수동 등록/갱신 */
 export class AdminAddPlaceDto {
-	@ApiProperty({ description: 'Google Place ID', example: 'ChIJlYV9vpWifDUR...' })
+	@ApiProperty({ description: 'Google Place ID' })
 	@IsString()
 	@IsNotEmpty()
-	placeId!: string
+	placeId: string
+
+	@ApiPropertyOptional({ description: 'Custom name for the place' })
+	@IsString()
+	@IsOptional()
+	name?: string
+
+	@ApiPropertyOptional({ description: 'Custom category for the place' })
+	@IsString()
+	@IsOptional()
+	@IsIn(['K-Travel', 'K-Food', 'K-Cafe'])
+	category?: 'K-Travel' | 'K-Food' | 'K-Cafe'
+
+	@ApiPropertyOptional({ description: 'Custom description for the place' })
+	@IsString()
+	@IsOptional()
+	description?: string
+
+	@ApiPropertyOptional({ description: 'Custom image URL for the place' })
+	@IsUrl()
+	@IsOptional()
+	imageUrl?: string
 }
+
+// ... (other DTOs)
+
 
 /** 목록 조회(필터/검색/페이지네이션) */
 export class ListQueryDto {
@@ -79,6 +99,39 @@ export class ListQueryDto {
 	@IsInt()
 	@Min(1)
 	pageSize?: number = 20
+}
+
+/** 사용자: 새 장소 추가 요청 */
+export class UserAddPlaceDto {
+	@ApiProperty({ description: 'Google Place ID' })
+	@IsString()
+	@IsNotEmpty()
+	placeId: string
+
+	@ApiPropertyOptional({ description: 'Custom name for the place' })
+	@IsOptional()
+	@Transform(({ value }) => value === '' ? undefined : value)
+	@IsString()
+	name?: string
+
+	@ApiPropertyOptional({ description: 'Custom category for the place' })
+	@IsOptional()
+	@Transform(({ value }) => value === '' ? undefined : value)
+	@IsString()
+	@IsIn(['K-Travel', 'K-Food', 'K-Cafe'])
+	category?: 'K-Travel' | 'K-Food' | 'K-Cafe'
+
+	@ApiPropertyOptional({ description: 'Custom description for the place' })
+	@IsOptional()
+	@Transform(({ value }) => value === '' ? undefined : value)
+	@IsString()
+	description?: string
+
+	@ApiPropertyOptional({ description: 'Custom image URL for the place' })
+	@IsOptional()
+	@Transform(({ value }) => value === '' ? undefined : value)
+	@IsUrl({}, { message: 'imageUrl must be a valid URL' })
+	imageUrl?: string
 }
 
 /** 관리자: 카테고리 수동 지정 */

@@ -10,6 +10,9 @@ import { PlacesModule } from './features/places/places.module'
 import { PostsModule } from './features/posts/posts.module'
 import { InteractionsModule } from './features/interactions/interactions.module'
 import { CommentsModule } from './features/comments/comments.module'
+import { CoursesModule } from './features/courses/courses.module'
+import { AdminModule } from './features/admin/admin.module'
+
 
 
 /**
@@ -35,6 +38,8 @@ import { CommentsModule } from './features/comments/comments.module'
 		PostsModule,
 		InteractionsModule,
 		CommentsModule,
+		CoursesModule,
+		AdminModule,
 		// UsersModule,  ... (추가 시 여기에 import)
 
 	],

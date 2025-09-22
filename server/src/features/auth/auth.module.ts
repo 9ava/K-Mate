@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt'
 import { TypeOrmModule } from '@nestjs/typeorm'
 
 import { AuthController } from './auth.controller'
+import { DevAdminController } from './dev-admin.controller'
 import { AuthService } from './auth.service'
 import { GoogleStrategy } from './strategies/google.strategy'
 import { JwtCookieStrategy } from './strategies/jwt-cookie.strategy'
@@ -19,8 +20,8 @@ import { User } from '../users/user.entity' // 경로 확인
 			signOptions: { expiresIn: process.env.ACCESS_TOKEN_TTL ?? '15m' },
 		}),
 	],
-	controllers: [AuthController],
+	controllers: [AuthController, DevAdminController],
 	providers: [AuthService, GoogleStrategy, JwtCookieStrategy],
-	exports: [TypeOrmModule, JwtModule],
+	exports: [AuthService, TypeOrmModule, JwtModule],
 })
 export class AuthModule {}

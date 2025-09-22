@@ -23,7 +23,7 @@ function GoogleLoginButton() {
 }
 
 export default function Header() {
-	const { isAuthed, initial, email, logout } = useAuth()
+	const { isAuthed, initial, email, logout, role } = useAuth()
 	const { t } = useTranslation('common')
 
 	return (
@@ -42,24 +42,32 @@ export default function Header() {
 				{/* 중앙: Nav (번역 적용) */}
 				<nav className="flex items-center gap-6 text-sm">
 					<NavLink to="/kmap">{t('nav.kmap')}</NavLink>
-					<NavLink to="/course">{t('nav.kcourse')}</NavLink>
+					<NavLink to="/kcourse">{t('nav.kcourse')}</NavLink>
 					<NavLink to="/buzz">{t('nav.kbuzz')}</NavLink>
 				</nav>
 
-				{/* 우측: 언어 스위처 + 로그인/아바타 */}
+				{/* 우측: 언어 스위처 + 관리자 버튼 + 로그인/아바타 */}
 				<div className="flex items-center gap-3">
 					<LanguageSwitcher />
+					{isAuthed && role === 'admin' && (
+						<Link
+							to="/admin"
+							className="px-3 py-1.5 text-sm font-medium text-white bg-gray-800 rounded-md hover:bg-gray-700 transition-colors"
+						>
+							{t('nav.admin')}
+						</Link>
+					)}
 					{isAuthed ? (
 						<div className="relative group">
-							<div className="grid w-8 h-8 text-sm font-bold text-white bg-blue-500 rounded-full cursor-pointer place-items-center">
+							<div className="grid w-8 h-8 text-sm font-bold text-white bg-blue-500 rounded-full cursor-pointer place-items-center hover:bg-blue-600 transition-colors">
 								{initial}
 							</div>
-							<div className="absolute right-0 hidden p-2 mt-2 bg-white border rounded-lg shadow w-44 group-hover:block">
+							<div className="absolute right-0 invisible opacity-0 p-2 mt-1 bg-white border rounded-lg shadow w-44 group-hover:visible group-hover:opacity-100 transition-all duration-200 ease-in-out z-50">
 								<div className="px-2 py-1 text-xs text-gray-500">{email}</div>
 								<hr className="my-2" />
 								<button
 									onClick={logout}
-									className="w-full px-3 py-2 text-left rounded hover:bg-gray-100"
+									className="w-full px-3 py-2 text-left text-sm rounded hover:bg-gray-100 transition-colors"
 								>
 									{t('auth.signout')}
 								</button>
