@@ -16,8 +16,9 @@ phases:
       # 1) 서버 빌드 (devDeps가 있는 상태에서)
       - npm --prefix server run build
 
-      # 2) 클라이언트 빌드
-      - npm --prefix client run build
+      # 2) 클라이언트 빌드 (with production API URL)
+      # Set production API URL for client build
+      - VITE_API_URL="https://k-mate.org" npm --prefix client run build
 
       # 3) 배포 산출물 구성
       - mkdir -p artifact/server-dist artifact/client-dist
