@@ -1,7 +1,4 @@
 {
-	"app": { 
-		"title": "K-Mate" 
-	},
 	"nav": {
 		"kmap": "K-Map",
 		"kcourse": "K-Course",
@@ -20,6 +17,61 @@
 			"cafe": "K-Cafe ☕",
 			"bookmarks": "My Bookmarks 🔖",
 			"popular": "Popular Places 🌟"
+		}
+	},
+	"kcourse": {
+		"tabs": {
+			"my_course": "My Travel Courses",
+			"monthly_best": "Monthly Best"
+		},
+		"buttons": {
+			"create_course": "Create Course",
+			"first_course": "Create First Course"
+		},
+		"titles": {
+			"my_travel_course": "My Travel Courses",
+			"monthly_best_9": "Monthly Best 9",
+			"my_courses": "My Courses",
+			"saved_courses": "Saved Courses"
+		},
+		"labels": {
+			"my_course": "My Course",
+			"saved": "Saved",
+			"created_date": "Created",
+			"unknown_location": "Unknown Location",
+			"author": "Author"
+		},
+		"messages": {
+			"loading": "Loading...",
+			"no_courses": "No travel courses created yet.",
+			"create_course_message": "Create your own travel course!"
+		}
+	},
+	"planner": {
+		"search": {
+			"placeholder": "Search places (En/Ko)",
+			"button": "Search",
+			"add": "Add"
+		},
+		"course": {
+			"title": "My Course",
+			"course_title_label": "Course Title",
+			"course_title_placeholder": "e.g.) Jeju 2-night 3-day Cafe Tour",
+			"visibility_label": "Visibility",
+			"public": "Public",
+			"private": "Private",
+			"places_count": "Places added",
+			"places_unit": "",
+			"reset": "Reset",
+			"save_course": "Save Course",
+			"saving": "Saving…",
+			"default_title": "My First Travel Course"
+		},
+		"messages": {
+			"enter_course_title": "Please enter a course title.",
+			"add_at_least_one_place": "Please add at least one place.",
+			"course_saved": "Course saved successfully!",
+			"save_failed": "Failed to save"
 		}
 	}
 }

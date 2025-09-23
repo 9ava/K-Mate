@@ -59,6 +59,59 @@ export class PlacesController {
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────
+	// 텍스트 검색 (Google v1 searchText) - 다국어 지원
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '텍스트 검색 (Places v1: searchText) - 다국어 지원' })
+	@ApiOkResponse({
+		description: '검색 결과 목록',
+		schema: {
+			example: {
+				success: true,
+				data: [
+					{
+						placeId: 'ChIJ...',
+						name: 'Gyeongbokgung Palace',
+						address: '...',
+						lat: 37.57,
+						lng: 126.98,
+						photoName: 'places/.../photos/...',
+						types: ['tourist_attraction', 'point_of_interest']
+					},
+				],
+			},
+		},
+	})
+	@ApiQuery({ name: 'q', required: true, description: '검색어' })
+	@ApiQuery({ name: 'language', required: false, description: '언어 코드 (ko, en, zh)', example: 'en' })
+	@ApiQuery({ name: 'lat', required: false, type: Number, description: '위도 (지역 제한용)' })
+	@ApiQuery({ name: 'lng', required: false, type: Number, description: '경도 (지역 제한용)' })
+	@ApiQuery({ name: 'radius', required: false, type: Number, description: '반경 (미터)' })
+	@ApiQuery({ name: 'maxResults', required: false, type: Number, description: '최대 결과 수' })
+	@Get('search')
+	async searchText(
+		@Query('q') query: string,
+		@Query('language') language?: string,
+		@Query('lat') lat?: number,
+		@Query('lng') lng?: number,
+		@Query('radius') radius?: number,
+		@Query('maxResults') maxResults?: number,
+	) {
+		if (!query) {
+			return { success: false, error: '검색어가 필요합니다.' }
+		}
+		
+		const data = await this.places.searchText({
+			query,
+			language: language || 'en',
+			lat,
+			lng,
+			radius,
+			maxResults,
+		})
+		return { success: true, data }
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────
 	// 주변 검색 (Google v1 searchNearby)
 	// ────────────────────────────────────────────────────────────────────────────
 	@ApiOperation({ summary: '주변 장소 검색 (Places v1: searchNearby)' })
