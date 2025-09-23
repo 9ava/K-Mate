@@ -17,6 +17,11 @@
 			"cafe": "K-카페 ☕",
 			"bookmarks": "내 북마크 🔖",
 			"popular": "인기 장소 🌟"
+		},
+		"location": {
+			"my_location": "내 위치로 이동",
+			"start_tracking": "실시간 위치 추적 시작",
+			"stop_tracking": "위치 추적 중지"
 		}
 	},
 	"kcourse": {

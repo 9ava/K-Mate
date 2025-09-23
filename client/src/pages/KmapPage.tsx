@@ -32,6 +32,13 @@ export default function KmapPage() {
 	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
 	const [bookmarkedPlaces, setBookmarkedPlaces] = useState<Set<string>>(new Set()) // 북마크된 장소 ID 목록
 	
+	// 실시간 위치 관련 상태
+	const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+	const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null)
+	const [isTracking, setIsTracking] = useState(false)
+	const userMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
+	const watchIdRef = useRef<number | null>(null)
+	
 	// 실시간 번역 적용되는 title
 	const listTitle = t(`kmap.titles.${titleKey}`)
 	
@@ -53,6 +60,195 @@ export default function KmapPage() {
 			console.error('북마크 목록 로드 실패:', error)
 		}
 	}
+
+	// 위치 권한 확인 및 현재 위치 가져오기
+	const requestLocationPermission = async (): Promise<boolean> => {
+		if (!navigator.geolocation) {
+			console.warn('Geolocation is not supported by this browser.')
+			return false
+		}
+
+		try {
+			// 권한 상태 확인
+			const permission = await navigator.permissions.query({ name: 'geolocation' })
+			setLocationPermission(permission.state)
+
+			if (permission.state === 'granted') {
+				return true
+			} else if (permission.state === 'prompt') {
+				// 권한 요청을 위해 getCurrentPosition 호출
+				return new Promise((resolve) => {
+					navigator.geolocation.getCurrentPosition(
+						() => {
+							setLocationPermission('granted')
+							resolve(true)
+						},
+						() => {
+							setLocationPermission('denied')
+							resolve(false)
+						}
+					)
+				})
+			} else {
+				return false
+			}
+		} catch (error) {
+			console.error('Error requesting location permission:', error)
+			return false
+		}
+	}
+
+	// 현재 위치 가져오기
+	const getCurrentPosition = (): Promise<{ lat: number; lng: number }> => {
+		return new Promise((resolve, reject) => {
+			if (!navigator.geolocation) {
+				reject(new Error('Geolocation not supported'))
+				return
+			}
+
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					const location = {
+						lat: position.coords.latitude,
+						lng: position.coords.longitude
+					}
+					setUserLocation(location)
+					resolve(location)
+				},
+				(error) => {
+					console.error('Error getting current position:', error)
+					reject(error)
+				},
+				{
+					enableHighAccuracy: true,
+					timeout: 10000,
+					maximumAge: 60000
+				}
+			)
+		})
+	}
+
+	// 사용자 위치 마커 생성/업데이트
+	const updateUserLocationMarker = async (location: { lat: number; lng: number }) => {
+		const map = mapObjRef.current
+		if (!map) return
+
+		try {
+			const { AdvancedMarkerElement } = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
+
+			// 기존 사용자 마커 제거
+			if (userMarkerRef.current) {
+				userMarkerRef.current.map = null
+			}
+
+			// 파란색 원형 마커 생성
+			const userIcon = document.createElement('div')
+			userIcon.className = 'user-location-marker'
+			userIcon.style.cssText = `
+				width: 20px;
+				height: 20px;
+				background-color: #3b82f6;
+				border: 3px solid white;
+				border-radius: 50%;
+				box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+				position: relative;
+			`
+
+			// 새 사용자 마커 생성
+			userMarkerRef.current = new AdvancedMarkerElement({
+				map,
+				position: location,
+				content: userIcon,
+				title: '내 위치'
+			})
+
+			console.log('[K-Map] User location marker updated:', location)
+		} catch (error) {
+			console.error('Error updating user location marker:', error)
+		}
+	}
+
+	// 현재 위치로 이동
+	const moveToCurrentLocation = async () => {
+		try {
+			const hasPermission = await requestLocationPermission()
+			if (!hasPermission) {
+				console.warn('Location permission denied')
+				return
+			}
+
+			const location = await getCurrentPosition()
+			const map = mapObjRef.current
+			if (map) {
+				map.panTo(location)
+				map.setZoom(16)
+				await updateUserLocationMarker(location)
+			}
+		} catch (error) {
+			console.error('Error moving to current location:', error)
+		}
+	}
+
+	// 실시간 위치 추적 시작/중지
+	const toggleLocationTracking = async () => {
+		if (isTracking) {
+			// 추적 중지
+			if (watchIdRef.current !== null) {
+				navigator.geolocation.clearWatch(watchIdRef.current)
+				watchIdRef.current = null
+			}
+			setIsTracking(false)
+			console.log('[K-Map] Location tracking stopped')
+		} else {
+			// 추적 시작
+			try {
+				const hasPermission = await requestLocationPermission()
+				if (!hasPermission) {
+					console.warn('Location permission denied')
+					return
+				}
+
+				// 초기 위치 설정
+				await moveToCurrentLocation()
+
+				// 실시간 추적 시작
+				watchIdRef.current = navigator.geolocation.watchPosition(
+					async (position) => {
+						const location = {
+							lat: position.coords.latitude,
+							lng: position.coords.longitude
+						}
+						setUserLocation(location)
+						await updateUserLocationMarker(location)
+						console.log('[K-Map] Location updated:', location)
+					},
+					(error) => {
+						console.error('Error watching position:', error)
+						setIsTracking(false)
+					},
+					{
+						enableHighAccuracy: true,
+						timeout: 15000,
+						maximumAge: 30000
+					}
+				)
+
+				setIsTracking(true)
+				console.log('[K-Map] Location tracking started')
+			} catch (error) {
+				console.error('Error starting location tracking:', error)
+			}
+		}
+	}
+
+	// 컴포넌트 언마운트 시 추적 정리
+	useEffect(() => {
+		return () => {
+			if (watchIdRef.current !== null) {
+				navigator.geolocation.clearWatch(watchIdRef.current)
+			}
+		}
+	}, [])
 	
 	// 강남취창업허브센터 Google Place ID
 	const GANGNAM_HUB_PLACE_ID = 'ChIJm3FERJShfDURNVIQh8yZWFQ'
@@ -366,6 +562,57 @@ export default function KmapPage() {
 				{/* 지도 */}
 				<div className="relative flex-1">
 					<div ref={mapRef} className="absolute inset-0" />
+					
+					{/* 위치 버튼들 */}
+					<div className="absolute bottom-4 right-4 flex flex-col gap-2">
+						{/* 현재 위치로 이동 버튼 */}
+						<button
+							onClick={moveToCurrentLocation}
+							className="w-12 h-12 bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
+							title={t('kmap.location.my_location')}
+						>
+							<svg 
+								className="w-6 h-6 text-gray-600 group-hover:text-blue-600" 
+								fill="none" 
+								stroke="currentColor" 
+								viewBox="0 0 24 24"
+							>
+								<path 
+									strokeLinecap="round" 
+									strokeLinejoin="round" 
+									strokeWidth={2} 
+									d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" 
+								/>
+								<path 
+									strokeLinecap="round" 
+									strokeLinejoin="round" 
+									strokeWidth={2} 
+									d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" 
+								/>
+							</svg>
+						</button>
+
+						{/* 실시간 추적 토글 버튼 */}
+						<button
+							onClick={toggleLocationTracking}
+							className={`w-12 h-12 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group ${
+								isTracking 
+									? 'bg-blue-600 text-white' 
+									: 'bg-white text-gray-600 hover:text-blue-600'
+							}`}
+							title={isTracking ? t('kmap.location.stop_tracking') : t('kmap.location.start_tracking')}
+						>
+							<svg 
+								className={`w-6 h-6 ${isTracking ? 'text-white' : 'group-hover:text-blue-600'}`} 
+								fill="none" 
+								stroke="currentColor" 
+								viewBox="0 0 24 24"
+							>
+								<circle cx="12" cy="12" r="3" strokeWidth={2}/>
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+							</svg>
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
