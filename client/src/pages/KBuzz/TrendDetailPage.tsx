@@ -14,6 +14,16 @@ type ArticleView = {
 	aboutDescription?: string
 }
 
+/* ---------- trend 카드용 임시 이미지 (하드코딩) ---------- */
+// 🟢 KBuzzPage와 동일하게 ID별 매핑
+const TREND_IMAGE_BY_ID: Record<number, string> = {
+	38: 'https://s3.amazonaws.com/shecodesio-production/uploads/files/000/076/597/original/gimbap.jpg?1681263447', // Kimbap
+	32: 'https://ik.imagekit.io/umhihello/Chuseok/Pages/Hanbok/hanbok-3.jpg?updatedAt=1740718178774', // Hanbok
+	31: 'https://softervolumes.com/wp-content/uploads/2021/12/Dorrell-Coffee-6z4-Seoul-2.jpg', // Cafe
+	30: 'https://blog.delivered.co.kr/wp-content/uploads/2025/01/featured-2025-drama.jpg', // Webtoons
+	3: 'https://ychef.files.bbci.co.uk/1280x720/p0lq9155.jpg', // K-Pop
+}
+
 // ✨ 트렌드 카드 이미지 기본값 (없을 때 보이는 플레이스홀더)
 const PLACEHOLDERS = [
 	'https://picsum.photos/1200/700?blur=1&random=11',
@@ -108,7 +118,11 @@ export default function TrendDetailPage() {
 				if (!alive) return
 
 				const extras = loadExtras(numericId)
-				const fallbackImage = PLACEHOLDERS[numericId % PLACEHOLDERS.length]
+				//const fallbackImage = PLACEHOLDERS[numericId % PLACEHOLDERS.length]
+
+				// 하드코딩된 이미지 → 없으면 플레이스홀더
+				const fallbackImage =
+					TREND_IMAGE_BY_ID[numericId] ?? PLACEHOLDERS[numericId % PLACEHOLDERS.length]
 
 				const mapped: ArticleView = {
 					id: data.id,
