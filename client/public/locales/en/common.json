@@ -26,7 +26,8 @@
 		},
 		"buttons": {
 			"create_course": "Create Course",
-			"first_course": "Create First Course"
+			"first_course": "Create First Course",
+			"unsave_course": "Remove Saved Course"
 		},
 		"titles": {
 			"my_travel_course": "My Travel Courses",
@@ -44,7 +45,10 @@
 		"messages": {
 			"loading": "Loading...",
 			"no_courses": "No travel courses created yet.",
-			"create_course_message": "Create your own travel course!"
+			"create_course_message": "Create your own travel course!",
+			"confirm_unsave": "Are you sure you want to remove this course from your saved list?",
+			"unsave_success": "Course has been removed from your saved list.",
+			"unsave_failed": "Failed to remove course."
 		}
 	},
 	"planner": {

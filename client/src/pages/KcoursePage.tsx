@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getMyCourses, getPublicCourses } from '../api/courses'
+import { getMyCourses, getPublicCourses, unsaveCourse } from '../api/courses'
 import type { Course } from '../types/course'
 import { useAuth } from '../features/auth/useAuth'
 import { getPlaceDetails } from '../lib/kakao'
@@ -120,11 +120,18 @@ function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (
 }
 
 /* --- MyTravelCourse (실제 데이터) --- */
-function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: { 
+function MyTravelCourse({ 
+	onCreate, 
+	myCourses, 
+	savedCourses, 
+	loading,
+	onUnsaveCourse
+}: { 
 	onCreate: () => void
 	myCourses: TravelCourse[]
 	savedCourses: TravelCourse[]
 	loading: boolean
+	onUnsaveCourse: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
 	
@@ -217,7 +224,12 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 						</div>
 						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 							{savedCourses.map((course) => (
-								<TravelCourseCard key={`saved-${course.id}`} course={course} isOwned={false} />
+								<TravelCourseCard 
+									key={`saved-${course.id}`} 
+									course={course} 
+									isOwned={false} 
+									onUnsave={onUnsaveCourse}
+								/>
 							))}
 						</div>
 					</div>
@@ -228,12 +240,27 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 }
 
 /* --- TravelCourseCard --- */
-function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?: boolean }) {
+function TravelCourseCard({ 
+	course, 
+	isOwned, 
+	onUnsave 
+}: { 
+	course: TravelCourse
+	isOwned?: boolean
+	onUnsave?: (courseId: number) => Promise<void>
+}) {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 
 	const handleClick = () => {
 		navigate(`/kcourse/${course.id}`)
+	}
+
+	const handleUnsave = async (e: React.MouseEvent) => {
+		e.stopPropagation() // 카드 클릭 이벤트 방지
+		if (onUnsave) {
+			await onUnsave(course.id)
+		}
 	}
 
 	return (
@@ -258,6 +285,31 @@ function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?:
 						}`}>
 							{isOwned ? t('kcourse.labels.my_course') : t('kcourse.labels.saved')}
 						</span>
+					</div>
+				)}
+
+				{/* 저장된 코스 삭제 버튼 */}
+				{isOwned === false && onUnsave && (
+					<div className="absolute top-3 right-3">
+						<button
+							onClick={handleUnsave}
+							className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md transition-all duration-200 flex items-center justify-center group"
+							title={t('kcourse.buttons.unsave_course')}
+						>
+							<svg 
+								className="w-4 h-4" 
+								fill="none" 
+								stroke="currentColor" 
+								viewBox="0 0 24 24"
+							>
+								<path 
+									strokeLinecap="round" 
+									strokeLinejoin="round" 
+									strokeWidth={2} 
+									d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+								/>
+							</svg>
+						</button>
 					</div>
 				)}
 
@@ -406,6 +458,27 @@ export default function KCoursePage() {
 	const { isAuthed } = useAuth()
 	const goPlanner = () => navigate('/planner')
 
+	// 저장한 코스 삭제 핸들러
+	const handleUnsaveCourse = async (courseId: number) => {
+		// 삭제 확인
+		const confirmed = window.confirm(t('kcourse.messages.confirm_unsave'))
+		if (!confirmed) return
+
+		try {
+			await unsaveCourse(courseId.toString())
+			// 저장한 코스 목록에서 해당 코스 제거
+			setSavedCourses(prev => prev.filter(course => course.id !== courseId))
+			console.log(`Course ${courseId} unsaved successfully`)
+			
+			// 성공 메시지 (추후 토스트로 개선 가능)
+			alert(t('kcourse.messages.unsave_success'))
+		} catch (error) {
+			console.error('Failed to unsave course:', error)
+			// 사용자에게 오류 알림
+			alert(t('kcourse.messages.unsave_failed'))
+		}
+	}
+
 	// 내 코스 데이터 로드
 	const loadMyCourses = async () => {
 		if (!isAuthed) return
@@ -471,6 +544,7 @@ export default function KCoursePage() {
 					myCourses={myCourses}
 					savedCourses={savedCourses}
 					loading={myCoursesLoading}
+					onUnsaveCourse={handleUnsaveCourse}
 				/>
 			) : (
 				<TravelCourseGrid 
