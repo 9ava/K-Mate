@@ -154,16 +154,12 @@ export const useMapStore = create<State & Actions>()(
 
 				// CRUD operations - API or local fallback
 				addMarker: async (markerData) => {
-					const state = get()
 					try {
 						set({ loading: true, error: null })
-
-						console.log('[Store] Adding marker in mode:', state.isApiMode ? 'API' : 'Local')
 
 						try {
 							// Always try API first (it has auth fallback now)
 							const newMarker = await createKMapMarker(markerData)
-							console.log('[Store] API call succeeded, adding to store:', newMarker)
 
 							set((state) => ({
 								markers: [...state.markers, newMarker as MapMarker],
@@ -286,12 +282,10 @@ export const useMapStore = create<State & Actions>()(
 
 				getMarkersByPlaceType: async (type) => {
 					const state = get()
-					console.log('[Store] Getting markers for type:', type, 'in mode:', state.isApiMode ? 'API' : 'Local')
 
 					// Always try API first, then fallback to local
 					try {
 						const apiMarkers = await apiGetMarkersByPlaceType(type)
-						console.log('[Store] API returned markers:', apiMarkers)
 						return apiMarkers.filter((m: KMapMarker) => m.id) as MapMarker[]
 					} catch (error) {
 						console.warn('[Store] API failed, using local store fallback:', error)
@@ -304,7 +298,6 @@ export const useMapStore = create<State & Actions>()(
 						const localMarkers = state.markers.filter(marker =>
 							categoryMappings[type].includes(marker.category) && marker.status === 'active'
 						)
-						console.log('[Store] Local fallback returned:', localMarkers)
 						return localMarkers
 					}
 				},

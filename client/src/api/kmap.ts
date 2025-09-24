@@ -81,8 +81,6 @@ export async function listKMapMarkers(params?: {
 
 // Get markers by place type (for K-Map categories)
 export async function getMarkersByPlaceType(type: 'travel' | 'food' | 'cafe'): Promise<KMapMarker[]> {
-	console.log('[API] Getting markers for type:', type)
-
 	const { data } = await api.get('/places', {
 		params: {
 			type,
@@ -90,10 +88,8 @@ export async function getMarkersByPlaceType(type: 'travel' | 'food' | 'cafe'): P
 		}
 	})
 
-	console.log('[API] Places response:', data)
 	const placesData = data?.data
 	const markers = placesData?.items?.map(placeToKMapMarker) || []
-	console.log('[API] Converted markers:', markers)
 	return markers
 }
 
@@ -103,8 +99,6 @@ export async function createKMapMarker(marker: Omit<KMapMarker, 'id' | 'createdA
 		throw new Error('Place ID is required to add a marker. Please search for the place first.')
 	}
 
-	console.log('[API] Adding place with data:', marker)
-
 	const payload = {
 		placeId: marker.place_id,
 		name: marker.name,
@@ -112,15 +106,12 @@ export async function createKMapMarker(marker: Omit<KMapMarker, 'id' | 'createdA
 		description: marker.description,
 		imageUrl: marker.imageUrl,
 	}
-	console.log('[API] Request payload:', payload)
 
 	try {
 		const { data } = await api.post('/places/add', payload)
 
-		console.log('[API] Place added response:', data)
 		const place = data?.data as Place
 		const result = placeToKMapMarker(place)
-		console.log('[API] Final marker result:', result)
 		return result
 	} catch (error: any) {
 		console.error('Full error response:', error.response);

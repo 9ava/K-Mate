@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
+import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import { getPlaceDetail, listPlaces } from '../api/places'
 import { listMyBookmarks } from '../api/bookmarks'
 import { useMapStore } from '../features/map/map.store'
@@ -10,6 +11,8 @@ import { useAuth } from '../features/auth/useAuth'
 import type { Place, PlaceType } from '../types/place'
 import SidePanel from '../components/places/SidePanel'
 import SearchList from '../components/places/SearchList'
+import { makePlaceMarkerEl, makeUserMarkerEl, makeClusterMarkerEl } from '../lib/map/markerFactory'
+import '../styles/map-markers.css'
 
 type Mode = 'type' | 'bookmarks'
 
@@ -19,6 +22,7 @@ export default function KmapPage() {
 	const mapObjRef = useRef<google.maps.Map | null>(null)
 	const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
 	const infoRef = useRef<google.maps.InfoWindow | null>(null)
+	const clustererRef = useRef<MarkerClusterer | null>(null) // 클러스터러 참조 추가
 
 	const { getMarkersByPlaceType } = useMapStore()
 	const { isAuthed } = useAuth()
@@ -31,6 +35,14 @@ export default function KmapPage() {
 	const [titleKey, setTitleKey] = useState<string>('popular') // 번역 키만 저장
 	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
 	const [bookmarkedPlaces, setBookmarkedPlaces] = useState<Set<string>>(new Set()) // 북마크된 장소 ID 목록
+	const [nearbyRadius, setNearbyRadius] = useState(5000) // 주변 검색 반경 (미터 단위)
+	
+	// 실시간 위치 관련 상태
+	const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+	const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null)
+	const [isTracking, setIsTracking] = useState(false)
+	const userMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
+	const watchIdRef = useRef<number | null>(null)
 	
 	// 실시간 번역 적용되는 title
 	const listTitle = t(`kmap.titles.${titleKey}`)
@@ -53,10 +65,209 @@ export default function KmapPage() {
 			console.error('북마크 목록 로드 실패:', error)
 		}
 	}
-	
-	// 강남취창업허브센터 Google Place ID
-	const GANGNAM_HUB_PLACE_ID = 'ChIJm3FERJShfDURNVIQh8yZWFQ'
 
+	// Haversine 공식으로 두 지점 간 거리 계산 (미터 단위)
+	const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+		const R = 6371e3 // 지구 반지름 (미터)
+		const φ1 = lat1 * Math.PI/180 // φ, λ in radians
+		const φ2 = lat2 * Math.PI/180
+		const Δφ = (lat2-lat1) * Math.PI/180
+		const Δλ = (lng2-lng1) * Math.PI/180
+
+		const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+				Math.cos(φ1) * Math.cos(φ2) *
+				Math.sin(Δλ/2) * Math.sin(Δλ/2)
+		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+
+		return R * c // 거리 (미터)
+	}
+
+	// 사용자 위치 기준으로 주변 장소들만 필터링
+	const filterNearbyPlaces = (places: Place[], userLoc: { lat: number; lng: number } | null): Place[] => {
+		if (!userLoc) return places // 위치 정보가 없으면 전체 반환
+		
+		return places.filter(place => {
+			const distance = calculateDistance(userLoc.lat, userLoc.lng, place.lat, place.lng)
+			return distance <= nearbyRadius
+		})
+	}
+
+	// 위치 권한 확인 및 현재 위치 가져오기
+	const requestLocationPermission = async (): Promise<boolean> => {
+		if (!navigator.geolocation) {
+			return false
+		}
+
+		try {
+			// 권한 상태 확인
+			const permission = await navigator.permissions.query({ name: 'geolocation' })
+			setLocationPermission(permission.state)
+
+			if (permission.state === 'granted') {
+				return true
+			} else if (permission.state === 'prompt') {
+				// 권한 요청을 위해 getCurrentPosition 호출
+				return new Promise((resolve) => {
+					navigator.geolocation.getCurrentPosition(
+						() => {
+							setLocationPermission('granted')
+							resolve(true)
+						},
+						() => {
+							setLocationPermission('denied')
+							resolve(false)
+						}
+					)
+				})
+			} else {
+				return false
+			}
+		} catch (error) {
+			console.error('Error requesting location permission:', error)
+			return false
+		}
+	}
+
+	// 현재 위치 가져오기
+	const getCurrentPosition = (): Promise<{ lat: number; lng: number }> => {
+		return new Promise((resolve, reject) => {
+			if (!navigator.geolocation) {
+				reject(new Error('Geolocation not supported'))
+				return
+			}
+
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					const location = {
+						lat: position.coords.latitude,
+						lng: position.coords.longitude
+					}
+					setUserLocation(location)
+					resolve(location)
+				},
+				(error) => {
+					console.error('Error getting current position:', error)
+					reject(error)
+				},
+				{
+					enableHighAccuracy: true,
+					timeout: 10000,
+					maximumAge: 60000
+				}
+			)
+		})
+	}
+
+	// 사용자 위치 마커 생성/업데이트
+	const updateUserLocationMarker = async (location: { lat: number; lng: number }) => {
+		const map = mapObjRef.current
+		if (!map) return
+
+		try {
+			const { AdvancedMarkerElement } = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
+
+			// 기존 사용자 마커 제거
+			if (userMarkerRef.current) {
+				userMarkerRef.current.map = null
+			}
+
+			// 새로운 사용자 마커 생성 (아이콘 포함)
+			const userIcon = makeUserMarkerEl()
+
+			// 새 사용자 마커 생성
+			userMarkerRef.current = new AdvancedMarkerElement({
+				map,
+				position: location,
+				content: userIcon,
+				title: 'My Location',
+				zIndex: 9999 // 가장 위에 표시
+			})
+		} catch (error) {
+			console.error('Error updating user location marker:', error)
+		}
+	}
+
+	// 현재 위치로 이동
+	const moveToCurrentLocation = async () => {
+		try {
+			const hasPermission = await requestLocationPermission()
+			if (!hasPermission) {
+				return
+			}
+
+			const location = await getCurrentPosition()
+			const map = mapObjRef.current
+			if (map) {
+				map.panTo(location)
+				map.setZoom(16)
+				await updateUserLocationMarker(location)
+			}
+		} catch (error) {
+			console.error('Error moving to current location:', error)
+		}
+	}
+
+	// 실시간 위치 추적 시작/중지
+	const toggleLocationTracking = async () => {
+		if (isTracking) {
+			// 추적 중지
+			if (watchIdRef.current !== null) {
+				navigator.geolocation.clearWatch(watchIdRef.current)
+				watchIdRef.current = null
+			}
+			setIsTracking(false)
+		} else {
+			// 추적 시작
+			try {
+				const hasPermission = await requestLocationPermission()
+				if (!hasPermission) {
+					return
+				}
+
+				// 초기 위치 설정
+				await moveToCurrentLocation()
+
+				// 실시간 추적 시작
+				watchIdRef.current = navigator.geolocation.watchPosition(
+					async (position) => {
+						const location = {
+							lat: position.coords.latitude,
+							lng: position.coords.longitude
+						}
+						setUserLocation(location)
+						await updateUserLocationMarker(location)
+					},
+					(error) => {
+						console.error('Error watching position:', error)
+						setIsTracking(false)
+					},
+					{
+						enableHighAccuracy: true,
+						timeout: 15000,
+						maximumAge: 30000
+					}
+				)
+
+				setIsTracking(true)
+			} catch (error) {
+				console.error('Error starting location tracking:', error)
+			}
+		}
+	}
+
+	// 컴포넌트 언마운트 시 추적 정리
+	useEffect(() => {
+		return () => {
+			if (watchIdRef.current !== null) {
+				navigator.geolocation.clearWatch(watchIdRef.current)
+			}
+			// 클러스터러 정리
+			if (clustererRef.current) {
+				clustererRef.current.clearMarkers()
+			}
+		}
+	}, [])
+	
 	const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 	const ENV_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined
 	const MAP_ID = ENV_MAP_ID || 'DEMO_MAP_ID'
@@ -66,12 +277,14 @@ export default function KmapPage() {
 		if (!ENV_MAP_ID) console.warn('VITE_GOOGLE_MAPS_MAP_ID 가 비어있습니다. DEMO_MAP_ID 사용')
 		return new Loader({
 			apiKey: API_KEY ?? '',
-			version: 'weekly',
+			version: 'beta', // AdvancedMarkerElement를 위해 beta 버전 사용
 			libraries: ['marker'],
+			language: 'en', // 영어로 강제 설정
+			region: 'KR', // 한국 지역이지만 영어로 표시
 		})
 	}, [API_KEY, ENV_MAP_ID])
 
-	// 지도 초기화 및 강남취창업허브센터 로드
+	// 지도 초기화 및 사용자 위치로 시작
 	useEffect(() => {
 		let cancelled = false
 		;(async () => {
@@ -80,23 +293,26 @@ export default function KmapPage() {
 
 			const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary
 			
-			// 강남취창업허브센터 정보 가져오기
-			let hubCenter = { lat: 37.4946, lng: 127.0289 } // 기본값
-			let hubPlace: Place | null = null
+			// 기본 중심점 (서울)
+			let mapCenter = { lat: 37.5665, lng: 126.978 }
+			let initialZoom = 12
 			
+			// 사용자 위치 권한 확인 및 가져오기
 			try {
-				console.log('[K-Map] Loading 강남취창업허브센터 details...')
-				hubPlace = await getPlaceDetail(GANGNAM_HUB_PLACE_ID)
-				hubCenter = { lat: hubPlace.lat, lng: hubPlace.lng }
-				console.log('[K-Map] 강남취창업허브센터 location:', hubCenter)
+				const hasPermission = await requestLocationPermission()
+				if (hasPermission) {
+					const userPos = await getCurrentPosition()
+					mapCenter = userPos
+					initialZoom = 16
+				} else {
+				}
 			} catch (error) {
-				console.warn('[K-Map] Failed to load hub center details:', error)
 			}
 			
-			// 강남취창업허브센터 좌표로 지도 초기화
+			// 지도 초기화 (사용자 위치 또는 기본 위치)
 			const map = new Map(mapRef.current, {
-				center: hubCenter,
-				zoom: 16, // 더 가까이 확대
+				center: mapCenter,
+				zoom: initialZoom,
 				mapId: MAP_ID,
 				mapTypeControl: false,
 				streetViewControl: false,
@@ -105,27 +321,16 @@ export default function KmapPage() {
 			mapObjRef.current = map
 			infoRef.current = new google.maps.InfoWindow()
 			
-			// 강남취창업허브센터 마커 즉시 표시
-			if (hubPlace) {
-				console.log('[K-Map] Auto-displaying 강남취창업허브센터 marker')
-				// 상세 정보는 표시하지 않고 마커만 생성
-				
-				// 단일 마커 생성
-				const { AdvancedMarkerElement } = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
-				const hubMarker = new AdvancedMarkerElement({
-					map,
-					position: hubCenter,
-					title: hubPlace.name,
-				})
-				hubMarker.addListener('gmp-click', () => setSelected(hubPlace))
-				markersRef.current = [hubMarker]
+			// 사용자 위치 마커 표시 (권한이 있는 경우)
+			if (userLocation) {
+				await updateUserLocationMarker(userLocation)
 			}
 		})()
 
 		return () => {
 			cancelled = true
 		}
-	}, [loader, MAP_ID, GANGNAM_HUB_PLACE_ID])
+	}, [loader, MAP_ID])
 
 	// 모드/타입 변화에 따라 목록 불러오기
 	useEffect(() => {
@@ -140,10 +345,8 @@ export default function KmapPage() {
 						'cafe'
 					)
 
-					console.log(`[K-Map] Loading ${type} markers...`)
 					// Use API to get markers by place type
 					const adminMarkers = await getMarkersByPlaceType(type || 'food')
-					console.log(`[K-Map] Loaded ${adminMarkers.length} markers for ${type}:`, adminMarkers)
 					const items: Place[] = adminMarkers.map((marker) => ({
 						id: marker.id!,
 						googlePlaceId: marker.place_id || `admin_${marker.id}`,
@@ -211,28 +414,131 @@ export default function KmapPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [mode, type, getMarkersByPlaceType])
 
+	// 반경 또는 사용자 위치 변경 시 마커 재렌더링
+	useEffect(() => {
+		if (places.length > 0 && mapObjRef.current) {
+			renderMarkers(places)
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [nearbyRadius, userLocation])
+
 	const clearMarkers = () => {
+		// 기존 클러스터러 제거
+		if (clustererRef.current) {
+			clustererRef.current.clearMarkers()
+			clustererRef.current = null
+		}
+		// 기존 마커들 제거
 		markersRef.current.forEach((m) => (m.map = null))
 		markersRef.current = []
+	}
+
+	// 커스텀 마커 요소 생성 (팩토리 사용)
+	const createCustomMarker = (place: Place): HTMLElement => {
+		// 팩토리를 사용한 커스텀 마커
+		try {
+			const markerEl = makePlaceMarkerEl(place.type, place.name)
+			return markerEl
+		} catch (error) {
+			console.error('[K-Map] Error creating custom marker, using fallback:', error)
+			
+			// Fallback: 아이콘 없는 경우 색상 점
+			const fallback = document.createElement('div')
+			let dotColor = '#ef4444' // 기본 빨강
+			
+			switch (place.type) {
+				case 'travel': dotColor = '#3b82f6'; break // 파랑
+				case 'food': dotColor = '#ef4444'; break   // 빨강  
+				case 'cafe': dotColor = '#f59e0b'; break   // 주황
+				default: dotColor = '#6b7280'; break       // 회색
+			}
+			
+			const container = document.createElement('div')
+			container.style.cssText = `
+				width: 32px;
+				height: 32px;
+				display: grid;
+				place-items: center;
+				background: transparent;
+				cursor: pointer;
+				transition: all 200ms ease;
+				z-index: 100;
+			`
+			
+			fallback.style.cssText = `
+				width: 16px;
+				height: 16px;
+				background: ${dotColor};
+				border-radius: 50%;
+				filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+			`
+			
+			container.appendChild(fallback)
+			
+			// 호버 효과
+			container.addEventListener('mouseenter', () => {
+				container.style.transform = 'scale(1.3)'
+				container.style.zIndex = '200'
+			})
+			container.addEventListener('mouseleave', () => {
+				container.style.transform = 'scale(1)'
+				container.style.zIndex = '100'
+			})
+			
+			return container
+		}
 	}
 
 	const renderMarkers = async (items: Place[]) => {
 		const map = mapObjRef.current!
 		clearMarkers()
 
+		// 타입별 장소 조회시만 사용자 위치 기준 필터링 적용
+		// 북마크나 전체 리스트는 필터링하지 않음
+		const shouldFilter = mode === 'type' && type !== '' && userLocation
+		const filteredPlaces = shouldFilter ? filterNearbyPlaces(items, userLocation) : items
+
+		if (filteredPlaces.length === 0) {
+			return
+		}
+
 		const { AdvancedMarkerElement } = (await loader.importLibrary(
 			'marker'
 		)) as google.maps.MarkerLibrary
 
-		markersRef.current = items.map((p) => {
+		// 마커 생성
+		const markers = filteredPlaces.map((place) => {
 			const marker = new AdvancedMarkerElement({
-				map,
-				position: { lat: p.lat, lng: p.lng },
-				title: p.name,
+				map: null, // 클러스터러가 관리하므로 null로 설정
+				position: { lat: place.lat, lng: place.lng },
+				content: createCustomMarker(place),
+				title: place.name,
 			})
-			marker.addListener('gmp-click', () => openPlace(p))
+			
+			// 마커 클릭 이벤트
+			marker.addListener('gmp-click', () => openPlace(place))
 			return marker
 		})
+
+		markersRef.current = markers
+
+		// MarkerClusterer 생성 및 적용
+		if (markers.length > 0) {
+			clustererRef.current = new MarkerClusterer({
+				map,
+				markers,
+				renderer: {
+					render: ({ count, position }) => {
+						return new AdvancedMarkerElement({
+							position,
+							content: makeClusterMarkerEl(count),
+							zIndex: 1000 + Math.min(count, 100) // 레이어링
+						})
+					}
+				},
+				// 기본 클러스터링 옵션 사용
+			})
+		}
 	}
 
 	const fitBounds = (items: Place[]) => {
@@ -266,34 +572,56 @@ export default function KmapPage() {
 
 	// 사이드바 핸들러
 	const handleSelectType = (t: PlaceType) => {
+		// 같은 타입을 다시 클릭하면 토글 (닫기)
+		if (mode === 'type' && type === t && showSearchList) {
+			setShowSearchList(false)
+			setType('')
+			return
+		}
+		
+		// 다른 타입 선택하거나 처음 선택
 		setMode('type')
 		setType(t)
-		setShowSearchList(true) // 카테고리 선택 시 SearchList 바로 열기
+		setShowSearchList(true)
 	}
 	const handleShowBookmarks = () => {
+		// 북마크가 이미 활성화된 상태에서 다시 클릭하면 토글 (닫기)
+		if (mode === 'bookmarks' && showSearchList) {
+			setShowSearchList(false)
+			setMode('type')
+			setType('')
+			return
+		}
+		
+		// 북마크 모드 활성화
 		setMode('bookmarks')
 		setType('') // 카테고리 선택 해제
-		setShowSearchList(true) // 북마크 클릭 시 SearchList 바로 열기
+		setShowSearchList(true)
 	}
 	const handleToggleMenu = async () => {
-		// Menu는 단순히 SearchList 토글하고 모든 활성화 상태 해제
-		setShowSearchList(!showSearchList)
+		// 메뉴가 이미 열려있고 전체 리스트 모드면 토글 (닫기)
+		if (mode === 'type' && type === '' && showSearchList) {
+			setShowSearchList(false)
+			return
+		}
+		
+		// 메뉴 열기: SearchList 토글하고 모든 활성화 상태 해제
+		setShowSearchList(true)
 		setType('') // 카테고리 활성화 해제
 		setMode('type') // 북마크 모드도 해제
 		
-		// SearchList가 열릴 때 전체 장소 데이터 로드
-		if (!showSearchList) {
-			try {
-				setLoading(true)
-				const response = await listPlaces({ pageSize: 100 }) // 전체 장소 가져오기
-				setPlaces(response.items)
-				setTitleKey('all_places')
-				await renderMarkers(response.items)
-			} catch (error) {
-				console.error('전체 장소 로드 실패:', error)
-			} finally {
-				setLoading(false)
-			}
+		// 전체 장소 데이터 로드
+		try {
+			setLoading(true)
+			const response = await listPlaces({ pageSize: 100 }) // 전체 장소 가져오기
+			setPlaces(response.items)
+			setTitleKey('all_places')
+			await renderMarkers(response.items)
+			fitBounds(response.items) // 모든 마커가 보이도록 지도 범위 조정
+		} catch (error) {
+			console.error('전체 장소 로드 실패:', error)
+		} finally {
+			setLoading(false)
 		}
 	}
 
@@ -366,6 +694,118 @@ export default function KmapPage() {
 				{/* 지도 */}
 				<div className="relative flex-1">
 					<div ref={mapRef} className="absolute inset-0" />
+					
+					{/* 위치 버튼들 */}
+					<div className="absolute flex flex-col gap-2 bottom-4 right-4">
+						{/* 위치 권한 상태 알림 */}
+						{locationPermission === 'denied' && (
+							<div className="max-w-xs p-3 bg-red-50 border border-red-200 rounded-lg shadow-lg">
+								<div className="flex items-start gap-2">
+									<svg className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+									</svg>
+									<div>
+										<p className="text-xs font-medium text-red-800">위치 권한 필요</p>
+										<p className="text-xs text-red-600 mt-1">브라우저 설정에서 위치 권한을 허용해주세요.</p>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{/* 반경 조절 슬라이더 - 위치 권한이 있을 때만 표시 */}
+						{userLocation && locationPermission === 'granted' && (
+							<div className="p-3 bg-white rounded-lg shadow-lg">
+								<label className="block text-xs text-gray-600 mb-2">
+									{t('kmap.nearby_radius')}: {(nearbyRadius / 1000).toFixed(1)}km
+								</label>
+								<input
+									type="range"
+									min="500"
+									max="10000"
+									step="500"
+									value={nearbyRadius}
+									onChange={(e) => setNearbyRadius(Number(e.target.value))}
+									className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+								/>
+							</div>
+						)}
+						
+						{/* 현재 위치로 이동 버튼 - 권한 상태에 따른 스타일링 */}
+						<button
+							onClick={moveToCurrentLocation}
+							disabled={locationPermission === 'denied'}
+							className={`flex items-center justify-center w-12 h-12 transition-all duration-200 rounded-lg shadow-lg hover:shadow-xl group ${
+								locationPermission === 'denied' 
+									? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+									: 'bg-white text-gray-600 hover:text-blue-600'
+							}`}
+							title={
+								locationPermission === 'denied' 
+									? '위치 권한이 차단되었습니다' 
+									: t('kmap.location.my_location')
+							}
+						>
+							<svg 
+								className={`w-6 h-6 ${
+									locationPermission === 'denied' 
+										? 'text-gray-400' 
+										: 'text-gray-600 group-hover:text-blue-600'
+								}`} 
+								fill="none" 
+								stroke="currentColor" 
+								viewBox="0 0 24 24"
+							>
+								<path 
+									strokeLinecap="round" 
+									strokeLinejoin="round" 
+									strokeWidth={2} 
+									d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" 
+								/>
+								<path 
+									strokeLinecap="round" 
+									strokeLinejoin="round" 
+									strokeWidth={2} 
+									d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" 
+								/>
+							</svg>
+						</button>
+
+						{/* 실시간 추적 토글 버튼 - 권한 상태에 따른 스타일링 */}
+						<button
+							onClick={toggleLocationTracking}
+							disabled={locationPermission === 'denied'}
+							className={`w-12 h-12 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group ${
+								locationPermission === 'denied'
+									? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+									: isTracking 
+										? 'bg-blue-600 text-white' 
+										: 'bg-white text-gray-600 hover:text-blue-600'
+							}`}
+							title={
+								locationPermission === 'denied'
+									? '위치 권한이 차단되었습니다'
+									: isTracking 
+										? t('kmap.location.stop_tracking') 
+										: t('kmap.location.start_tracking')
+							}
+						>
+							<svg 
+								className={`w-6 h-6 ${
+									locationPermission === 'denied'
+										? 'text-gray-400'
+										: isTracking 
+											? 'text-white' 
+											: 'group-hover:text-blue-600'
+								}`} 
+								fill="none" 
+								stroke="currentColor" 
+								viewBox="0 0 24 24"
+							>
+								<circle cx="12" cy="12" r="3" strokeWidth={2}/>
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+							</svg>
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
