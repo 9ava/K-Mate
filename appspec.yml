@@ -1,7 +1,5 @@
 version: 0.0
 os: linux
-
-# 기존 파일을 덮어쓰도록(이전 빌드 잔재로 인한 충돌 방지)
 file_exists_behavior: OVERWRITE
 
 files:
@@ -11,8 +9,9 @@ files:
     destination: /var/www/k-mate/client
   - source: systemd/kmate.service
     destination: /etc/systemd/system
-  - source: nginx/kmate.conf
-    destination: /etc/nginx/conf.d
+  # (선택) 스크립트를 서버 고정 경로에 배치하고 절대경로로 실행하고 싶다면:
+  # - source: scripts/
+  #   destination: /var/www/k-mate/scripts
 
 hooks:
   ApplicationStop:
@@ -26,10 +25,15 @@ hooks:
       runas: root
 
   AfterInstall:
-    # ✅ SSM에서 환경변수를 읽어 /srv/k-mate/shared/k-mate.env 생성
+    # ✅ Secrets Manager 번들(JSON)에서 환경 렌더
     - location: scripts/render_env.sh
       timeout: 180
       runas: root
+      env:
+        - REGION=ap-northeast-2
+        - BUNDLE_SECRET_ID=team01 # ← 콘솔에서 확인한 “보안 암호 이름”으로!
+        # SSM을 쓰는 구조라면 대신 PREFIX=/kmate/prod 처럼 넘기세요.
+        # - PREFIX=/kmate/prod
 
     - location: scripts/after_install.sh
       timeout: 300

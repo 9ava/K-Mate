@@ -46,7 +46,7 @@ export default function EditMarkerPage() {
 			console.log('[EditMarker] Parsed ID:', markerId, 'type:', typeof markerId)
 
 			// Try both numeric and string comparison
-			const marker = markers.find(m => m.id === markerId || m.id === id || String(m.id) === id)
+			const marker = markers.find(m => m.id === markerId || String(m.id) === id)
 
 			console.log('[EditMarker] Found marker:', marker)
 

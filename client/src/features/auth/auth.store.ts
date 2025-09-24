@@ -78,13 +78,13 @@ export const useAuthStore = create<State & Actions>()(
 				loginWithGoogle() {
 					// 서버가 콜백/쿠키를 처리하고 /auth/callback 으로 리다이렉트함
 					const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-					window.location.href = `${base}/auth/google`
+					window.location.href = `${base}/auth/google?prompt=select_account consent`
 				},
 
 				switchAccount() {
 					// Force account selection by adding prompt parameter
 					const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-					window.location.href = `${base}/auth/google?prompt=select_account`
+					window.location.href = `${base}/auth/google?prompt=select_account consent`
 				},
 
 				isAuthed: () => !!get().user,
