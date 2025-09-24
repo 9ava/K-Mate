@@ -547,42 +547,9 @@ export default function KmapPage() {
 				markers,
 				renderer: {
 					render: ({ count, position }) => {
-						// 회색 배경의 클러스터 아이콘
-						const clusterElement = document.createElement('div')
-						clusterElement.style.cssText = `
-							min-width: 40px;
-							height: 40px;
-							padding: 0 8px;
-							border-radius: 50%;
-							display: grid;
-							place-items: center;
-							background: #6b7280;
-							color: white;
-							font-weight: 800;
-							font-size: 14px;
-							box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-							cursor: pointer;
-							user-select: none;
-							transition: all 200ms ease;
-							z-index: 150;
-						`
-						clusterElement.textContent = String(count)
-						
-						// 강력한 호버 효과
-						clusterElement.addEventListener('mouseenter', () => {
-							clusterElement.style.transform = 'scale(1.2)'
-							clusterElement.style.boxShadow = '0 8px 20px rgba(0,0,0,0.5)'
-							clusterElement.style.zIndex = '250'
-						})
-						clusterElement.addEventListener('mouseleave', () => {
-							clusterElement.style.transform = 'scale(1)'
-							clusterElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)'
-							clusterElement.style.zIndex = '150'
-						})
-						
 						return new AdvancedMarkerElement({
 							position,
-							content: clusterElement,
+							content: makeClusterMarkerEl(count),
 							zIndex: 1000 + Math.min(count, 100) // 레이어링
 						})
 					}
@@ -728,8 +695,23 @@ export default function KmapPage() {
 					
 					{/* 위치 버튼들 */}
 					<div className="absolute flex flex-col gap-2 bottom-4 right-4">
-						{/* 반경 조절 슬라이더 */}
-						{userLocation && (
+						{/* 위치 권한 상태 알림 */}
+						{locationPermission === 'denied' && (
+							<div className="max-w-xs p-3 bg-red-50 border border-red-200 rounded-lg shadow-lg">
+								<div className="flex items-start gap-2">
+									<svg className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+									</svg>
+									<div>
+										<p className="text-xs font-medium text-red-800">위치 권한 필요</p>
+										<p className="text-xs text-red-600 mt-1">브라우저 설정에서 위치 권한을 허용해주세요.</p>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{/* 반경 조절 슬라이더 - 위치 권한이 있을 때만 표시 */}
+						{userLocation && locationPermission === 'granted' && (
 							<div className="p-3 bg-white rounded-lg shadow-lg">
 								<label className="block text-xs text-gray-600 mb-2">
 									{t('kmap.nearby_radius')}: {(nearbyRadius / 1000).toFixed(1)}km
@@ -746,14 +728,27 @@ export default function KmapPage() {
 							</div>
 						)}
 						
-						{/* 현재 위치로 이동 버튼 */}
+						{/* 현재 위치로 이동 버튼 - 권한 상태에 따른 스타일링 */}
 						<button
 							onClick={moveToCurrentLocation}
-							className="flex items-center justify-center w-12 h-12 transition-all duration-200 bg-white rounded-lg shadow-lg hover:shadow-xl group"
-							title={t('kmap.location.my_location')}
+							disabled={locationPermission === 'denied'}
+							className={`flex items-center justify-center w-12 h-12 transition-all duration-200 rounded-lg shadow-lg hover:shadow-xl group ${
+								locationPermission === 'denied' 
+									? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+									: 'bg-white text-gray-600 hover:text-blue-600'
+							}`}
+							title={
+								locationPermission === 'denied' 
+									? '위치 권한이 차단되었습니다' 
+									: t('kmap.location.my_location')
+							}
 						>
 							<svg 
-								className="w-6 h-6 text-gray-600 group-hover:text-blue-600" 
+								className={`w-6 h-6 ${
+									locationPermission === 'denied' 
+										? 'text-gray-400' 
+										: 'text-gray-600 group-hover:text-blue-600'
+								}`} 
 								fill="none" 
 								stroke="currentColor" 
 								viewBox="0 0 24 24"
@@ -773,18 +768,33 @@ export default function KmapPage() {
 							</svg>
 						</button>
 
-						{/* 실시간 추적 토글 버튼 */}
+						{/* 실시간 추적 토글 버튼 - 권한 상태에 따른 스타일링 */}
 						<button
 							onClick={toggleLocationTracking}
+							disabled={locationPermission === 'denied'}
 							className={`w-12 h-12 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group ${
-								isTracking 
-									? 'bg-blue-600 text-white' 
-									: 'bg-white text-gray-600 hover:text-blue-600'
+								locationPermission === 'denied'
+									? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+									: isTracking 
+										? 'bg-blue-600 text-white' 
+										: 'bg-white text-gray-600 hover:text-blue-600'
 							}`}
-							title={isTracking ? t('kmap.location.stop_tracking') : t('kmap.location.start_tracking')}
+							title={
+								locationPermission === 'denied'
+									? '위치 권한이 차단되었습니다'
+									: isTracking 
+										? t('kmap.location.stop_tracking') 
+										: t('kmap.location.start_tracking')
+							}
 						>
 							<svg 
-								className={`w-6 h-6 ${isTracking ? 'text-white' : 'group-hover:text-blue-600'}`} 
+								className={`w-6 h-6 ${
+									locationPermission === 'denied'
+										? 'text-gray-400'
+										: isTracking 
+											? 'text-white' 
+											: 'group-hover:text-blue-600'
+								}`} 
 								fill="none" 
 								stroke="currentColor" 
 								viewBox="0 0 24 24"

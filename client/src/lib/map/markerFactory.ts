@@ -198,9 +198,39 @@ export function makeUserMarkerEl(): HTMLElement {
 
 export function makeClusterMarkerEl(count: number): HTMLElement {
 	const wrap = document.createElement('div')
-	wrap.className = 'km-cluster'
-	wrap.textContent = String(count)
 	wrap.setAttribute('aria-label', `${count} places clustered`)
+
+	// 회색 배경의 클러스터 마커 스타일
+	wrap.style.cssText = `
+		min-width: 40px;
+		height: 40px;
+		padding: 0 8px;
+		border-radius: 50%;
+		display: grid;
+		place-items: center;
+		background: #6b7280;
+		color: white;
+		font-weight: 800;
+		font-size: 14px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+		cursor: pointer;
+		user-select: none;
+		transition: all 200ms ease;
+		z-index: 150;
+	`
+	wrap.textContent = String(count)
+
+	// 호버 효과
+	wrap.addEventListener('mouseenter', () => {
+		wrap.style.transform = 'scale(1.2)'
+		wrap.style.boxShadow = '0 8px 20px rgba(0,0,0,0.5)'
+		wrap.style.zIndex = '250'
+	})
+	wrap.addEventListener('mouseleave', () => {
+		wrap.style.transform = 'scale(1)'
+		wrap.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)'
+		wrap.style.zIndex = '150'
+	})
 
 	return wrap
 }
