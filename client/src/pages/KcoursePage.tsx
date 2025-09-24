@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getMyCourses, getPublicCourses, unsaveCourse } from '../api/courses'
+import { getPlaceDetail } from '../api/places'
 import type { Course } from '../types/course'
 import { useAuth } from '../features/auth/useAuth'
-import { getPlaceDetails } from '../lib/kakao'
 
 type Tab = 'my-course' | 'monthly-best'
 
@@ -23,17 +23,33 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 	let image = 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768' // 기본 이미지
 	let category: 'cultural' | 'cafe' | 'food' | 'nature' = 'cultural' // 기본 카테고리
 	
-	// 첫 번째 장소의 카카오맵 정보 가져오기
+	// 첫 번째 장소의 Google Places 정보 가져오기
 	const firstStop = course.stops[0]
 	if (firstStop?.externalId) {
 		try {
-			const placeDetails = await getPlaceDetails(firstStop.externalId, firstStop.name)
-			if (placeDetails) {
-				image = placeDetails.image
-				category = placeDetails.category
+			const placeDetail = await getPlaceDetail(firstStop.externalId)
+			if (placeDetail) {
+				// Google Places API에서 가져온 사진 사용
+				if (placeDetail.photoUrl) {
+					image = placeDetail.photoUrl
+				}
+				// Google Places API 카테고리 매핑
+				switch (placeDetail.type) {
+					case 'travel':
+						category = 'cultural'
+						break
+					case 'food':
+						category = 'food'
+						break
+					case 'cafe':
+						category = 'cafe'
+						break
+					default:
+						category = 'cultural'
+				}
 			}
 		} catch (error) {
-			console.warn('Failed to get place details for course:', course.id, error)
+			console.warn('Failed to get Google place details for course:', course.id, error)
 		}
 	}
 	
@@ -293,7 +309,7 @@ function TravelCourseCard({
 					<div className="absolute top-3 right-3">
 						<button
 							onClick={handleUnsave}
-							className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md transition-all duration-200 flex items-center justify-center group"
+							className="flex items-center justify-center w-8 h-8 text-white transition-all duration-200 bg-red-500 rounded-full shadow-md hover:bg-red-600 group"
 							title={t('kcourse.buttons.unsave_course')}
 						>
 							<svg 
