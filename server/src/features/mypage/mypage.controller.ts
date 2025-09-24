@@ -30,8 +30,8 @@ import {
 	MyPostListResponseDto,
 	MyCommentListResponseDto,
 	UserProfileDto,
-	UpdateRoleDto,
-	RoleUpdateResponseDto,
+	MyCourseListResponseDto,
+	SavedCourseListResponseDto,
 } from './mypage.dto'
 
 @ApiTags('Mypage')
@@ -55,6 +55,8 @@ export class MypageController {
 					scrapCount: 12,
 					postCount: 8,
 					commentCount: 25,
+					courseCount: 3,
+					savedCourseCount: 7,
 				},
 			},
 		},
@@ -285,32 +287,97 @@ export class MypageController {
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────
-	// Role 수정 (RQ-7002)
+	// 내가 만든 코스 목록 조회
 	// ────────────────────────────────────────────────────────────────────────────
-	@ApiOperation({ summary: '사용자 Role 수정' })
+	@ApiOperation({ summary: '내가 만든 코스 목록 조회' })
 	@ApiOkResponse({
-		description: 'Role 수정 성공',
+		description: '내가 만든 코스 목록 조회 성공',
 		schema: {
 			example: {
 				success: true,
 				data: {
-					id: 1,
-					role: 'admin',
-					updatedAt: '2024-01-01T00:00:00.000Z',
+					courses: [
+						{
+							id: '123',
+							title: '서울 궁궐 투어',
+							visibility: 'public',
+							author: {
+								id: 1,
+								name: '홍길동',
+								avatarUrl: 'https://example.com/avatar.jpg',
+							},
+							createdAt: '2024-01-15T10:30:00Z',
+							updatedAt: '2024-01-15T10:30:00Z',
+						},
+					],
+					total: 1,
+					page: 1,
+					limit: 10,
 				},
 			},
 		},
 	})
+	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
+	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
-	@ApiBadRequestResponse({ description: '잘못된 요청 데이터' })
-	@Put('role')
-	async updateUserRole(
+	@Get('courses')
+	async getMyCourses(
 		@Req() req: Request,
-		@Body() updateRoleDto: UpdateRoleDto
-	): Promise<{ success: boolean; data: RoleUpdateResponseDto }> {
+		@Query() query: PaginationQueryDto
+	): Promise<{ success: boolean; data: MyCourseListResponseDto }> {
 		const userId = (req.user as any)?.id as number
-		const data = await this.mypageService.updateUserRole(userId, updateRoleDto)
+		const data = await this.mypageService.getMyCourses(userId, query)
 		return { success: true, data }
 	}
+
+	// ────────────────────────────────────────────────────────────────────────────
+	// 저장한 코스 목록 조회
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '저장한 코스 목록 조회' })
+	@ApiOkResponse({
+		description: '저장한 코스 목록 조회 성공',
+		schema: {
+			example: {
+				success: true,
+				data: {
+					savedCourses: [
+						{
+							id: 1,
+							course: {
+								id: '456',
+								title: '부산 해운대 투어',
+								visibility: 'public',
+								author: {
+									id: 2,
+									name: '김철수',
+									avatarUrl: 'https://example.com/avatar2.jpg',
+								},
+								createdAt: '2024-01-10T09:00:00Z',
+								updatedAt: '2024-01-10T09:00:00Z',
+							},
+							savedAt: '2024-01-15T10:30:00Z',
+						},
+					],
+					total: 1,
+					page: 1,
+					limit: 10,
+				},
+			},
+		},
+	})
+	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
+	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
+	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
+	@Get('saved-courses')
+	async getSavedCourses(
+		@Req() req: Request,
+		@Query() query: PaginationQueryDto
+	): Promise<{ success: boolean; data: SavedCourseListResponseDto }> {
+		const userId = (req.user as any)?.id as number
+		const data = await this.mypageService.getSavedCourses(userId, query)
+		return { success: true, data }
+	}
+
 }

@@ -8,6 +8,8 @@ import { PlaceBookmark } from '../places/place-bookmark.entity'
 import { Interaction } from '../interactions/interaction.entity'
 import { Post } from '../posts/post.entity'
 import { Comment } from '../comments/comment.entity'
+import { Course } from '../courses/course.entity'
+import { SavedCourse } from '../courses/saved-course.entity'
 
 /**
  * MypageModule
@@ -22,6 +24,8 @@ import { Comment } from '../comments/comment.entity'
 			Interaction,
 			Post,
 			Comment,
+			Course,
+			SavedCourse,
 		]),
 	],
 	controllers: [MypageController],

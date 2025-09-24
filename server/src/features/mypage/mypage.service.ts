@@ -7,6 +7,8 @@ import { PlaceBookmark } from '../places/place-bookmark.entity'
 import { Interaction } from '../interactions/interaction.entity'
 import { Post } from '../posts/post.entity'
 import { Comment } from '../comments/comment.entity'
+import { Course } from '../courses/course.entity'
+import { SavedCourse } from '../courses/saved-course.entity'
 import {
 	UserActivityStatsDto,
 	PaginationQueryDto,
@@ -15,8 +17,8 @@ import {
 	MyPostListResponseDto,
 	MyCommentListResponseDto,
 	UserProfileDto,
-	UpdateRoleDto,
-	RoleUpdateResponseDto,
+	MyCourseListResponseDto,
+	SavedCourseListResponseDto,
 } from './mypage.dto'
 
 @Injectable()
@@ -26,7 +28,9 @@ export class MypageService {
 		@InjectRepository(PlaceBookmark) private readonly bookmarkRepo: Repository<PlaceBookmark>,
 		@InjectRepository(Interaction) private readonly interactionRepo: Repository<Interaction>,
 		@InjectRepository(Post) private readonly postRepo: Repository<Post>,
-		@InjectRepository(Comment) private readonly commentRepo: Repository<Comment>
+		@InjectRepository(Comment) private readonly commentRepo: Repository<Comment>,
+		@InjectRepository(Course) private readonly courseRepo: Repository<Course>,
+		@InjectRepository(SavedCourse) private readonly savedCourseRepo: Repository<SavedCourse>
 	) {}
 
 	/**
@@ -39,8 +43,8 @@ export class MypageService {
 			throw new NotFoundException('사용자를 찾을 수 없습니다.')
 		}
 
-		// 각 카테고리별 개수 조회
-		const [bookmarkCount, scrapCount, postCount, commentCount] = await Promise.all([
+		// 각 카테고리별 개수 조회 (안전한 병렬 처리)
+		const [bookmarkCount, scrapCount, postCount, commentCount, courseCount, savedCourseCount] = await Promise.allSettled([
 			// 북마크 수
 			this.bookmarkRepo.count({ where: { user: { id: userId } } }),
 			// 스크랩 수 (interactionType이 'scrap'인 것)
@@ -49,13 +53,23 @@ export class MypageService {
 			this.postRepo.count({ where: { author: { id: userId } } }),
 			// 작성한 댓글 수
 			this.commentRepo.count({ where: { user: { id: userId } } }),
+			// 작성한 코스 수 (테이블이 없을 경우 0 반환)
+			this.courseRepo.count({ where: { authorId: String(userId) } }).catch(() => 0),
+			// 저장한 코스 수 (테이블이 없을 경우 0 반환)
+			this.savedCourseRepo.count({ where: { userId } }).catch(() => 0),
 		])
 
+		// Promise.allSettled 결과 처리
+		const getCount = (result: PromiseSettledResult<number>) => 
+			result.status === 'fulfilled' ? result.value : 0
+
 		return {
-			bookmarkCount,
-			scrapCount,
-			postCount,
-			commentCount,
+			bookmarkCount: getCount(bookmarkCount),
+			scrapCount: getCount(scrapCount),
+			postCount: getCount(postCount),
+			commentCount: getCount(commentCount),
+			courseCount: getCount(courseCount),
+			savedCourseCount: getCount(savedCourseCount),
 		}
 	}
 
@@ -254,7 +268,6 @@ export class MypageService {
 			name: user.name,
 			email: user.email,
 			avatarUrl: user.avatar_url,
-			role: user.role,
 			emailVerified: Boolean(user.email_verified),
 			createdAt: user.created_at,
 			updatedAt: user.updated_at,
@@ -262,32 +275,123 @@ export class MypageService {
 	}
 
 	/**
-	 * 사용자 Role 수정 (RQ-7002)
+	 * 내가 만든 코스 목록 조회
 	 */
-	async updateUserRole(userId: number, updateRoleDto: UpdateRoleDto): Promise<RoleUpdateResponseDto> {
+	async getMyCourses(userId: number, query: PaginationQueryDto): Promise<MyCourseListResponseDto> {
+		const { page = 1, limit = 10 } = query
+		const skip = (page - 1) * limit
+
+		// 사용자 존재 확인
 		const user = await this.userRepo.findOne({ where: { id: userId } })
 		if (!user) {
 			throw new NotFoundException('사용자를 찾을 수 없습니다.')
 		}
 
-		// 권한 유효성 검증
-		if (!['user', 'admin'].includes(updateRoleDto.role)) {
-			throw new Error('유효하지 않은 권한입니다. user 또는 admin만 허용됩니다.')
+		try {
+			// 내가 만든 코스 목록 조회
+			const [courses, total] = await this.courseRepo.findAndCount({
+				where: { authorId: String(userId) },
+				relations: { author: true },
+				order: { created_at: 'DESC' },
+				skip,
+				take: limit,
+			})
+
+			return {
+				courses: courses.map((course) => ({
+					id: course.id,
+					title: course.title,
+					visibility: course.visibility,
+					author: {
+						id: course.author.id,
+						name: course.author.name,
+						avatarUrl: course.author.avatar_url,
+					},
+					createdAt: course.created_at,
+					updatedAt: course.updated_at,
+				})),
+				total,
+				page,
+				limit,
+			}
+		} catch (error) {
+			// 테이블이 없거나 다른 오류가 발생한 경우 빈 결과 반환
+			console.warn('코스 목록 조회 실패:', {
+				error: error.message,
+				stack: error.stack,
+				userId,
+				page,
+				limit
+			})
+			return {
+				courses: [],
+				total: 0,
+				page,
+				limit,
+			}
 		}
+	}
 
-		// 권한 업데이트
-		await this.userRepo.update(userId, { role: updateRoleDto.role as 'user' | 'admin' })
+	/**
+	 * 저장한 코스 목록 조회
+	 */
+	async getSavedCourses(userId: number, query: PaginationQueryDto): Promise<SavedCourseListResponseDto> {
+		const { page = 1, limit = 10 } = query
+		const skip = (page - 1) * limit
 
-		// 업데이트된 사용자 정보 조회
-		const updatedUser = await this.userRepo.findOne({ where: { id: userId } })
-		if (!updatedUser) {
+		// 사용자 존재 확인
+		const user = await this.userRepo.findOne({ where: { id: userId } })
+		if (!user) {
 			throw new NotFoundException('사용자를 찾을 수 없습니다.')
 		}
 
-		return {
-			id: updatedUser.id,
-			role: updatedUser.role,
-			updatedAt: updatedUser.updated_at,
+		try {
+			// 저장한 코스 목록 조회
+			const [savedCourses, total] = await this.savedCourseRepo.findAndCount({
+				where: { userId },
+				relations: { course: { author: true } },
+				order: { savedAt: 'DESC' },
+				skip,
+				take: limit,
+			})
+
+			return {
+				savedCourses: savedCourses.map((savedCourse) => ({
+					id: savedCourse.id,
+					course: {
+						id: savedCourse.course.id,
+						title: savedCourse.course.title,
+						visibility: savedCourse.course.visibility,
+						author: {
+							id: savedCourse.course.author.id,
+							name: savedCourse.course.author.name,
+							avatarUrl: savedCourse.course.author.avatar_url,
+						},
+						createdAt: savedCourse.course.created_at,
+						updatedAt: savedCourse.course.updated_at,
+					},
+					savedAt: savedCourse.savedAt,
+				})),
+				total,
+				page,
+				limit,
+			}
+		} catch (error) {
+			// 테이블이 없거나 다른 오류가 발생한 경우 빈 결과 반환
+			console.warn('저장한 코스 목록 조회 실패:', {
+				error: error.message,
+				stack: error.stack,
+				userId,
+				page,
+				limit
+			})
+			return {
+				savedCourses: [],
+				total: 0,
+				page,
+				limit,
+			}
 		}
 	}
+
 }
