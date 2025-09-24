@@ -95,7 +95,6 @@ export default function KmapPage() {
 	// 위치 권한 확인 및 현재 위치 가져오기
 	const requestLocationPermission = async (): Promise<boolean> => {
 		if (!navigator.geolocation) {
-			console.warn('Geolocation is not supported by this browser.')
 			return false
 		}
 
@@ -183,8 +182,6 @@ export default function KmapPage() {
 				title: 'My Location',
 				zIndex: 9999 // 가장 위에 표시
 			})
-
-			console.log('[K-Map] User location marker updated:', location)
 		} catch (error) {
 			console.error('Error updating user location marker:', error)
 		}
@@ -195,7 +192,6 @@ export default function KmapPage() {
 		try {
 			const hasPermission = await requestLocationPermission()
 			if (!hasPermission) {
-				console.warn('Location permission denied')
 				return
 			}
 
@@ -220,13 +216,11 @@ export default function KmapPage() {
 				watchIdRef.current = null
 			}
 			setIsTracking(false)
-			console.log('[K-Map] Location tracking stopped')
 		} else {
 			// 추적 시작
 			try {
 				const hasPermission = await requestLocationPermission()
 				if (!hasPermission) {
-					console.warn('Location permission denied')
 					return
 				}
 
@@ -242,7 +236,6 @@ export default function KmapPage() {
 						}
 						setUserLocation(location)
 						await updateUserLocationMarker(location)
-						console.log('[K-Map] Location updated:', location)
 					},
 					(error) => {
 						console.error('Error watching position:', error)
@@ -256,7 +249,6 @@ export default function KmapPage() {
 				)
 
 				setIsTracking(true)
-				console.log('[K-Map] Location tracking started')
 			} catch (error) {
 				console.error('Error starting location tracking:', error)
 			}
@@ -312,12 +304,9 @@ export default function KmapPage() {
 					const userPos = await getCurrentPosition()
 					mapCenter = userPos
 					initialZoom = 16
-					console.log('[K-Map] Starting with user location:', userPos)
 				} else {
-					console.log('[K-Map] Location permission denied, using default center')
 				}
 			} catch (error) {
-				console.warn('[K-Map] Could not get user location, using default center:', error)
 			}
 			
 			// 지도 초기화 (사용자 위치 또는 기본 위치)
@@ -356,10 +345,8 @@ export default function KmapPage() {
 						'cafe'
 					)
 
-					console.log(`[K-Map] Loading ${type} markers...`)
 					// Use API to get markers by place type
 					const adminMarkers = await getMarkersByPlaceType(type || 'food')
-					console.log(`[K-Map] Loaded ${adminMarkers.length} markers for ${type}:`, adminMarkers)
 					const items: Place[] = adminMarkers.map((marker) => ({
 						id: marker.id!,
 						googlePlaceId: marker.place_id || `admin_${marker.id}`,
@@ -448,12 +435,9 @@ export default function KmapPage() {
 
 	// 커스텀 마커 요소 생성 (팩토리 사용)
 	const createCustomMarker = (place: Place): HTMLElement => {
-		console.log(`[K-Map] Creating marker for place:`, place)
-		
 		// 팩토리를 사용한 커스텀 마커
 		try {
 			const markerEl = makePlaceMarkerEl(place.type, place.name)
-			console.log(`[K-Map] Created custom marker for ${place.name}`, markerEl)
 			return markerEl
 		} catch (error) {
 			console.error('[K-Map] Error creating custom marker, using fallback:', error)
@@ -509,12 +493,12 @@ export default function KmapPage() {
 		const map = mapObjRef.current!
 		clearMarkers()
 
-		// 사용자 위치 기준으로 필터링 (위치가 없으면 전체 표시)
-		const filteredPlaces = userLocation ? filterNearbyPlaces(items, userLocation) : items
-		console.log(`[K-Map] ${userLocation ? 'Filtered' : 'Showing all'} ${filteredPlaces.length} places from ${items.length} total places`)
+		// 타입별 장소 조회시만 사용자 위치 기준 필터링 적용
+		// 북마크나 전체 리스트는 필터링하지 않음
+		const shouldFilter = mode === 'type' && type !== '' && userLocation
+		const filteredPlaces = shouldFilter ? filterNearbyPlaces(items, userLocation) : items
 
 		if (filteredPlaces.length === 0) {
-			console.log('[K-Map] No places to render')
 			return
 		}
 
@@ -524,8 +508,6 @@ export default function KmapPage() {
 
 		// 마커 생성
 		const markers = filteredPlaces.map((place) => {
-			console.log(`[K-Map] Creating marker for ${place.name} (${place.type}) at ${place.lat}, ${place.lng}`)
-			
 			const marker = new AdvancedMarkerElement({
 				map: null, // 클러스터러가 관리하므로 null로 설정
 				position: { lat: place.lat, lng: place.lng },
@@ -556,8 +538,6 @@ export default function KmapPage() {
 				},
 				// 기본 클러스터링 옵션 사용
 			})
-			
-			console.log(`[K-Map] Created cluster with ${markers.length} markers`)
 		}
 	}
 
@@ -615,6 +595,7 @@ export default function KmapPage() {
 				setPlaces(response.items)
 				setTitleKey('all_places')
 				await renderMarkers(response.items)
+				fitBounds(response.items) // 모든 마커가 보이도록 지도 범위 조정
 			} catch (error) {
 				console.error('전체 장소 로드 실패:', error)
 			} finally {
