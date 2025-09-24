@@ -284,7 +284,7 @@ export default function MainPage() {
 						</div>
 					</div>
 					<div className="pt-8 mt-8 text-center text-gray-400 border-t border-gray-800">
-						© 2024 K-Mate. All rights reserved.
+						© 2026 K-Mate. All rights reserved.
 					</div>
 				</div>
 			</footer>
