@@ -31,7 +31,6 @@ export default function CourseDetailPage() {
 	const [error, setError] = useState<string | null>(null)
 	const [isEditing, setIsEditing] = useState(false)
 	const [stops, setStops] = useState<Stop[]>([])
-	const [stopsLoading, setStopsLoading] = useState(false)
 	const [isSaved, setIsSaved] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [actionLoading, setActionLoading] = useState(false)
@@ -49,7 +48,6 @@ export default function CourseDetailPage() {
 			}))
 
 		// 각 장소의 상세 정보를 병렬로 가져오기
-		setStopsLoading(true)
 		try {
 			const detailedStops = await Promise.all(
 				basicStops.map(async (stop) => {
@@ -75,8 +73,6 @@ export default function CourseDetailPage() {
 		} catch (error) {
 			console.warn('Failed to load place details:', error)
 			return basicStops
-		} finally {
-			setStopsLoading(false)
 		}
 	}
 
