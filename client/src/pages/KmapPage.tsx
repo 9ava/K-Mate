@@ -30,6 +30,7 @@ export default function KmapPage() {
 	const [mode, setMode] = useState<Mode>('type') // ✅ 현재 보기 모드
 	const [type, setType] = useState<PlaceType | ''>('') // ✅ 초기값을 빈 문자열로 설정
 	const [loading, setLoading] = useState(false)
+	const [loadingState, setLoadingState] = useState<'idle' | 'map-init' | 'places' | 'markers'>('idle')
 	const [selected, setSelected] = useState<Place | null>(null)
 	const [places, setPlaces] = useState<Place[]>([])
 	const [titleKey, setTitleKey] = useState<string>('popular') // 번역 키만 저장
@@ -164,7 +165,11 @@ export default function KmapPage() {
 		if (!map) return
 
 		try {
-			const { AdvancedMarkerElement } = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
+			// 캐시된 라이브러리 사용
+			if (!markerLibRef.current) {
+				markerLibRef.current = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
+			}
+			const { AdvancedMarkerElement } = markerLibRef.current
 
 			// 기존 사용자 마커 제거
 			if (userMarkerRef.current) {
@@ -272,6 +277,10 @@ export default function KmapPage() {
 	const ENV_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined
 	const MAP_ID = ENV_MAP_ID || 'DEMO_MAP_ID'
 
+	// 라이브러리 캐싱을 위한 ref 추가
+	const markerLibRef = useRef<google.maps.MarkerLibrary | null>(null)
+	const mapsLibRef = useRef<google.maps.MapsLibrary | null>(null)
+
 	const loader = useMemo(() => {
 		if (!API_KEY) console.warn('VITE_GOOGLE_MAPS_API_KEY 가 설정되지 않았습니다.')
 		if (!ENV_MAP_ID) console.warn('VITE_GOOGLE_MAPS_MAP_ID 가 비어있습니다. DEMO_MAP_ID 사용')
@@ -288,28 +297,21 @@ export default function KmapPage() {
 	useEffect(() => {
 		let cancelled = false
 		;(async () => {
+			setLoadingState('map-init')
 			await loader.load()
 			if (cancelled || !mapRef.current) return
 
-			const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary
+			// 라이브러리 캐시
+			if (!mapsLibRef.current) {
+				mapsLibRef.current = (await loader.importLibrary('maps')) as google.maps.MapsLibrary
+			}
+			const { Map } = mapsLibRef.current
 			
-			// 기본 중심점 (서울)
+			// 기본 중심점 (서울) - 사용자 위치와 병렬로 처리
 			let mapCenter = { lat: 37.5665, lng: 126.978 }
 			let initialZoom = 12
 			
-			// 사용자 위치 권한 확인 및 가져오기
-			try {
-				const hasPermission = await requestLocationPermission()
-				if (hasPermission) {
-					const userPos = await getCurrentPosition()
-					mapCenter = userPos
-					initialZoom = 16
-				} else {
-				}
-			} catch (error) {
-			}
-			
-			// 지도 초기화 (사용자 위치 또는 기본 위치)
+			// 지도를 먼저 생성 (위치 권한 대기하지 않음)
 			const map = new Map(mapRef.current, {
 				center: mapCenter,
 				zoom: initialZoom,
@@ -320,11 +322,24 @@ export default function KmapPage() {
 			})
 			mapObjRef.current = map
 			infoRef.current = new google.maps.InfoWindow()
+			setLoadingState('idle')
 			
-			// 사용자 위치 마커 표시 (권한이 있는 경우)
-			if (userLocation) {
-				await updateUserLocationMarker(userLocation)
-			}
+			// 사용자 위치는 비동기로 처리 (지도 로딩 블로킹하지 않음)
+			requestLocationPermission().then(async (hasPermission) => {
+				if (hasPermission && !cancelled) {
+					try {
+						const userPos = await getCurrentPosition()
+						map.panTo(userPos)
+						map.setZoom(16)
+						setUserLocation(userPos)
+						await updateUserLocationMarker(userPos)
+					} catch (error) {
+						console.warn('사용자 위치 가져오기 실패:', error)
+					}
+				}
+			}).catch(() => {
+				// 위치 권한 실패는 조용히 무시
+			})
 		})()
 
 		return () => {
@@ -337,6 +352,7 @@ export default function KmapPage() {
 		if (!mapObjRef.current) return
 		;(async () => {
 			setLoading(true)
+			setLoadingState('places')
 			try {
 				if (mode === 'type' && type) { // ✅ type이 있을 때만 로드
 					setTitleKey(
@@ -366,6 +382,7 @@ export default function KmapPage() {
 					}))
 
 					setPlaces(items)
+					setLoadingState('markers')
 					await renderMarkers(items)
 					
 					// 일반적인 동작: 전체 마커들이 보이도록 fitBounds
@@ -402,6 +419,7 @@ export default function KmapPage() {
 							description: null,
 						}))
 						setPlaces(items)
+						setLoadingState('markers')
 						await renderMarkers(items)
 						fitBounds(items)
 						setSelected(null)
@@ -409,6 +427,7 @@ export default function KmapPage() {
 				}
 			} finally {
 				setLoading(false)
+				setLoadingState('idle')
 			}
 		})()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -433,27 +452,34 @@ export default function KmapPage() {
 		markersRef.current = []
 	}
 
-	// 커스텀 마커 요소 생성 (팩토리 사용)
+	// 커스텀 마커 요소 생성 (성능 최적화됨)
 	const createCustomMarker = (place: Place): HTMLElement => {
-		// 팩토리를 사용한 커스텀 마커
 		try {
 			const markerEl = makePlaceMarkerEl(place.type, place.name)
 			return markerEl
 		} catch (error) {
 			console.error('[K-Map] Error creating custom marker, using fallback:', error)
 			
-			// Fallback: 아이콘 없는 경우 색상 점
-			const fallback = document.createElement('div')
-			let dotColor = '#ef4444' // 기본 빨강
-			
-			switch (place.type) {
-				case 'travel': dotColor = '#3b82f6'; break // 파랑
-				case 'food': dotColor = '#ef4444'; break   // 빨강  
-				case 'cafe': dotColor = '#f59e0b'; break   // 주황
-				default: dotColor = '#6b7280'; break       // 회색
-			}
-			
+			// Fallback: 더 간단한 마커 (성능 최적화)
 			const container = document.createElement('div')
+			
+			// 타입별 색상 매핑 (한 번만 계산)
+			const colorMap: Record<string, string> = {
+				'travel': '#3b82f6',
+				'food': '#ef4444', 
+				'cafe': '#f59e0b'
+			}
+			const dotColor = colorMap[place.type || ''] || '#6b7280'
+			
+			// CSS 문자열을 한 번에 설정 (DOM 조작 최소화)
+			container.innerHTML = `<div style="
+				width: 16px;
+				height: 16px;
+				background: ${dotColor};
+				border-radius: 50%;
+				filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+			"></div>`
+			
 			container.style.cssText = `
 				width: 32px;
 				height: 32px;
@@ -461,29 +487,26 @@ export default function KmapPage() {
 				place-items: center;
 				background: transparent;
 				cursor: pointer;
-				transition: all 200ms ease;
+				transition: transform 200ms ease;
 				z-index: 100;
 			`
 			
-			fallback.style.cssText = `
-				width: 16px;
-				height: 16px;
-				background: ${dotColor};
-				border-radius: 50%;
-				filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
-			`
-			
-			container.appendChild(fallback)
-			
-			// 호버 효과
-			container.addEventListener('mouseenter', () => {
-				container.style.transform = 'scale(1.3)'
-				container.style.zIndex = '200'
-			})
-			container.addEventListener('mouseleave', () => {
-				container.style.transform = 'scale(1)'
-				container.style.zIndex = '100'
-			})
+			// 이벤트 리스너를 한 번에 처리
+			let isHovered = false
+			container.onmouseenter = () => {
+				if (!isHovered) {
+					container.style.transform = 'scale(1.3)'
+					container.style.zIndex = '200'
+					isHovered = true
+				}
+			}
+			container.onmouseleave = () => {
+				if (isHovered) {
+					container.style.transform = 'scale(1)'
+					container.style.zIndex = '100'
+					isHovered = false
+				}
+			}
 			
 			return container
 		}
@@ -502,9 +525,11 @@ export default function KmapPage() {
 			return
 		}
 
-		const { AdvancedMarkerElement } = (await loader.importLibrary(
-			'marker'
-		)) as google.maps.MarkerLibrary
+		// 캐시된 라이브러리 사용
+		if (!markerLibRef.current) {
+			markerLibRef.current = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
+		}
+		const { AdvancedMarkerElement } = markerLibRef.current
 
 		// 마커 생성
 		const markers = filteredPlaces.map((place) => {
@@ -668,7 +693,12 @@ export default function KmapPage() {
 						isMenuOpen={false} // Menu는 활성화 표시 안 함
 						isBookmarkMode={mode === 'bookmarks'}
 					/>
-					<div className="p-2 text-xs text-center">{loading ? 'Loading…' : ''}</div>
+					<div className="p-2 text-xs text-center text-gray-600">
+						{loadingState === 'map-init' && '지도 초기화 중...'}
+						{loadingState === 'places' && '장소 정보 로딩 중...'}
+						{loadingState === 'markers' && '마커 렌더링 중...'}
+						{loadingState === 'idle' && loading && 'Loading...'}
+					</div>
 				</div>
 
 				{/* 좌측 검색 결과 패널 - 조건부 렌더링 */}
