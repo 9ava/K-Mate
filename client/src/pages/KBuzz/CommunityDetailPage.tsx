@@ -1,7 +1,7 @@
 // src/pages/KBuzz/CommunityDetailPage.tsx
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { fetchPostDetail, likePost, type KBuzzItem } from '../../api/kbuzz'
+import { fetchPostDetail, likePost, deletePost, type KBuzzItem } from '../../api/kbuzz'
 import { fetchComments, createComment, deleteComment } from '../../api/comments'
 import { useAuthStore } from '../../features/auth/auth.store'
 import { toKstFromUtc, toKstFromUtcShort } from '../../lib/date'
@@ -73,6 +73,7 @@ export default function CommunityDetailPage() {
 	const [likeCount, setLikeCount] = useState(0)
 	const [isScraped, setIsScraped] = useState(false)
 	const [liking, setLiking] = useState(false)
+	const [deleting, setDeleting] = useState(false)
 
 	// ===== 서버에서 상세 읽어와서 UI 형태로 매핑 =====
 	useEffect(() => {
@@ -296,10 +297,21 @@ export default function CommunityDetailPage() {
 		setEditingPost(false)
 		// TODO: 서버 PATCH 연동 필요 시 연결
 	}
-	const onDeletePost = () => {
+	const onDeletePost = async () => {
+		if (!id) return
+		if (!user) {
+			// 로그인 필요 시 구글 로그인 유도
+			loginWithGoogle()
+			return
+		}
 		if (!confirm('이 게시글을 삭제할까요?')) return
-		// TODO: 서버 DELETE 연동 필요 시 연결
-		navigate('/buzz')
+
+		try {
+			await deletePost(id) // 실제 서버 DELETE /posts/:id 호출
+			navigate('/buzz') // 필요하면 '/buzz?tab=community' 등으로 변경
+		} catch (e: any) {
+			alert(e?.message || '삭제에 실패했습니다.')
+		}
 	}
 
 	// ===== 이미지 업로드 상태 (로컬) =====

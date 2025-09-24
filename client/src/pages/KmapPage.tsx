@@ -10,6 +10,7 @@ import { useAuth } from '../features/auth/useAuth'
 import type { Place, PlaceType } from '../types/place'
 import SidePanel from '../components/places/SidePanel'
 import SearchList from '../components/places/SearchList'
+import { useNavigate } from 'react-router-dom'
 
 type Mode = 'type' | 'bookmarks'
 
@@ -31,10 +32,18 @@ export default function KmapPage() {
 	const [titleKey, setTitleKey] = useState<string>('popular') // 번역 키만 저장
 	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
 	const [bookmarkedPlaces, setBookmarkedPlaces] = useState<Set<string>>(new Set()) // 북마크된 장소 ID 목록
-	
+	const navigate = useNavigate()
+
+	useEffect(() => {
+		console.log('[K-Map] mounted')
+		return () => {
+			console.log('[K-Map] unmounted') // 👉 /tips로 갔을 때 이게 찍혀야 정상 라우팅!
+		}
+	}, [])
+
 	// 실시간 번역 적용되는 title
 	const listTitle = t(`kmap.titles.${titleKey}`)
-	
+
 	// 로그인 상태 변경 시 북마크 목록 로드
 	useEffect(() => {
 		if (isAuthed) {
@@ -47,13 +56,13 @@ export default function KmapPage() {
 	const loadBookmarkedPlaces = async () => {
 		try {
 			const bookmarks = await listMyBookmarks()
-			const bookmarkedIds = new Set(bookmarks.map(b => b.placeId))
+			const bookmarkedIds = new Set(bookmarks.map((b) => b.placeId))
 			setBookmarkedPlaces(bookmarkedIds)
 		} catch (error) {
 			console.error('북마크 목록 로드 실패:', error)
 		}
 	}
-	
+
 	// 강남취창업허브센터 Google Place ID
 	const GANGNAM_HUB_PLACE_ID = 'ChIJm3FERJShfDURNVIQh8yZWFQ'
 
@@ -79,11 +88,11 @@ export default function KmapPage() {
 			if (cancelled || !mapRef.current) return
 
 			const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary
-			
+
 			// 강남취창업허브센터 정보 가져오기
 			let hubCenter = { lat: 37.4946, lng: 127.0289 } // 기본값
 			let hubPlace: Place | null = null
-			
+
 			try {
 				console.log('[K-Map] Loading 강남취창업허브센터 details...')
 				hubPlace = await getPlaceDetail(GANGNAM_HUB_PLACE_ID)
@@ -92,7 +101,7 @@ export default function KmapPage() {
 			} catch (error) {
 				console.warn('[K-Map] Failed to load hub center details:', error)
 			}
-			
+
 			// 강남취창업허브센터 좌표로 지도 초기화
 			const map = new Map(mapRef.current, {
 				center: hubCenter,
@@ -104,14 +113,16 @@ export default function KmapPage() {
 			})
 			mapObjRef.current = map
 			infoRef.current = new google.maps.InfoWindow()
-			
+
 			// 강남취창업허브센터 마커 즉시 표시
 			if (hubPlace) {
 				console.log('[K-Map] Auto-displaying 강남취창업허브센터 marker')
 				// 상세 정보는 표시하지 않고 마커만 생성
-				
+
 				// 단일 마커 생성
-				const { AdvancedMarkerElement } = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
+				const { AdvancedMarkerElement } = (await loader.importLibrary(
+					'marker'
+				)) as google.maps.MarkerLibrary
 				const hubMarker = new AdvancedMarkerElement({
 					map,
 					position: hubCenter,
@@ -133,12 +144,9 @@ export default function KmapPage() {
 		;(async () => {
 			setLoading(true)
 			try {
-				if (mode === 'type' && type) { // ✅ type이 있을 때만 로드
-					setTitleKey(
-						type === 'travel' ? 'travel' : 
-						type === 'food' ? 'food' : 
-						'cafe'
-					)
+				if (mode === 'type' && type) {
+					// ✅ type이 있을 때만 로드
+					setTitleKey(type === 'travel' ? 'travel' : type === 'food' ? 'food' : 'cafe')
 
 					console.log(`[K-Map] Loading ${type} markers...`)
 					// Use API to get markers by place type
@@ -164,14 +172,14 @@ export default function KmapPage() {
 
 					setPlaces(items)
 					await renderMarkers(items)
-					
+
 					// 일반적인 동작: 전체 마커들이 보이도록 fitBounds
 					fitBounds(items)
 					setSelected(null)
 				} else if (mode === 'bookmarks') {
 					// bookmarks 모드 - 로그인 상태 확인
 					setTitleKey('bookmarks')
-					
+
 					if (!isAuthed) {
 						// 비로그인 상태: 빈 배열과 특별한 처리
 						setPlaces([])
@@ -280,7 +288,7 @@ export default function KmapPage() {
 		setShowSearchList(!showSearchList)
 		setType('') // 카테고리 활성화 해제
 		setMode('type') // 북마크 모드도 해제
-		
+
 		// SearchList가 열릴 때 전체 장소 데이터 로드
 		if (!showSearchList) {
 			try {
@@ -301,7 +309,7 @@ export default function KmapPage() {
 	const handleBookmarkChange = async () => {
 		// 북마크 목록 새로고침
 		await loadBookmarkedPlaces()
-		
+
 		// 북마크 모드인 경우 리스트도 새로고침
 		if (mode === 'bookmarks' && isAuthed) {
 			try {
@@ -339,15 +347,17 @@ export default function KmapPage() {
 						onToggleMenu={handleToggleMenu}
 						isMenuOpen={false} // Menu는 활성화 표시 안 함
 						isBookmarkMode={mode === 'bookmarks'}
+						onShowTips={() => navigate('/tips')} // ✅ 추가
+						isTipsActive={false} // ✅ KmapPage에선 비활성 표시
 					/>
 					<div className="p-2 text-xs text-center">{loading ? 'Loading…' : ''}</div>
 				</div>
 
 				{/* 좌측 검색 결과 패널 - 조건부 렌더링 */}
 				{showSearchList && (
-					<SearchList 
-						places={places} 
-						onSelect={openPlace} 
+					<SearchList
+						places={places}
+						onSelect={openPlace}
 						title={listTitle}
 						isBookmarkMode={mode === 'bookmarks'}
 					/>
@@ -355,9 +365,9 @@ export default function KmapPage() {
 
 				{/* 상세 패널 */}
 				{selected && (
-					<SidePanel 
-						place={selected} 
-						onClose={handleClose} 
+					<SidePanel
+						place={selected}
+						onClose={handleClose}
 						onBookmarkChange={handleBookmarkChange}
 						isBookmarked={bookmarkedPlaces.has(selected.googlePlaceId)}
 					/>
