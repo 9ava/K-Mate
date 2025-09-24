@@ -6,7 +6,18 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableItem from './SortableItem'
 
-type Stop = { id: string; name: string; lat: number; lng: number }
+type Stop = { 
+	id: string
+	name: string
+	lat: number
+	lng: number
+	address?: string
+	placeId?: string
+	photoUrl?: string
+	description?: string
+	category?: string
+	types?: string[]
+}
 
 export default function CoursePanel({
 	stops,
@@ -36,6 +47,10 @@ export default function CoursePanel({
 		const oldIdx = ids.indexOf(String(active.id))
 		const newIdx = ids.indexOf(String(over.id))
 		setStops(arrayMove(stops, oldIdx, newIdx))
+	}
+
+	const removeStop = (stopId: string) => {
+		setStops(stops.filter(stop => stop.id !== stopId))
 	}
 
 	return (
@@ -84,7 +99,13 @@ export default function CoursePanel({
 					<SortableContext items={ids} strategy={verticalListSortingStrategy}>
 						<ul className="space-y-2">
 							{stops.map((s, i) => (
-								<SortableItem key={s.id} id={s.id} index={i} name={s.name} />
+								<SortableItem 
+									key={s.id} 
+									id={s.id} 
+									index={i} 
+									stop={s} 
+									onRemove={removeStop}
+								/>
 							))}
 						</ul>
 					</SortableContext>
