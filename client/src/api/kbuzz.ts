@@ -25,7 +25,7 @@ export type KBuzzItem = {
 		avatarUrl: string | null
 		role: string
 	}
-	isLiked?: boolean;
+	isLiked?: boolean
 }
 
 export type KBuzzList = {
