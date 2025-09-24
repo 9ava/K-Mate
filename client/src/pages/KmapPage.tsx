@@ -159,7 +159,7 @@ export default function KmapPage() {
 				map,
 				position: location,
 				content: userIcon,
-				title: '내 위치'
+				title: 'My Location' // 영어로 변경
 			})
 
 			console.log('[K-Map] User location marker updated:', location)
@@ -250,9 +250,6 @@ export default function KmapPage() {
 		}
 	}, [])
 	
-	// 강남취창업허브센터 Google Place ID
-	const GANGNAM_HUB_PLACE_ID = 'ChIJm3FERJShfDURNVIQh8yZWFQ'
-
 	const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 	const ENV_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined
 	const MAP_ID = ENV_MAP_ID || 'DEMO_MAP_ID'
@@ -264,10 +261,12 @@ export default function KmapPage() {
 			apiKey: API_KEY ?? '',
 			version: 'weekly',
 			libraries: ['marker'],
+			language: 'en', // 영어로 강제 설정
+			region: 'KR', // 한국 지역이지만 영어로 표시
 		})
 	}, [API_KEY, ENV_MAP_ID])
 
-	// 지도 초기화 및 강남취창업허브센터 로드
+	// 지도 초기화 및 사용자 위치로 시작
 	useEffect(() => {
 		let cancelled = false
 		;(async () => {
@@ -276,23 +275,29 @@ export default function KmapPage() {
 
 			const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary
 			
-			// 강남취창업허브센터 정보 가져오기
-			let hubCenter = { lat: 37.4946, lng: 127.0289 } // 기본값
-			let hubPlace: Place | null = null
+			// 기본 중심점 (서울)
+			let mapCenter = { lat: 37.5665, lng: 126.978 }
+			let initialZoom = 12
 			
+			// 사용자 위치 권한 확인 및 가져오기
 			try {
-				console.log('[K-Map] Loading 강남취창업허브센터 details...')
-				hubPlace = await getPlaceDetail(GANGNAM_HUB_PLACE_ID)
-				hubCenter = { lat: hubPlace.lat, lng: hubPlace.lng }
-				console.log('[K-Map] 강남취창업허브센터 location:', hubCenter)
+				const hasPermission = await requestLocationPermission()
+				if (hasPermission) {
+					const userPos = await getCurrentPosition()
+					mapCenter = userPos
+					initialZoom = 16
+					console.log('[K-Map] Starting with user location:', userPos)
+				} else {
+					console.log('[K-Map] Location permission denied, using default center')
+				}
 			} catch (error) {
-				console.warn('[K-Map] Failed to load hub center details:', error)
+				console.warn('[K-Map] Could not get user location, using default center:', error)
 			}
 			
-			// 강남취창업허브센터 좌표로 지도 초기화
+			// 지도 초기화 (사용자 위치 또는 기본 위치)
 			const map = new Map(mapRef.current, {
-				center: hubCenter,
-				zoom: 16, // 더 가까이 확대
+				center: mapCenter,
+				zoom: initialZoom,
 				mapId: MAP_ID,
 				mapTypeControl: false,
 				streetViewControl: false,
@@ -301,27 +306,16 @@ export default function KmapPage() {
 			mapObjRef.current = map
 			infoRef.current = new google.maps.InfoWindow()
 			
-			// 강남취창업허브센터 마커 즉시 표시
-			if (hubPlace) {
-				console.log('[K-Map] Auto-displaying 강남취창업허브센터 marker')
-				// 상세 정보는 표시하지 않고 마커만 생성
-				
-				// 단일 마커 생성
-				const { AdvancedMarkerElement } = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
-				const hubMarker = new AdvancedMarkerElement({
-					map,
-					position: hubCenter,
-					title: hubPlace.name,
-				})
-				hubMarker.addListener('gmp-click', () => setSelected(hubPlace))
-				markersRef.current = [hubMarker]
+			// 사용자 위치 마커 표시 (권한이 있는 경우)
+			if (userLocation) {
+				await updateUserLocationMarker(userLocation)
 			}
 		})()
 
 		return () => {
 			cancelled = true
 		}
-	}, [loader, MAP_ID, GANGNAM_HUB_PLACE_ID])
+	}, [loader, MAP_ID])
 
 	// 모드/타입 변화에 따라 목록 불러오기
 	useEffect(() => {
@@ -564,11 +558,11 @@ export default function KmapPage() {
 					<div ref={mapRef} className="absolute inset-0" />
 					
 					{/* 위치 버튼들 */}
-					<div className="absolute bottom-4 right-4 flex flex-col gap-2">
+					<div className="absolute flex flex-col gap-2 bottom-4 right-4">
 						{/* 현재 위치로 이동 버튼 */}
 						<button
 							onClick={moveToCurrentLocation}
-							className="w-12 h-12 bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
+							className="flex items-center justify-center w-12 h-12 transition-all duration-200 bg-white rounded-lg shadow-lg hover:shadow-xl group"
 							title={t('kmap.location.my_location')}
 						>
 							<svg 
