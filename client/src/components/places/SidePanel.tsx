@@ -5,16 +5,25 @@ import { addBookmark, removeBookmark } from '../../api/bookmarks'
 export type SidePanelProps = {
 	place: Place
 	onClose: () => void
+	onBookmarkChange?: () => void // 북마크 변경 시 호출될 콜백
+	isBookmarked?: boolean // 현재 북마크 상태
 }
 
-export default function SidePanel({ place, onClose }: SidePanelProps) {
+export default function SidePanel({ place, onClose, onBookmarkChange, isBookmarked = false }: SidePanelProps) {
 	const [bmLoading, setBmLoading] = useState<'add' | 'remove' | null>(null)
 
 	const handleAdd = async () => {
+		// 이미 북마크된 경우 경고 메시지
+		if (isBookmarked) {
+			alert('이미 북마크된 장소입니다')
+			return
+		}
+		
 		try {
 			setBmLoading('add')
 			await addBookmark(place.googlePlaceId)
 			alert('북마크에 추가했어요 ✅')
+			onBookmarkChange?.() // 북마크 리스트 새로고침
 		} catch (e: any) {
 			if (e?.response?.status === 403) alert('로그인이 필요합니다. 먼저 로그인해 주세요.')
 			else alert('추가 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.')
@@ -28,6 +37,7 @@ export default function SidePanel({ place, onClose }: SidePanelProps) {
 			setBmLoading('remove')
 			await removeBookmark(place.googlePlaceId)
 			alert('북마크에서 제거했어요 🗑️')
+			onBookmarkChange?.() // 북마크 리스트 새로고침
 		} catch (e: any) {
 			if (e?.response?.status === 403) alert('로그인이 필요합니다. 먼저 로그인해 주세요.')
 			else alert('제거 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.')
@@ -94,18 +104,29 @@ export default function SidePanel({ place, onClose }: SidePanelProps) {
 				<div className="flex gap-2 pt-2">
 					<button
 						onClick={handleAdd}
-						disabled={bmLoading !== null}
-						className="px-3 py-1.5 rounded-md bg-blue-600 text-white disabled:opacity-60"
+						disabled={bmLoading !== null || isBookmarked}
+						className={`px-3 py-1.5 rounded-md disabled:opacity-60 ${
+							isBookmarked 
+								? 'bg-green-600 text-white cursor-not-allowed' 
+								: 'bg-blue-600 text-white hover:bg-blue-700'
+						}`}
 					>
-						{bmLoading === 'add' ? '추가 중…' : '북마크 추가'}
+						{isBookmarked 
+							? '✅ 북마크됨' 
+							: bmLoading === 'add' 
+								? '추가 중…' 
+								: '북마크 추가'
+						}
 					</button>
-					<button
-						onClick={handleRemove}
-						disabled={bmLoading !== null}
-						className="px-3 py-1.5 rounded-md bg-gray-200 text-gray-800 disabled:opacity-60"
-					>
-						{bmLoading === 'remove' ? '삭제 중…' : '북마크 제거'}
-					</button>
+					{isBookmarked && (
+						<button
+							onClick={handleRemove}
+							disabled={bmLoading !== null}
+							className="px-3 py-1.5 rounded-md bg-gray-200 text-gray-800 disabled:opacity-60 hover:bg-gray-300"
+						>
+							{bmLoading === 'remove' ? '삭제 중…' : '북마크 제거'}
+						</button>
+					)}
 				</div>
 
 				<p className="text-xs text-gray-500">

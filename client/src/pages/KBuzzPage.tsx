@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../features/auth/auth.store'
 import { fetchPosts, createPost, type KBuzzList } from '../api/kbuzz'
-import { toKstShort } from '../lib/date'
 import { toKstFromUtcShort } from '../lib/date'
 
 /* ----------------------- Types ----------------------- */
@@ -11,7 +10,7 @@ interface Article {
 	id: number
 	title: string
 	author: string
-	image: string
+	image?: string
 }
 
 interface Post {
@@ -38,6 +37,16 @@ const TREND_PLACEHOLDERS = [
 	'https://picsum.photos/800/500?10',
 ]
 
+/* ---------- trend 카드용 임시 이미지 (하드코딩) ---------- */
+// 🟢 각 게시글의 실제 ID에 맞춰 URL을 넣어 주세요.
+const TREND_IMAGE_BY_ID: Record<number, string> = {
+	38: 'https://s3.amazonaws.com/shecodesio-production/uploads/files/000/076/597/original/gimbap.jpg?1681263447', // Kimbap
+	32: 'https://ik.imagekit.io/umhihello/Chuseok/Pages/Hanbok/hanbok-3.jpg?updatedAt=1740718178774', // Hanbok
+	31: 'https://softervolumes.com/wp-content/uploads/2021/12/Dorrell-Coffee-6z4-Seoul-2.jpg', // Cafe
+	30: 'https://blog.delivered.co.kr/wp-content/uploads/2025/01/featured-2025-drama.jpg', // Webtoons
+	3: 'https://ychef.files.bbci.co.uk/1280x720/p0lq9155.jpg', // K-Pop
+}
+
 export default function KBuzzPage() {
 	const navigate = useNavigate()
 	const railRef = useRef<HTMLDivElement>(null)
@@ -53,7 +62,6 @@ export default function KBuzzPage() {
 		if (!ready) bootstrap()
 	}, [ready, bootstrap])
 
-	const userDisplayName = user?.name || (user?.email ? user.email.split('@')[0] : '') || 'anonymous'
 
 	/* ---- K-Trend: 서버에서 trend 목록 불러오기 ---- */
 	const [articles, setArticles] = useState<Article[]>([])
@@ -64,12 +72,20 @@ export default function KBuzzPage() {
 		fetchPosts({ postType: 'trend', status: 'published', page: 1, limit: 10 })
 			.then((res) => {
 				if (!alive) return
-				// 서버엔 이미지가 없으므로 카드 이미지는 플레이스홀더로 매핑
+
 				const mapped = res.items.map((t, idx) => ({
 					id: t.id,
 					title: t.title,
 					author: t.author.name,
-					image: TREND_PLACEHOLDERS[idx % TREND_PLACEHOLDERS.length],
+					// 발표용: DB에 imageUrl 없어도 내가 넣은 고정 이미지 쓰기
+					// 서버가 주는 이미지가 있으면 우선 사용
+					image:
+						(t as any).imageUrl ??
+						// 하드코딩 맵에서 찾아보기
+						TREND_IMAGE_BY_ID[t.id] ??
+						// 없으면 플레이스홀더
+						TREND_PLACEHOLDERS[idx % TREND_PLACEHOLDERS.length],
+					//image: (t as any).imageUrl ?? TREND_PLACEHOLDERS[idx % TREND_PLACEHOLDERS.length],
 				}))
 				setArticles(mapped)
 			})

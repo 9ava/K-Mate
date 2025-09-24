@@ -147,6 +147,61 @@ export class PlacesService {
 	}
 
 	/**
+	 * 텍스트 검색: lat/lng 기준으로 텍스트 검색 (다국어 지원)
+	 * - v1 searchText 사용
+	 * - 검색어와 언어 코드를 받아서 해당 언어로 결과 반환
+	 */
+	async searchText(params: { 
+		query: string; 
+		lat?: number; 
+		lng?: number; 
+		radius?: number; 
+		language?: string;
+		maxResults?: number;
+	}) {
+		const body: any = {
+			textQuery: params.query,
+			maxResultCount: params.maxResults ?? 20,
+			languageCode: params.language ?? 'en',
+		}
+
+		// 위치 기반 검색이면 지역 제한 추가
+		if (params.lat && params.lng) {
+			body.locationBias = {
+				circle: {
+					center: { latitude: params.lat, longitude: params.lng },
+					radius: params.radius ?? 5000,
+				},
+			}
+		} else {
+			// 한국 지역으로 제한
+			body.regionCode = 'KR'
+		}
+
+		const mask =
+			'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.photos'
+		
+		try {
+			const { data } = await firstValueFrom(
+				this.http.post(`${this.base}/places:searchText`, body, { headers: this.headers(mask) })
+			)
+
+			return (data.places ?? []).map((p: any) => ({
+				placeId: p.id,
+				name: p.displayName?.text,
+				address: p.formattedAddress,
+				lat: p.location?.latitude,
+				lng: p.location?.longitude,
+				photoName: p.photos?.[0]?.name ?? null,
+				types: p.types ?? [],
+			}))
+		} catch (error) {
+			console.error('Failed to search text:', error)
+			return []
+		}
+	}
+
+	/**
 	 * 주변검색: lat/lng 기준 place 카드 데이터
 	 * - v1 searchNearby 사용
 	 * - place_id/이름/주소/좌표/사진 첫장만 반환

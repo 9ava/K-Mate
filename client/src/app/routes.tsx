@@ -27,6 +27,7 @@ const AppRouter = () => {
 					<Route path="/" element={<MainPage />} />
 					<Route path="/auth/callback" element={<AuthCallbackPage />} />
 					<Route path="/login" element={<LoginPage />} />
+					<Route path="/login/callback" element={<AuthCallbackPage />} />
 					<Route path="/kcourse" element={<KcoursePage />} />
 					<Route path="/kcourse/:courseId" element={<CourseDetailPage />} />
 					<Route path="/planner" element={<PlannerPage />} />

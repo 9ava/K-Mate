@@ -1,23 +1,56 @@
 // src/pages/KCoursePage.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { getMyCourses, getPublicCourses } from '../api/courses'
 import type { Course } from '../types/course'
 import { useAuth } from '../features/auth/useAuth'
+import { getPlaceDetails } from '../lib/kakao'
 
 type Tab = 'my-course' | 'monthly-best'
 
+// 코스 변환 결과를 캐싱하는 Map
+const courseCache = new Map<string, TravelCourse>()
+
 // Course 타입을 TravelCourse 형태로 변환하는 헬퍼 함수
-function courseToTravelCourse(course: Course): TravelCourse {
-	return {
+async function courseToTravelCourse(course: Course, t: any): Promise<TravelCourse> {
+	// 캐시에서 먼저 확인
+	const cacheKey = course.id
+	if (courseCache.has(cacheKey)) {
+		return courseCache.get(cacheKey)!
+	}
+
+	let image = 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768' // 기본 이미지
+	let category: 'cultural' | 'cafe' | 'food' | 'nature' = 'cultural' // 기본 카테고리
+	
+	// 첫 번째 장소의 카카오맵 정보 가져오기
+	const firstStop = course.stops[0]
+	if (firstStop?.externalId) {
+		try {
+			const placeDetails = await getPlaceDetails(firstStop.externalId, firstStop.name)
+			if (placeDetails) {
+				image = placeDetails.image
+				category = placeDetails.category
+			}
+		} catch (error) {
+			console.warn('Failed to get place details for course:', course.id, error)
+		}
+	}
+	
+	const travelCourse: TravelCourse = {
 		id: parseInt(course.id),
 		title: course.title,
-		location: course.stops[0]?.name || '알 수 없는 위치',
+		location: firstStop?.name || t('kcourse.labels.unknown_location'),
 		date: new Date(course.created_at).toLocaleDateString('ko-KR'),
-		author: course.author?.name || '작성자',
-		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768', // 기본 이미지
-		category: 'cultural' as const, // 임시로 cultural로 설정
+		author: course.author?.name || t('kcourse.labels.author'),
+		image,
+		category,
 	}
+
+	// 캐시에 저장
+	courseCache.set(cacheKey, travelCourse)
+	
+	return travelCourse
 }
 
 type TravelCourse = {
@@ -27,11 +60,13 @@ type TravelCourse = {
 	date: string
 	author: string
 	image: string
-	category: 'cultural' | 'coastal' | 'exhibition' | 'nature'
+	category: 'cultural' | 'cafe' | 'food' | 'nature'
 }
 
 /* --- HeroBanner --- */
 function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: Tab) => void }) {
+	const { t } = useTranslation()
+	
 	return (
 		<section className="py-8 bg-gray-50">
 			<div className="max-w-2xl px-4 mx-auto">
@@ -57,7 +92,7 @@ function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (
 									}`}
 								/>
 							</div>
-							<span className="text-lg">나의 여행코스</span>
+							<span className="text-lg">{t('kcourse.tabs.my_course')}</span>
 						</button>
 
 						<button
@@ -75,7 +110,7 @@ function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (
 							>
 								Best
 							</div>
-							<span className="text-lg">월간Best</span>
+							<span className="text-lg">{t('kcourse.tabs.monthly_best')}</span>
 						</button>
 					</div>
 				</div>
@@ -91,21 +126,23 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 	savedCourses: TravelCourse[]
 	loading: boolean
 }) {
+	const { t } = useTranslation()
+	
 	if (loading) {
 		return (
 			<section className="py-12 bg-white">
 				<div className="container px-4 mx-auto">
 					<div className="flex items-center justify-between mb-8">
-						<h2 className="text-3xl font-bold text-gray-900">나의 여행코스</h2>
+						<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.my_travel_course')}</h2>
 						<button
 							onClick={onCreate}
 							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
 						>
-							코스만들기 →
+							{t('kcourse.buttons.create_course')} →
 						</button>
 					</div>
 					<div className="py-20 text-center">
-						<div className="text-lg text-gray-500">로딩중...</div>
+						<div className="text-lg text-gray-500">{t('kcourse.messages.loading')}</div>
 					</div>
 				</div>
 			</section>
@@ -119,23 +156,23 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 			<section className="py-12 bg-white">
 				<div className="container px-4 mx-auto">
 					<div className="flex items-center justify-between mb-8">
-						<h2 className="text-3xl font-bold text-gray-900">나의 여행코스</h2>
+						<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.my_travel_course')}</h2>
 						<button
 							onClick={onCreate}
 							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
 						>
-							코스만들기 →
+							{t('kcourse.buttons.create_course')} →
 						</button>
 					</div>
 
 					<div className="py-20 text-center">
-						<div className="text-lg text-gray-500">아직 만든 여행코스가 없습니다.</div>
-						<div className="mt-2 text-sm text-gray-500">나만의 여행코스를 만들어보세요!</div>
+						<div className="text-lg text-gray-500">{t('kcourse.messages.no_courses')}</div>
+						<div className="mt-2 text-sm text-gray-500">{t('kcourse.messages.create_course_message')}</div>
 						<button
 							onClick={onCreate}
 							className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
 						>
-							첫 번째 코스 만들기
+							{t('kcourse.buttons.first_course')}
 						</button>
 					</div>
 				</div>
@@ -147,12 +184,12 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 		<section className="py-12 bg-white">
 			<div className="container px-4 mx-auto">
 				<div className="flex items-center justify-between mb-8">
-					<h2 className="text-3xl font-bold text-gray-900">나의 여행코스</h2>
+					<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.my_travel_course')}</h2>
 					<button
 						onClick={onCreate}
 						className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
 					>
-						코스만들기 →
+						{t('kcourse.buttons.create_course')} →
 					</button>
 				</div>
 
@@ -160,7 +197,7 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 				{myCourses.length > 0 && (
 					<div className="mb-12">
 						<div className="flex items-center gap-2 mb-4">
-							<h3 className="text-xl font-semibold text-gray-800">내가 만든 코스</h3>
+							<h3 className="text-xl font-semibold text-gray-800">{t('kcourse.titles.my_courses')}</h3>
 							<span className="text-sm text-gray-500">({myCourses.length}개)</span>
 						</div>
 						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -175,7 +212,7 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 				{savedCourses.length > 0 && (
 					<div>
 						<div className="flex items-center gap-2 mb-4">
-							<h3 className="text-xl font-semibold text-gray-800">저장한 코스</h3>
+							<h3 className="text-xl font-semibold text-gray-800">{t('kcourse.titles.saved_courses')}</h3>
 							<span className="text-sm text-gray-500">({savedCourses.length}개)</span>
 						</div>
 						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -192,6 +229,7 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 
 /* --- TravelCourseCard --- */
 function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?: boolean }) {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 
 	const handleClick = () => {
@@ -218,7 +256,7 @@ function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?:
 								? 'bg-blue-100 text-blue-800' 
 								: 'bg-green-100 text-green-800'
 						}`}>
-							{isOwned ? '내 코스' : '저장됨'}
+							{isOwned ? t('kcourse.labels.my_course') : t('kcourse.labels.saved')}
 						</span>
 					</div>
 				)}
@@ -228,14 +266,14 @@ function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?:
 						<div className="w-4 h-4 bg-blue-400 rounded-full" />
 					</div>
 				)}
-				{course.category === 'coastal' && (
+				{course.category === 'cafe' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
-						<div className="w-4 h-4 bg-gray-400 rounded-full" />
+						<div className="w-4 h-4 rounded-full bg-amber-400" />
 					</div>
 				)}
-				{course.category === 'exhibition' && (
+				{course.category === 'food' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
-						<div className="w-4 h-4 bg-orange-400 rounded-full" />
+						<div className="w-4 h-4 bg-red-400 rounded-full" />
 					</div>
 				)}
 				{course.category === 'nature' && (
@@ -261,40 +299,40 @@ function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?:
 
 /* --- TravelCourseGrid (월간 Best 또는 공개 코스) --- */
 // 임시 하드코딩 데이터 (공개 코스가 없을 때 사용)
-const defaultTravelCourses: TravelCourse[] = [
+const getDefaultTravelCourses = (t: any): TravelCourse[] => [
 	{
 		id: 1,
-		title: '전북 고창군 여행코스',
-		location: '전북 고창',
+		title: '서울 궁궐 투어 코스',
+		location: '서울 종로구',
 		date: '2024. 2. 21.',
-		author: '만든날짜',
+		author: t('kcourse.labels.created_date'),
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768',
 		category: 'cultural',
 	},
 	{
 		id: 2,
-		title: '제주도 여행코스',
-		location: '제주',
+		title: '홍대 카페 투어',
+		location: '서울 마포구',
 		date: '2024. 2. 12.',
-		author: '만든날짜',
+		author: t('kcourse.labels.created_date'),
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1c256b80-a500-4556-b7f9-08a94e389cbf',
-		category: 'coastal',
+		category: 'cafe',
 	},
 	{
 		id: 3,
-		title: '2025 대한민국 정원산업박람회 1박2일',
-		location: '경남 진주시',
+		title: '명동 맛집 투어',
+		location: '서울 중구',
 		date: '2025. 6. 10.',
-		author: '만든날짜',
+		author: t('kcourse.labels.created_date'),
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=b8b85fc6-5719-473d-90d4-74efe761319a',
-		category: 'exhibition',
+		category: 'food',
 	},
 	{
 		id: 4,
-		title: '충남 금산군 여행코스',
-		location: '충남 금산',
+		title: '한강공원 피크닉 코스',
+		location: '서울 영등포구',
 		date: '2024. 1. 25.',
-		author: '만든날짜',
+		author: t('kcourse.labels.created_date'),
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=c25671f8-f713-4b60-96b4-caf3950a8bd4',
 		category: 'nature',
 	},
@@ -309,12 +347,14 @@ function TravelCourseGrid({
 	courses: TravelCourse[]
 	loading: boolean
 }) {
+	const { t } = useTranslation()
+	
 	if (loading) {
 		return (
 			<section className="py-12 bg-white">
 				<div className="container px-4 mx-auto">
 					<div className="py-20 text-center">
-						<div className="text-lg text-gray-500">로딩중...</div>
+						<div className="text-lg text-gray-500">{t('kcourse.messages.loading')}</div>
 					</div>
 				</div>
 			</section>
@@ -322,14 +362,14 @@ function TravelCourseGrid({
 	}
 
 	// 공개 코스가 없으면 기본 데이터 사용
-	const displayCourses = courses.length > 0 ? courses : defaultTravelCourses
+	const displayCourses = courses.length > 0 ? courses : getDefaultTravelCourses(t)
 
 	return (
 		<section className="py-12 bg-white">
 			<div className="container px-4 mx-auto">
 				<div className="flex items-center justify-between mb-8">
 					<div className="flex items-center gap-2">
-						<h2 className="text-3xl font-bold text-gray-900">월간 Best 9</h2>
+						<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.monthly_best_9')}</h2>
 						<div className="flex items-center justify-center w-6 h-6 bg-gray-100 rounded-full">
 							<span className="text-xs text-gray-500">i</span>
 						</div>
@@ -338,12 +378,12 @@ function TravelCourseGrid({
 						onClick={onCreate}
 						className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
 					>
-						코스만들기 →
+						{t('kcourse.buttons.create_course')} →
 					</button>
 				</div>
 
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-					{displayCourses.map((course) => (
+					{displayCourses.map((course: TravelCourse) => (
 						<TravelCourseCard key={course.id} course={course} />
 					))}
 				</div>
@@ -354,6 +394,7 @@ function TravelCourseGrid({
 
 
 export default function KCoursePage() {
+	const { t } = useTranslation()
 	const [activeTab, setActiveTab] = useState<Tab>('monthly-best')
 	const [myCourses, setMyCourses] = useState<TravelCourse[]>([])
 	const [savedCourses, setSavedCourses] = useState<TravelCourse[]>([])
@@ -375,13 +416,13 @@ export default function KCoursePage() {
 			
 			// 새로운 API 응답 구조에 맞게 처리
 			if (typeof response.data === 'object' && 'myCourses' in response.data) {
-				const myConvertedCourses = response.data.myCourses.map(courseToTravelCourse)
-				const savedConvertedCourses = response.data.savedCourses.map(courseToTravelCourse)
+				const myConvertedCourses = await Promise.all(response.data.myCourses.map(course => courseToTravelCourse(course, t)))
+				const savedConvertedCourses = await Promise.all(response.data.savedCourses.map(course => courseToTravelCourse(course, t)))
 				setMyCourses(myConvertedCourses)
 				setSavedCourses(savedConvertedCourses)
 			} else {
 				// 기존 배열 형식인 경우 (호환성)
-				const convertedCourses = (response.data as Course[]).map(courseToTravelCourse)
+				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
 				setMyCourses(convertedCourses)
 				setSavedCourses([])
 			}
@@ -399,7 +440,7 @@ export default function KCoursePage() {
 		try {
 			setPublicCoursesLoading(true)
 			const response = await getPublicCourses(1, 12) // 첫 페이지에서 12개 가져오기
-			const convertedCourses = (response.data as Course[]).map(courseToTravelCourse)
+			const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
 			setPublicCourses(convertedCourses)
 		} catch (error) {
 			console.error('Failed to load public courses:', error)

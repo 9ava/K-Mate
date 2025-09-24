@@ -34,10 +34,15 @@ export async function fetchMyBookmarks() {
 }
 
 // 서버 프록시 경유 URL (302 redirect)
-export function buildPhotoUrl(name: string, opts?: { maxWidthPx?: number; maxHeightPx?: number }) {
+export function buildPhotoUrl(
+	photoName?: string,
+	opts?: { maxHeightPx?: number; maxWidthPx?: number }
+) {
+	if (!photoName) return undefined
+	const base = import.meta.env.VITE_API_URL || '' // ✅ 이름 그대로 사용
 	const qs = new URLSearchParams()
-	if (opts?.maxWidthPx) qs.set('maxWidthPx', String(opts.maxWidthPx))
 	if (opts?.maxHeightPx) qs.set('maxHeightPx', String(opts.maxHeightPx))
-	// 서버에서 key 붙여 리다이렉트
-	return `/places/photo?name=${encodeURIComponent(name)}${qs.toString() ? `&${qs.toString()}` : ''}`
+	if (opts?.maxWidthPx) qs.set('maxWidthPx', String(opts.maxWidthPx))
+	qs.set('name', photoName)
+	return `${base}/places/photo?${qs.toString()}`
 }
