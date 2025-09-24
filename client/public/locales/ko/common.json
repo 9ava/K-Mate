@@ -22,7 +22,8 @@
 			"my_location": "내 위치로 이동",
 			"start_tracking": "실시간 위치 추적 시작",
 			"stop_tracking": "위치 추적 중지"
-		}
+		},
+		"nearby_radius": "주변 반경"
 	},
 	"kcourse": {
 		"tabs": {

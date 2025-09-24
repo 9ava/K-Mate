@@ -22,7 +22,8 @@
 			"my_location": "转到我的位置",
 			"start_tracking": "开始实时定位",
 			"stop_tracking": "停止定位"
-		}
+		},
+		"nearby_radius": "附近半径"
 	},
 	"kcourse": {
 		"tabs": {

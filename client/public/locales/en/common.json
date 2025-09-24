@@ -22,7 +22,8 @@
 			"my_location": "Go to My Location",
 			"start_tracking": "Start Real-time Tracking",
 			"stop_tracking": "Stop Tracking"
-		}
+		},
+		"nearby_radius": "Nearby Radius"
 	},
 	"kcourse": {
 		"tabs": {

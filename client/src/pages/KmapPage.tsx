@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
+import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import { getPlaceDetail, listPlaces } from '../api/places'
 import { listMyBookmarks } from '../api/bookmarks'
 import { useMapStore } from '../features/map/map.store'
@@ -10,6 +11,8 @@ import { useAuth } from '../features/auth/useAuth'
 import type { Place, PlaceType } from '../types/place'
 import SidePanel from '../components/places/SidePanel'
 import SearchList from '../components/places/SearchList'
+import { makePlaceMarkerEl, makeUserMarkerEl, makeClusterMarkerEl } from '../lib/map/markerFactory'
+import '../styles/map-markers.css'
 
 type Mode = 'type' | 'bookmarks'
 
@@ -19,6 +22,7 @@ export default function KmapPage() {
 	const mapObjRef = useRef<google.maps.Map | null>(null)
 	const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
 	const infoRef = useRef<google.maps.InfoWindow | null>(null)
+	const clustererRef = useRef<MarkerClusterer | null>(null) // 클러스터러 참조 추가
 
 	const { getMarkersByPlaceType } = useMapStore()
 	const { isAuthed } = useAuth()
@@ -31,6 +35,7 @@ export default function KmapPage() {
 	const [titleKey, setTitleKey] = useState<string>('popular') // 번역 키만 저장
 	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
 	const [bookmarkedPlaces, setBookmarkedPlaces] = useState<Set<string>>(new Set()) // 북마크된 장소 ID 목록
+	const [nearbyRadius, setNearbyRadius] = useState(5000) // 주변 검색 반경 (미터 단위)
 	
 	// 실시간 위치 관련 상태
 	const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -59,6 +64,32 @@ export default function KmapPage() {
 		} catch (error) {
 			console.error('북마크 목록 로드 실패:', error)
 		}
+	}
+
+	// Haversine 공식으로 두 지점 간 거리 계산 (미터 단위)
+	const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+		const R = 6371e3 // 지구 반지름 (미터)
+		const φ1 = lat1 * Math.PI/180 // φ, λ in radians
+		const φ2 = lat2 * Math.PI/180
+		const Δφ = (lat2-lat1) * Math.PI/180
+		const Δλ = (lng2-lng1) * Math.PI/180
+
+		const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+				Math.cos(φ1) * Math.cos(φ2) *
+				Math.sin(Δλ/2) * Math.sin(Δλ/2)
+		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+
+		return R * c // 거리 (미터)
+	}
+
+	// 사용자 위치 기준으로 주변 장소들만 필터링
+	const filterNearbyPlaces = (places: Place[], userLoc: { lat: number; lng: number } | null): Place[] => {
+		if (!userLoc) return places // 위치 정보가 없으면 전체 반환
+		
+		return places.filter(place => {
+			const distance = calculateDistance(userLoc.lat, userLoc.lng, place.lat, place.lng)
+			return distance <= nearbyRadius
+		})
 	}
 
 	// 위치 권한 확인 및 현재 위치 가져오기
@@ -141,25 +172,16 @@ export default function KmapPage() {
 				userMarkerRef.current.map = null
 			}
 
-			// 파란색 원형 마커 생성
-			const userIcon = document.createElement('div')
-			userIcon.className = 'user-location-marker'
-			userIcon.style.cssText = `
-				width: 20px;
-				height: 20px;
-				background-color: #3b82f6;
-				border: 3px solid white;
-				border-radius: 50%;
-				box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-				position: relative;
-			`
+			// 새로운 사용자 마커 생성 (아이콘 포함)
+			const userIcon = makeUserMarkerEl()
 
 			// 새 사용자 마커 생성
 			userMarkerRef.current = new AdvancedMarkerElement({
 				map,
 				position: location,
 				content: userIcon,
-				title: 'My Location' // 영어로 변경
+				title: 'My Location',
+				zIndex: 9999 // 가장 위에 표시
 			})
 
 			console.log('[K-Map] User location marker updated:', location)
@@ -247,6 +269,10 @@ export default function KmapPage() {
 			if (watchIdRef.current !== null) {
 				navigator.geolocation.clearWatch(watchIdRef.current)
 			}
+			// 클러스터러 정리
+			if (clustererRef.current) {
+				clustererRef.current.clearMarkers()
+			}
 		}
 	}, [])
 	
@@ -259,7 +285,7 @@ export default function KmapPage() {
 		if (!ENV_MAP_ID) console.warn('VITE_GOOGLE_MAPS_MAP_ID 가 비어있습니다. DEMO_MAP_ID 사용')
 		return new Loader({
 			apiKey: API_KEY ?? '',
-			version: 'weekly',
+			version: 'beta', // AdvancedMarkerElement를 위해 beta 버전 사용
 			libraries: ['marker'],
 			language: 'en', // 영어로 강제 설정
 			region: 'KR', // 한국 지역이지만 영어로 표시
@@ -401,28 +427,171 @@ export default function KmapPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [mode, type, getMarkersByPlaceType])
 
+	// 반경 또는 사용자 위치 변경 시 마커 재렌더링
+	useEffect(() => {
+		if (places.length > 0 && mapObjRef.current) {
+			renderMarkers(places)
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [nearbyRadius, userLocation])
+
 	const clearMarkers = () => {
+		// 기존 클러스터러 제거
+		if (clustererRef.current) {
+			clustererRef.current.clearMarkers()
+			clustererRef.current = null
+		}
+		// 기존 마커들 제거
 		markersRef.current.forEach((m) => (m.map = null))
 		markersRef.current = []
+	}
+
+	// 커스텀 마커 요소 생성 (팩토리 사용)
+	const createCustomMarker = (place: Place): HTMLElement => {
+		console.log(`[K-Map] Creating marker for place:`, place)
+		
+		// 팩토리를 사용한 커스텀 마커
+		try {
+			const markerEl = makePlaceMarkerEl(place.type, place.name)
+			console.log(`[K-Map] Created custom marker for ${place.name}`, markerEl)
+			return markerEl
+		} catch (error) {
+			console.error('[K-Map] Error creating custom marker, using fallback:', error)
+			
+			// Fallback: 아이콘 없는 경우 색상 점
+			const fallback = document.createElement('div')
+			let dotColor = '#ef4444' // 기본 빨강
+			
+			switch (place.type) {
+				case 'travel': dotColor = '#3b82f6'; break // 파랑
+				case 'food': dotColor = '#ef4444'; break   // 빨강  
+				case 'cafe': dotColor = '#f59e0b'; break   // 주황
+				default: dotColor = '#6b7280'; break       // 회색
+			}
+			
+			const container = document.createElement('div')
+			container.style.cssText = `
+				width: 32px;
+				height: 32px;
+				display: grid;
+				place-items: center;
+				background: transparent;
+				cursor: pointer;
+				transition: all 200ms ease;
+				z-index: 100;
+			`
+			
+			fallback.style.cssText = `
+				width: 16px;
+				height: 16px;
+				background: ${dotColor};
+				border-radius: 50%;
+				filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+			`
+			
+			container.appendChild(fallback)
+			
+			// 호버 효과
+			container.addEventListener('mouseenter', () => {
+				container.style.transform = 'scale(1.3)'
+				container.style.zIndex = '200'
+			})
+			container.addEventListener('mouseleave', () => {
+				container.style.transform = 'scale(1)'
+				container.style.zIndex = '100'
+			})
+			
+			return container
+		}
 	}
 
 	const renderMarkers = async (items: Place[]) => {
 		const map = mapObjRef.current!
 		clearMarkers()
 
+		// 사용자 위치 기준으로 필터링 (위치가 없으면 전체 표시)
+		const filteredPlaces = userLocation ? filterNearbyPlaces(items, userLocation) : items
+		console.log(`[K-Map] ${userLocation ? 'Filtered' : 'Showing all'} ${filteredPlaces.length} places from ${items.length} total places`)
+
+		if (filteredPlaces.length === 0) {
+			console.log('[K-Map] No places to render')
+			return
+		}
+
 		const { AdvancedMarkerElement } = (await loader.importLibrary(
 			'marker'
 		)) as google.maps.MarkerLibrary
 
-		markersRef.current = items.map((p) => {
+		// 마커 생성
+		const markers = filteredPlaces.map((place) => {
+			console.log(`[K-Map] Creating marker for ${place.name} (${place.type}) at ${place.lat}, ${place.lng}`)
+			
 			const marker = new AdvancedMarkerElement({
-				map,
-				position: { lat: p.lat, lng: p.lng },
-				title: p.name,
+				map: null, // 클러스터러가 관리하므로 null로 설정
+				position: { lat: place.lat, lng: place.lng },
+				content: createCustomMarker(place),
+				title: place.name,
 			})
-			marker.addListener('gmp-click', () => openPlace(p))
+			
+			// 마커 클릭 이벤트
+			marker.addListener('gmp-click', () => openPlace(place))
 			return marker
 		})
+
+		markersRef.current = markers
+
+		// MarkerClusterer 생성 및 적용
+		if (markers.length > 0) {
+			clustererRef.current = new MarkerClusterer({
+				map,
+				markers,
+				renderer: {
+					render: ({ count, position }) => {
+						// 회색 배경의 클러스터 아이콘
+						const clusterElement = document.createElement('div')
+						clusterElement.style.cssText = `
+							min-width: 40px;
+							height: 40px;
+							padding: 0 8px;
+							border-radius: 50%;
+							display: grid;
+							place-items: center;
+							background: #6b7280;
+							color: white;
+							font-weight: 800;
+							font-size: 14px;
+							box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+							cursor: pointer;
+							user-select: none;
+							transition: all 200ms ease;
+							z-index: 150;
+						`
+						clusterElement.textContent = String(count)
+						
+						// 강력한 호버 효과
+						clusterElement.addEventListener('mouseenter', () => {
+							clusterElement.style.transform = 'scale(1.2)'
+							clusterElement.style.boxShadow = '0 8px 20px rgba(0,0,0,0.5)'
+							clusterElement.style.zIndex = '250'
+						})
+						clusterElement.addEventListener('mouseleave', () => {
+							clusterElement.style.transform = 'scale(1)'
+							clusterElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)'
+							clusterElement.style.zIndex = '150'
+						})
+						
+						return new AdvancedMarkerElement({
+							position,
+							content: clusterElement,
+							zIndex: 1000 + Math.min(count, 100) // 레이어링
+						})
+					}
+				},
+				// 기본 클러스터링 옵션 사용
+			})
+			
+			console.log(`[K-Map] Created cluster with ${markers.length} markers`)
+		}
 	}
 
 	const fitBounds = (items: Place[]) => {
@@ -559,6 +728,24 @@ export default function KmapPage() {
 					
 					{/* 위치 버튼들 */}
 					<div className="absolute flex flex-col gap-2 bottom-4 right-4">
+						{/* 반경 조절 슬라이더 */}
+						{userLocation && (
+							<div className="p-3 bg-white rounded-lg shadow-lg">
+								<label className="block text-xs text-gray-600 mb-2">
+									{t('kmap.nearby_radius')}: {(nearbyRadius / 1000).toFixed(1)}km
+								</label>
+								<input
+									type="range"
+									min="500"
+									max="10000"
+									step="500"
+									value={nearbyRadius}
+									onChange={(e) => setNearbyRadius(Number(e.target.value))}
+									className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+								/>
+							</div>
+						)}
+						
 						{/* 현재 위치로 이동 버튼 */}
 						<button
 							onClick={moveToCurrentLocation}
