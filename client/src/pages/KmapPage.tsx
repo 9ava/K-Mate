@@ -572,35 +572,56 @@ export default function KmapPage() {
 
 	// 사이드바 핸들러
 	const handleSelectType = (t: PlaceType) => {
+		// 같은 타입을 다시 클릭하면 토글 (닫기)
+		if (mode === 'type' && type === t && showSearchList) {
+			setShowSearchList(false)
+			setType('')
+			return
+		}
+		
+		// 다른 타입 선택하거나 처음 선택
 		setMode('type')
 		setType(t)
-		setShowSearchList(true) // 카테고리 선택 시 SearchList 바로 열기
+		setShowSearchList(true)
 	}
 	const handleShowBookmarks = () => {
+		// 북마크가 이미 활성화된 상태에서 다시 클릭하면 토글 (닫기)
+		if (mode === 'bookmarks' && showSearchList) {
+			setShowSearchList(false)
+			setMode('type')
+			setType('')
+			return
+		}
+		
+		// 북마크 모드 활성화
 		setMode('bookmarks')
 		setType('') // 카테고리 선택 해제
-		setShowSearchList(true) // 북마크 클릭 시 SearchList 바로 열기
+		setShowSearchList(true)
 	}
 	const handleToggleMenu = async () => {
-		// Menu는 단순히 SearchList 토글하고 모든 활성화 상태 해제
-		setShowSearchList(!showSearchList)
+		// 메뉴가 이미 열려있고 전체 리스트 모드면 토글 (닫기)
+		if (mode === 'type' && type === '' && showSearchList) {
+			setShowSearchList(false)
+			return
+		}
+		
+		// 메뉴 열기: SearchList 토글하고 모든 활성화 상태 해제
+		setShowSearchList(true)
 		setType('') // 카테고리 활성화 해제
 		setMode('type') // 북마크 모드도 해제
 		
-		// SearchList가 열릴 때 전체 장소 데이터 로드
-		if (!showSearchList) {
-			try {
-				setLoading(true)
-				const response = await listPlaces({ pageSize: 100 }) // 전체 장소 가져오기
-				setPlaces(response.items)
-				setTitleKey('all_places')
-				await renderMarkers(response.items)
-				fitBounds(response.items) // 모든 마커가 보이도록 지도 범위 조정
-			} catch (error) {
-				console.error('전체 장소 로드 실패:', error)
-			} finally {
-				setLoading(false)
-			}
+		// 전체 장소 데이터 로드
+		try {
+			setLoading(true)
+			const response = await listPlaces({ pageSize: 100 }) // 전체 장소 가져오기
+			setPlaces(response.items)
+			setTitleKey('all_places')
+			await renderMarkers(response.items)
+			fitBounds(response.items) // 모든 마커가 보이도록 지도 범위 조정
+		} catch (error) {
+			console.error('전체 장소 로드 실패:', error)
+		} finally {
+			setLoading(false)
 		}
 	}
 
