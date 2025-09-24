@@ -14,7 +14,6 @@ export interface CourseStop {
 	lat: number
 	lng: number
 	externalId?: string | null
-	provider?: string | null
 }
 
 export interface Course {
@@ -42,7 +41,6 @@ export interface CreateCourseRequest {
 		lat: number
 		lng: number
 		externalId?: string
-		provider?: string
 	}[]
 }
 

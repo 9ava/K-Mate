@@ -46,7 +46,6 @@ export default function PlannerPage() {
 				lat: s.lat,
 				lng: s.lng,
 				externalId: s.id,
-				provider: 'kakao',
 			})),
 		}
 

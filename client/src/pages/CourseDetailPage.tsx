@@ -134,7 +134,6 @@ export default function CourseDetailPage() {
 					lat: s.lat,
 					lng: s.lng,
 					externalId: s.id,
-					provider: 'kakao',
 				})),
 			}
 

@@ -50,21 +50,12 @@ class CreateCourseStopDto {
 	lng!: number
 
 	@ApiPropertyOptional({
-		description: '외부 서비스 장소 ID (카카오, 구글 등)',
-		example: '8024095',
+		description: '외부 서비스 장소 ID (Google Places)',
+		example: 'ChIJzaOKGAiafDURdKWEEJfhCQY',
 	})
 	@IsOptional()
 	@IsString()
 	externalId?: string
-
-	@ApiPropertyOptional({
-		description: '외부 서비스 제공자',
-		example: 'kakao',
-		enum: ['kakao', 'google'],
-	})
-	@IsOptional()
-	@IsString()
-	provider?: string
 }
 
 /**
@@ -99,16 +90,14 @@ export class CreateCourseDto {
 				name: '경복궁',
 				lat: 37.5796,
 				lng: 126.977,
-				externalId: '8024095',
-				provider: 'kakao',
+				externalId: 'ChIJzaOKGAiafDURdKWEEJfhCQY',
 			},
 			{
 				order: 2,
 				name: '창덕궁',
 				lat: 37.5794,
 				lng: 126.9910,
-				externalId: '8024096',
-				provider: 'kakao',
+				externalId: 'ChIJa9YXOH-hfDURdLNNbOWQyIk',
 			},
 		],
 	})

@@ -58,19 +58,10 @@ export class CourseStop {
 	lng!: number
 
 	@ApiPropertyOptional({
-		description: '외부 서비스 장소 ID (카카오, 구글 등)',
-		example: '8024095',
+		description: '외부 서비스 장소 ID (Google Places)',
+		example: 'ChIJzaOKGAiafDURdKWEEJfhCQY',
 		nullable: true,
 	})
 	@Column({ type: 'varchar', length: 128, nullable: true })
-	externalId!: string | null // kakao place id 등
-
-	@ApiPropertyOptional({
-		description: '외부 서비스 제공자',
-		example: 'kakao',
-		enum: ['kakao', 'google'],
-		nullable: true,
-	})
-	@Column({ type: 'varchar', length: 32, nullable: true })
-	provider!: string | null // 'kakao' | 'google'
+	externalId!: string | null // Google Place ID
 }

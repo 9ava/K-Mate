@@ -21,7 +21,7 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 	}
 
 	let image = 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768' // 기본 이미지
-	let category: 'cultural' | 'cafe' | 'food' | 'nature' = 'cultural' // 기본 카테고리
+	let category: 'cultural' | 'cafe' | 'food' = 'cultural' // 기본 카테고리
 	
 	// 첫 번째 장소의 Google Places 정보 가져오기
 	const firstStop = course.stops[0]
@@ -76,7 +76,7 @@ type TravelCourse = {
 	date: string
 	author: string
 	image: string
-	category: 'cultural' | 'cafe' | 'food' | 'nature'
+	category: 'cultural' | 'cafe' | 'food'
 }
 
 /* --- HeroBanner --- */
@@ -344,11 +344,6 @@ function TravelCourseCard({
 						<div className="w-4 h-4 bg-red-400 rounded-full" />
 					</div>
 				)}
-				{course.category === 'nature' && (
-					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
-						<div className="w-4 h-4 bg-green-400 rounded-full" />
-					</div>
-				)}
 			</div>
 
 			<div className="p-4 space-y-2">
@@ -402,7 +397,7 @@ const getDefaultTravelCourses = (t: any): TravelCourse[] => [
 		date: '2024. 1. 25.',
 		author: t('kcourse.labels.created_date'),
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=c25671f8-f713-4b60-96b4-caf3950a8bd4',
-		category: 'nature',
+		category: 'cultural',
 	},
 ]
 
