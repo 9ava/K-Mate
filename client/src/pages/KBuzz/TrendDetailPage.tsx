@@ -312,7 +312,7 @@ export default function TrendDetailPage() {
 					</button>
 
 					<button
-						onClick={() => setIsScraped((v) => !v)}
+						onClick={toggleScrap}
 						className="inline-flex items-center gap-2 select-none focus:outline-none"
 						aria-pressed={isScraped}
 						aria-label={isScraped ? 'Unsave' : 'Save'}
