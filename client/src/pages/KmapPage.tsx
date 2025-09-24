@@ -1,10 +1,12 @@
 // src/pages/KmapPage.tsx
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
-import { getPlaceDetail } from '../api/places'
+import { getPlaceDetail, listPlaces } from '../api/places'
 import { listMyBookmarks } from '../api/bookmarks'
 import { useMapStore } from '../features/map/map.store'
+import { useAuth } from '../features/auth/useAuth'
 import type { Place, PlaceType } from '../types/place'
 import SidePanel from '../components/places/SidePanel'
 import SearchList from '../components/places/SearchList'
@@ -12,19 +14,48 @@ import SearchList from '../components/places/SearchList'
 type Mode = 'type' | 'bookmarks'
 
 export default function KmapPage() {
+	const { t } = useTranslation()
 	const mapRef = useRef<HTMLDivElement>(null)
 	const mapObjRef = useRef<google.maps.Map | null>(null)
 	const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
 	const infoRef = useRef<google.maps.InfoWindow | null>(null)
 
 	const { getMarkersByPlaceType } = useMapStore()
+	const { isAuthed } = useAuth()
 
 	const [mode, setMode] = useState<Mode>('type') // ✅ 현재 보기 모드
-	const [type, setType] = useState<PlaceType | ''>('food')
+	const [type, setType] = useState<PlaceType | ''>('') // ✅ 초기값을 빈 문자열로 설정
 	const [loading, setLoading] = useState(false)
 	const [selected, setSelected] = useState<Place | null>(null)
 	const [places, setPlaces] = useState<Place[]>([])
-	const [listTitle, setListTitle] = useState('인기 장소 🌟')
+	const [titleKey, setTitleKey] = useState<string>('popular') // 번역 키만 저장
+	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
+	const [bookmarkedPlaces, setBookmarkedPlaces] = useState<Set<string>>(new Set()) // 북마크된 장소 ID 목록
+	
+	// 실시간 번역 적용되는 title
+	const listTitle = t(`kmap.titles.${titleKey}`)
+	
+	// 로그인 상태 변경 시 북마크 목록 로드
+	useEffect(() => {
+		if (isAuthed) {
+			loadBookmarkedPlaces()
+		} else {
+			setBookmarkedPlaces(new Set())
+		}
+	}, [isAuthed])
+
+	const loadBookmarkedPlaces = async () => {
+		try {
+			const bookmarks = await listMyBookmarks()
+			const bookmarkedIds = new Set(bookmarks.map(b => b.placeId))
+			setBookmarkedPlaces(bookmarkedIds)
+		} catch (error) {
+			console.error('북마크 목록 로드 실패:', error)
+		}
+	}
+	
+	// 강남취창업허브센터 Google Place ID
+	const GANGNAM_HUB_PLACE_ID = 'ChIJm3FERJShfDURNVIQh8yZWFQ'
 
 	const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 	const ENV_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined
@@ -40,7 +71,7 @@ export default function KmapPage() {
 		})
 	}, [API_KEY, ENV_MAP_ID])
 
-	// 지도 초기화
+	// 지도 초기화 및 강남취창업허브센터 로드
 	useEffect(() => {
 		let cancelled = false
 		;(async () => {
@@ -48,9 +79,24 @@ export default function KmapPage() {
 			if (cancelled || !mapRef.current) return
 
 			const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary
+			
+			// 강남취창업허브센터 정보 가져오기
+			let hubCenter = { lat: 37.4946, lng: 127.0289 } // 기본값
+			let hubPlace: Place | null = null
+			
+			try {
+				console.log('[K-Map] Loading 강남취창업허브센터 details...')
+				hubPlace = await getPlaceDetail(GANGNAM_HUB_PLACE_ID)
+				hubCenter = { lat: hubPlace.lat, lng: hubPlace.lng }
+				console.log('[K-Map] 강남취창업허브센터 location:', hubCenter)
+			} catch (error) {
+				console.warn('[K-Map] Failed to load hub center details:', error)
+			}
+			
+			// 강남취창업허브센터 좌표로 지도 초기화
 			const map = new Map(mapRef.current, {
-				center: { lat: 37.5665, lng: 126.978 },
-				zoom: 12,
+				center: hubCenter,
+				zoom: 16, // 더 가까이 확대
 				mapId: MAP_ID,
 				mapTypeControl: false,
 				streetViewControl: false,
@@ -58,12 +104,28 @@ export default function KmapPage() {
 			})
 			mapObjRef.current = map
 			infoRef.current = new google.maps.InfoWindow()
+			
+			// 강남취창업허브센터 마커 즉시 표시
+			if (hubPlace) {
+				console.log('[K-Map] Auto-displaying 강남취창업허브센터 marker')
+				// 상세 정보는 표시하지 않고 마커만 생성
+				
+				// 단일 마커 생성
+				const { AdvancedMarkerElement } = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary
+				const hubMarker = new AdvancedMarkerElement({
+					map,
+					position: hubCenter,
+					title: hubPlace.name,
+				})
+				hubMarker.addListener('gmp-click', () => setSelected(hubPlace))
+				markersRef.current = [hubMarker]
+			}
 		})()
 
 		return () => {
 			cancelled = true
 		}
-	}, [loader, MAP_ID])
+	}, [loader, MAP_ID, GANGNAM_HUB_PLACE_ID])
 
 	// 모드/타입 변화에 따라 목록 불러오기
 	useEffect(() => {
@@ -71,9 +133,11 @@ export default function KmapPage() {
 		;(async () => {
 			setLoading(true)
 			try {
-				if (mode === 'type') {
-					setListTitle(
-						type === 'travel' ? 'K-Travel 🌍' : type === 'food' ? 'K-Food 🍽️' : 'K-Cafe ☕'
+				if (mode === 'type' && type) { // ✅ type이 있을 때만 로드
+					setTitleKey(
+						type === 'travel' ? 'travel' : 
+						type === 'food' ? 'food' : 
+						'cafe'
 					)
 
 					console.log(`[K-Map] Loading ${type} markers...`)
@@ -100,34 +164,45 @@ export default function KmapPage() {
 
 					setPlaces(items)
 					await renderMarkers(items)
+					
+					// 일반적인 동작: 전체 마커들이 보이도록 fitBounds
 					fitBounds(items)
 					setSelected(null)
-				} else {
-					// bookmarks 모드 - keep existing functionality
-					setListTitle('내 북마크 🔖')
-					const rows = await listMyBookmarks()
-					// 북마크 응답 -> Place 형태로 매핑 (상세는 openPlace에서 서버로 조회)
-					const items: Place[] = rows.map((r, i) => ({
-						id: i, // 임시 키
-						googlePlaceId: r.placeId,
-						type: (r.type as PlaceType | undefined) ?? null,
-						name: r.name,
-						address: r.address,
-						lat: r.lat,
-						lng: r.lng,
-						phone: null,
-						website: null,
-						googleMapsUrl: r.googleMapsUrl,
-						openingHoursJson: null,
-						photosJson: null,
-						sourceTypesJson: null,
-						typeSource: undefined,
-						description: null,
-					}))
-					setPlaces(items)
-					await renderMarkers(items)
-					fitBounds(items)
-					setSelected(null)
+				} else if (mode === 'bookmarks') {
+					// bookmarks 모드 - 로그인 상태 확인
+					setTitleKey('bookmarks')
+					
+					if (!isAuthed) {
+						// 비로그인 상태: 빈 배열과 특별한 처리
+						setPlaces([])
+						clearMarkers()
+						setSelected(null)
+					} else {
+						// 로그인 상태: 기존 로직
+						const rows = await listMyBookmarks()
+						// 북마크 응답 -> Place 형태로 매핑 (상세는 openPlace에서 서버로 조회)
+						const items: Place[] = rows.map((r, i) => ({
+							id: i, // 임시 키
+							googlePlaceId: r.placeId,
+							type: (r.type as PlaceType | undefined) ?? null,
+							name: r.name,
+							address: r.address,
+							lat: r.lat,
+							lng: r.lng,
+							phone: null,
+							website: null,
+							googleMapsUrl: r.googleMapsUrl,
+							openingHoursJson: null,
+							photosJson: null,
+							sourceTypesJson: null,
+							typeSource: undefined,
+							description: null,
+						}))
+						setPlaces(items)
+						await renderMarkers(items)
+						fitBounds(items)
+						setSelected(null)
+					}
 				}
 			} finally {
 				setLoading(false)
@@ -193,9 +268,63 @@ export default function KmapPage() {
 	const handleSelectType = (t: PlaceType) => {
 		setMode('type')
 		setType(t)
+		setShowSearchList(true) // 카테고리 선택 시 SearchList 바로 열기
 	}
 	const handleShowBookmarks = () => {
 		setMode('bookmarks')
+		setType('') // 카테고리 선택 해제
+		setShowSearchList(true) // 북마크 클릭 시 SearchList 바로 열기
+	}
+	const handleToggleMenu = async () => {
+		// Menu는 단순히 SearchList 토글하고 모든 활성화 상태 해제
+		setShowSearchList(!showSearchList)
+		setType('') // 카테고리 활성화 해제
+		setMode('type') // 북마크 모드도 해제
+		
+		// SearchList가 열릴 때 전체 장소 데이터 로드
+		if (!showSearchList) {
+			try {
+				setLoading(true)
+				const response = await listPlaces({ pageSize: 100 }) // 전체 장소 가져오기
+				setPlaces(response.items)
+				setTitleKey('all_places')
+				await renderMarkers(response.items)
+			} catch (error) {
+				console.error('전체 장소 로드 실패:', error)
+			} finally {
+				setLoading(false)
+			}
+		}
+	}
+
+	// 북마크 변경 시 북마크 리스트 새로고침
+	const handleBookmarkChange = async () => {
+		// 북마크 목록 새로고침
+		await loadBookmarkedPlaces()
+		
+		// 북마크 모드인 경우 리스트도 새로고침
+		if (mode === 'bookmarks' && isAuthed) {
+			try {
+				const rows = await listMyBookmarks()
+				const items: Place[] = rows.map((r, i) => ({
+					id: i,
+					googlePlaceId: r.placeId,
+					type: r.type || null,
+					name: r.name,
+					address: r.address,
+					lat: r.lat,
+					lng: r.lng,
+					phone: null,
+					website: null,
+					googleMapsUrl: r.googleMapsUrl,
+					description: null, // 필수 필드 추가
+				}))
+				setPlaces(items)
+				await renderMarkers(items)
+			} catch (error) {
+				console.error('북마크 새로고침 실패:', error)
+			}
+		}
 	}
 
 	return (
@@ -207,15 +336,32 @@ export default function KmapPage() {
 						active={mode === 'type' ? type : ''}
 						onSelectType={handleSelectType}
 						onShowBookmarks={handleShowBookmarks}
+						onToggleMenu={handleToggleMenu}
+						isMenuOpen={false} // Menu는 활성화 표시 안 함
+						isBookmarkMode={mode === 'bookmarks'}
 					/>
 					<div className="p-2 text-xs text-center">{loading ? 'Loading…' : ''}</div>
 				</div>
 
-				{/* 좌측 검색 결과 패널 */}
-				<SearchList places={places} onSelect={openPlace} title={listTitle} />
+				{/* 좌측 검색 결과 패널 - 조건부 렌더링 */}
+				{showSearchList && (
+					<SearchList 
+						places={places} 
+						onSelect={openPlace} 
+						title={listTitle}
+						isBookmarkMode={mode === 'bookmarks'}
+					/>
+				)}
 
 				{/* 상세 패널 */}
-				{selected && <SidePanel place={selected} onClose={handleClose} />}
+				{selected && (
+					<SidePanel 
+						place={selected} 
+						onClose={handleClose} 
+						onBookmarkChange={handleBookmarkChange}
+						isBookmarked={bookmarkedPlaces.has(selected.googlePlaceId)}
+					/>
+				)}
 
 				{/* 지도 */}
 				<div className="relative flex-1">

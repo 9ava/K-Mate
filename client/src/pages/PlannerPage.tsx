@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import MapCanvas from '../components/map/MapCanvas'
 import SearchPanel from '../components/search/SearchPanel'
 import CoursePanel from '../components/course/CoursePanel'
@@ -9,17 +10,18 @@ import type { CreateCourseRequest } from '../types/course'
 type Stop = { id: string; name: string; lat: number; lng: number }
 
 export default function PlannerPage() {
+	const { t } = useTranslation()
 	const [stops, setStops] = useState<Stop[]>([])
 	const [saving, setSaving] = useState(false)
 	const navigate = useNavigate()
 
 	async function saveCourse(payload: { title: string; visibility: 'public' | 'private' }) {
 		if (!payload.title.trim()) {
-			alert('코스 제목을 입력해 주세요.')
+			alert(t('planner.messages.enter_course_title'))
 			return
 		}
 		if (stops.length === 0) {
-			alert('최소 1개 이상의 장소를 담아주세요.')
+			alert(t('planner.messages.add_at_least_one_place'))
 			return
 		}
 
@@ -40,12 +42,12 @@ export default function PlannerPage() {
 		try {
 			setSaving(true)
 			await createCourse(courseData)
-			alert('코스가 저장되었습니다!')
+			alert(t('planner.messages.course_saved'))
 			
 			// 저장 후 K-Course 페이지로 이동
 			navigate('/kcourse')
 		} catch (error: any) {
-			alert(`저장 실패: ${error?.message ?? error}`)
+			alert(`${t('planner.messages.save_failed')}: ${error?.message ?? error}`)
 		} finally {
 			setSaving(false)
 		}

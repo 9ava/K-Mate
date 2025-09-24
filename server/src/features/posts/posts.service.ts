@@ -47,7 +47,7 @@ export class PostsService {
 	/** 게시글 목록 (검색/필터/페이지네이션) */
 	async getPosts(
 		query: GetPostsQueryDto,
-		userId?: number,
+		userId?: number
 	): Promise<{ posts: PostResponseDto[]; total: number }> {
 		const { page = 1, limit = 10, postType, category, status, search } = query
 		const skip = (page - 1) * limit
