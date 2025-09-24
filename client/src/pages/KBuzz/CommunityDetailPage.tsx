@@ -1,7 +1,7 @@
 // src/pages/KBuzz/CommunityDetailPage.tsx
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { fetchPostDetail, likePost, type KBuzzItem } from '../../api/kbuzz'
+import { fetchPostDetail, likePost } from '../../api/kbuzz'
 import { fetchComments, createComment, deleteComment } from '../../api/comments'
 import { useAuthStore } from '../../features/auth/auth.store'
 import { toKstFromUtc, toKstFromUtcShort } from '../../lib/date'
@@ -63,9 +63,7 @@ export default function CommunityDetailPage() {
 	})
 
 	// ===== 서버 원본/로딩 상태 =====
-	const [serverData, setServerData] = useState<KBuzzItem | null>(null)
 	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
 
 	// ===== 포스트 상태 (UI용) =====
 	const [post, setPost] = useState<Post>(makeEmptyPost(id))
@@ -80,7 +78,6 @@ export default function CommunityDetailPage() {
 		async function run() {
 			if (!id) return
 			setLoading(true)
-			setError(null)
 			try {
 				const res = await fetchPostDetail(id) // GET /posts/:id
 
@@ -88,7 +85,6 @@ export default function CommunityDetailPage() {
 				console.log('서버에서 받은 updatedAt:', res.updatedAt)
 
 				if (!alive) return
-				setServerData(res)
 
 				const mapped: Post = {
 					id: Number(res.id),
@@ -110,7 +106,6 @@ export default function CommunityDetailPage() {
 				setLikeCount(mapped.likeCount)
 				setIsScraped(false)
 			} catch (e: any) {
-				setError(e?.message || 'Failed to load')
 			} finally {
 				if (alive) setLoading(false)
 			}
