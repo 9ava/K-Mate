@@ -2,13 +2,24 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCourse, updateCourse, deleteCourse, saveCourse, unsaveCourse } from '../api/courses'
+import { getPlaceDetail } from '../api/places'
 import { useAuth } from '../features/auth/useAuth'
 import type { Course, CreateCourseRequest } from '../types/course'
 import MapCanvas from '../components/map/MapCanvas'
 import CoursePanel from '../components/course/CoursePanel'
 import SearchPanel from '../components/search/SearchPanel'
 
-type Stop = { id: string; name: string; lat: number; lng: number }
+type Stop = { 
+	id: string
+	name: string
+	lat: number
+	lng: number
+	address?: string
+	placeId?: string
+	photoUrl?: string
+	description?: string
+	category?: string
+}
 
 export default function CourseDetailPage() {
 	const { courseId } = useParams<{ courseId: string }>()
@@ -20,20 +31,53 @@ export default function CourseDetailPage() {
 	const [error, setError] = useState<string | null>(null)
 	const [isEditing, setIsEditing] = useState(false)
 	const [stops, setStops] = useState<Stop[]>([])
+	const [stopsLoading, setStopsLoading] = useState(false)
 	const [isSaved, setIsSaved] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [actionLoading, setActionLoading] = useState(false)
 
 	// 코스 데이터를 Stop 배열로 변환
-	const convertCourseToStops = (courseData: Course): Stop[] => {
-		return courseData.stops
+	const convertCourseToStops = async (courseData: Course): Promise<Stop[]> => {
+		const basicStops = courseData.stops
 			.sort((a, b) => a.order - b.order)
 			.map(stop => ({
 				id: stop.externalId || stop.id,
 				name: stop.name,
 				lat: stop.lat,
 				lng: stop.lng,
+				placeId: stop.externalId || undefined, // Google Place ID로 사용
 			}))
+
+		// 각 장소의 상세 정보를 병렬로 가져오기
+		setStopsLoading(true)
+		try {
+			const detailedStops = await Promise.all(
+				basicStops.map(async (stop) => {
+					if (stop.placeId) {
+						try {
+							const placeDetail = await getPlaceDetail(stop.placeId)
+							return {
+								...stop,
+								photoUrl: placeDetail.photoUrl,
+								description: placeDetail.description || undefined,
+								category: placeDetail.type || undefined,
+								address: placeDetail.address || undefined,
+							}
+						} catch (error) {
+							console.warn(`Failed to load details for ${stop.name}:`, error)
+							return stop
+						}
+					}
+					return stop
+				})
+			)
+			return detailedStops
+		} catch (error) {
+			console.warn('Failed to load place details:', error)
+			return basicStops
+		} finally {
+			setStopsLoading(false)
+		}
 	}
 
 	// 코스 데이터 로드
@@ -49,7 +93,7 @@ export default function CourseDetailPage() {
 				setLoading(true)
 				const response = await getCourse(courseId)
 				setCourse(response.data)
-				const convertedStops = convertCourseToStops(response.data)
+				const convertedStops = await convertCourseToStops(response.data)
 				setStops(convertedStops)
 				
 				// TODO: 저장 상태 확인 API 추가 시 구현
@@ -90,7 +134,6 @@ export default function CourseDetailPage() {
 					lat: s.lat,
 					lng: s.lng,
 					externalId: s.id,
-					provider: 'kakao',
 				})),
 			}
 
@@ -252,11 +295,19 @@ export default function CourseDetailPage() {
 					{/* 좌 패널 - 검색 */}
 					<aside className="z-10 overflow-y-auto bg-white border-r">
 						<SearchPanel
-							onPick={(place) =>
+							onPick={(place) => {
+								const newStop: Stop = {
+									id: place.id,
+									name: place.name,
+									lat: place.lat,
+									lng: place.lng,
+									address: place.address,
+									placeId: place.id, // Google Place ID로 사용
+								}
 								setStops((prev) => 
-									prev.some((s) => s.id === place.id) ? prev : [...prev, place]
+									prev.some((s) => s.id === place.id) ? prev : [...prev, newStop]
 								)
-							}
+							}}
 						/>
 					</aside>
 
@@ -285,19 +336,7 @@ export default function CourseDetailPage() {
 							<MapCanvas key={`course-map-${courseId}-${stops.length}`} stops={stops} />
 							
 							{/* 코스 정보 오버레이 */}
-							<div className="absolute z-10 max-w-sm p-4 bg-white rounded-lg shadow-lg top-4 left-4">
-								<h3 className="mb-2 font-semibold">여행 경로</h3>
-								<div className="space-y-2">
-									{stops.map((stop, index) => (
-										<div key={stop.id} className="flex items-center gap-2">
-											<div className="flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-blue-600 rounded-full">
-												{index + 1}
-											</div>
-											<span className="text-sm">{stop.name}</span>
-										</div>
-									))}
-								</div>
-							</div>
+							<RouteInfoOverlay stops={stops} />
 						</>
 					) : (
 						<div className="flex items-center justify-center h-full">
@@ -306,6 +345,64 @@ export default function CourseDetailPage() {
 					)}
 				</div>
 			)}
+		</div>
+	)
+}
+
+// 여행경로 정보 오버레이 컴포넌트
+function RouteInfoOverlay({ stops }: { stops: Stop[] }) {
+	return (
+		<div className="absolute z-10 max-w-sm p-4 overflow-y-auto bg-white rounded-lg shadow-lg top-4 left-4 max-h-96">
+			<h3 className="mb-3 font-semibold text-gray-900">여행 경로</h3>
+			<div className="space-y-3">
+				{stops.map((stop, index) => (
+					<div key={stop.id} className="flex gap-3">
+						{/* 사진 영역 */}
+						<div className="relative flex-shrink-0 w-12 h-12 overflow-hidden bg-gray-200 rounded-lg">
+							{stop.photoUrl ? (
+								<img 
+									src={stop.photoUrl} 
+									alt={stop.name}
+									className="object-cover w-full h-full"
+								/>
+							) : (
+								<div className="flex items-center justify-center w-full h-full">
+									<svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+									</svg>
+								</div>
+							)}
+							{/* 순서 번호 */}
+							<div className="absolute flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full -top-1 -left-1">
+								{index + 1}
+							</div>
+						</div>
+
+						{/* 정보 영역 */}
+						<div className="flex-1 min-w-0">
+							<h4 className="mb-1 text-sm font-medium text-gray-900 truncate">
+								{stop.name}
+							</h4>
+							{stop.address && (
+								<p className="mb-1 text-xs text-gray-500 truncate">
+									{stop.address}
+								</p>
+							)}
+							{stop.description && (
+								<p className="text-xs leading-relaxed text-gray-600" style={{
+									display: '-webkit-box',
+									WebkitLineClamp: 2,
+									WebkitBoxOrient: 'vertical',
+									overflow: 'hidden'
+								}}>
+									{stop.description}
+								</p>
+							)}
+						</div>
+					</div>
+				))}
+			</div>
 		</div>
 	)
 }

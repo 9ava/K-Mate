@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getMyCourses, getPublicCourses } from '../api/courses'
+import { getMyCourses, getPublicCourses, unsaveCourse } from '../api/courses'
+import { getPlaceDetail } from '../api/places'
 import type { Course } from '../types/course'
 import { useAuth } from '../features/auth/useAuth'
-import { getPlaceDetails } from '../lib/kakao'
 
 type Tab = 'my-course' | 'monthly-best'
 
@@ -21,19 +21,35 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 	}
 
 	let image = 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768' // 기본 이미지
-	let category: 'cultural' | 'cafe' | 'food' | 'nature' = 'cultural' // 기본 카테고리
+	let category: 'cultural' | 'cafe' | 'food' = 'cultural' // 기본 카테고리
 	
-	// 첫 번째 장소의 카카오맵 정보 가져오기
+	// 첫 번째 장소의 Google Places 정보 가져오기
 	const firstStop = course.stops[0]
 	if (firstStop?.externalId) {
 		try {
-			const placeDetails = await getPlaceDetails(firstStop.externalId, firstStop.name)
-			if (placeDetails) {
-				image = placeDetails.image
-				category = placeDetails.category
+			const placeDetail = await getPlaceDetail(firstStop.externalId)
+			if (placeDetail) {
+				// Google Places API에서 가져온 사진 사용
+				if (placeDetail.photoUrl) {
+					image = placeDetail.photoUrl
+				}
+				// Google Places API 카테고리 매핑
+				switch (placeDetail.type) {
+					case 'travel':
+						category = 'cultural'
+						break
+					case 'food':
+						category = 'food'
+						break
+					case 'cafe':
+						category = 'cafe'
+						break
+					default:
+						category = 'cultural'
+				}
 			}
 		} catch (error) {
-			console.warn('Failed to get place details for course:', course.id, error)
+			console.warn('Failed to get Google place details for course:', course.id, error)
 		}
 	}
 	
@@ -60,7 +76,7 @@ type TravelCourse = {
 	date: string
 	author: string
 	image: string
-	category: 'cultural' | 'cafe' | 'food' | 'nature'
+	category: 'cultural' | 'cafe' | 'food'
 }
 
 /* --- HeroBanner --- */
@@ -120,11 +136,18 @@ function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (
 }
 
 /* --- MyTravelCourse (실제 데이터) --- */
-function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: { 
+function MyTravelCourse({ 
+	onCreate, 
+	myCourses, 
+	savedCourses, 
+	loading,
+	onUnsaveCourse
+}: { 
 	onCreate: () => void
 	myCourses: TravelCourse[]
 	savedCourses: TravelCourse[]
 	loading: boolean
+	onUnsaveCourse: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
 	
@@ -217,7 +240,12 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 						</div>
 						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 							{savedCourses.map((course) => (
-								<TravelCourseCard key={`saved-${course.id}`} course={course} isOwned={false} />
+								<TravelCourseCard 
+									key={`saved-${course.id}`} 
+									course={course} 
+									isOwned={false} 
+									onUnsave={onUnsaveCourse}
+								/>
 							))}
 						</div>
 					</div>
@@ -228,12 +256,27 @@ function MyTravelCourse({ onCreate, myCourses, savedCourses, loading }: {
 }
 
 /* --- TravelCourseCard --- */
-function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?: boolean }) {
+function TravelCourseCard({ 
+	course, 
+	isOwned, 
+	onUnsave 
+}: { 
+	course: TravelCourse
+	isOwned?: boolean
+	onUnsave?: (courseId: number) => Promise<void>
+}) {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 
 	const handleClick = () => {
 		navigate(`/kcourse/${course.id}`)
+	}
+
+	const handleUnsave = async (e: React.MouseEvent) => {
+		e.stopPropagation() // 카드 클릭 이벤트 방지
+		if (onUnsave) {
+			await onUnsave(course.id)
+		}
 	}
 
 	return (
@@ -261,6 +304,31 @@ function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?:
 					</div>
 				)}
 
+				{/* 저장된 코스 삭제 버튼 */}
+				{isOwned === false && onUnsave && (
+					<div className="absolute top-3 right-3">
+						<button
+							onClick={handleUnsave}
+							className="flex items-center justify-center w-8 h-8 text-white transition-all duration-200 bg-red-500 rounded-full shadow-md hover:bg-red-600 group"
+							title={t('kcourse.buttons.unsave_course')}
+						>
+							<svg 
+								className="w-4 h-4" 
+								fill="none" 
+								stroke="currentColor" 
+								viewBox="0 0 24 24"
+							>
+								<path 
+									strokeLinecap="round" 
+									strokeLinejoin="round" 
+									strokeWidth={2} 
+									d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+								/>
+							</svg>
+						</button>
+					</div>
+				)}
+
 				{course.category === 'cultural' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
 						<div className="w-4 h-4 bg-blue-400 rounded-full" />
@@ -274,11 +342,6 @@ function TravelCourseCard({ course, isOwned }: { course: TravelCourse; isOwned?:
 				{course.category === 'food' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
 						<div className="w-4 h-4 bg-red-400 rounded-full" />
-					</div>
-				)}
-				{course.category === 'nature' && (
-					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
-						<div className="w-4 h-4 bg-green-400 rounded-full" />
 					</div>
 				)}
 			</div>
@@ -334,7 +397,7 @@ const getDefaultTravelCourses = (t: any): TravelCourse[] => [
 		date: '2024. 1. 25.',
 		author: t('kcourse.labels.created_date'),
 		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=c25671f8-f713-4b60-96b4-caf3950a8bd4',
-		category: 'nature',
+		category: 'cultural',
 	},
 ]
 
@@ -406,6 +469,27 @@ export default function KCoursePage() {
 	const { isAuthed } = useAuth()
 	const goPlanner = () => navigate('/planner')
 
+	// 저장한 코스 삭제 핸들러
+	const handleUnsaveCourse = async (courseId: number) => {
+		// 삭제 확인
+		const confirmed = window.confirm(t('kcourse.messages.confirm_unsave'))
+		if (!confirmed) return
+
+		try {
+			await unsaveCourse(courseId.toString())
+			// 저장한 코스 목록에서 해당 코스 제거
+			setSavedCourses(prev => prev.filter(course => course.id !== courseId))
+			console.log(`Course ${courseId} unsaved successfully`)
+			
+			// 성공 메시지 (추후 토스트로 개선 가능)
+			alert(t('kcourse.messages.unsave_success'))
+		} catch (error) {
+			console.error('Failed to unsave course:', error)
+			// 사용자에게 오류 알림
+			alert(t('kcourse.messages.unsave_failed'))
+		}
+	}
+
 	// 내 코스 데이터 로드
 	const loadMyCourses = async () => {
 		if (!isAuthed) return
@@ -471,6 +555,7 @@ export default function KCoursePage() {
 					myCourses={myCourses}
 					savedCourses={savedCourses}
 					loading={myCoursesLoading}
+					onUnsaveCourse={handleUnsaveCourse}
 				/>
 			) : (
 				<TravelCourseGrid 

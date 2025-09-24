@@ -7,7 +7,18 @@ import CoursePanel from '../components/course/CoursePanel'
 import { createCourse } from '../api/courses'
 import type { CreateCourseRequest } from '../types/course'
 
-type Stop = { id: string; name: string; lat: number; lng: number }
+type Stop = { 
+	id: string
+	name: string
+	lat: number
+	lng: number
+	address?: string
+	placeId?: string
+	photoUrl?: string
+	description?: string
+	category?: string
+	types?: string[]
+}
 
 export default function PlannerPage() {
 	const { t } = useTranslation()
@@ -35,7 +46,6 @@ export default function PlannerPage() {
 				lat: s.lat,
 				lng: s.lng,
 				externalId: s.id,
-				provider: 'kakao',
 			})),
 		}
 
@@ -59,9 +69,17 @@ export default function PlannerPage() {
 			{/* 좌 패널 */}
 			<aside className="z-10 overflow-y-auto bg-white border-r">
 				<SearchPanel
-					onPick={(p) =>
-						setStops((prev) => (prev.some((s) => s.id === p.id) ? prev : [...prev, p]))
-					}
+					onPick={(p) => {
+						const newStop: Stop = {
+							id: p.id,
+							name: p.name,
+							lat: p.lat,
+							lng: p.lng,
+							address: p.address,
+							placeId: p.id, // Google Place ID로 사용
+						}
+						setStops((prev) => (prev.some((s) => s.id === p.id) ? prev : [...prev, newStop]))
+					}}
 				/>
 			</aside>
 

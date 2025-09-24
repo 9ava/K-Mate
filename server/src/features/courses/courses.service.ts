@@ -49,7 +49,6 @@ export class CoursesService {
 					lat: s.lat,
 					lng: s.lng,
 					externalId: s.externalId ?? null,
-					provider: s.provider ?? null,
 				})
 			)
 			await manager.save(stops)
@@ -175,7 +174,6 @@ export class CoursesService {
 						lat: s.lat,
 						lng: s.lng,
 						externalId: s.externalId ?? null,
-						provider: s.provider ?? null,
 					})
 				)
 				await manager.save(stops)
