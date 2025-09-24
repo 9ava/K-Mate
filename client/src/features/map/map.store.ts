@@ -154,7 +154,6 @@ export const useMapStore = create<State & Actions>()(
 
 				// CRUD operations - API or local fallback
 				addMarker: async (markerData) => {
-					const state = get()
 					try {
 						set({ loading: true, error: null })
 
