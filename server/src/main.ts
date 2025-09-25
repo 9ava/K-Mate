@@ -12,6 +12,9 @@ async function bootstrap() {
 	// CORS는 아래에서 명시적으로 켬
 	const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false })
 
+	// ✅ Global API prefix for all routes
+	app.setGlobalPrefix('api')
+
 	// ✅ HttpOnly 쿠키 파싱
 	app.use(cookieParser())
 
@@ -24,6 +27,8 @@ async function bootstrap() {
 		origin: [
 			'http://localhost:5173',
 			'http://127.0.0.1:5173',
+			'https://k-mate.org',
+			'https://www.k-mate.org',
 			// Add your Amplify domain here when available
 		],
 		credentials: true,
@@ -45,7 +50,14 @@ async function bootstrap() {
 		.build()
 
 	const doc = SwaggerModule.createDocument(app, config)
-	SwaggerModule.setup('/docs', app, doc)
+	SwaggerModule.setup('api/docs', app, doc)
+
+	// Add redirect for Google OAuth callback (legacy URL support)
+	app.use('/auth/google/callback', (req, res) => {
+		const queryString = req.url.includes('?') ? req.url.split('?')[1] : ''
+		const newUrl = `/api/auth/google/callback${queryString ? '?' + queryString : ''}`
+		res.redirect(newUrl)
+	})
 
 	const port = Number(process.env.APP_PORT ?? 3000)
 	await app.listen(port)

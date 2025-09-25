@@ -22,8 +22,9 @@ i18n
 			loadPath: `${BASE || ''}/locales/{{lng}}/{{ns}}.json?v=${VERSION}`,
 		},
 		detection: {
-			order: ['localStorage', 'querystring', 'navigator'],
+			order: ['querystring', 'navigator', 'localStorage'],
 			caches: ['localStorage'],
+			lookupQuerystring: 'lng',
 		},
 		saveMissing: false,
 	})

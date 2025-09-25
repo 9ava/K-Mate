@@ -8,7 +8,8 @@ let internalUpdate = false
 export const useLocaleStore = create<LocaleState>()(
 	persist(
 		(set, get) => ({
-			lang: i18n.language || 'en',
+			// Initialize with detected language or fallback to 'en'
+			lang: i18n.isInitialized ? i18n.language : (i18n.options?.fallbackLng as string) || 'en',
 			setLang: (lng) => {
 				if (get().lang === lng) return
 				internalUpdate = true
@@ -20,8 +21,18 @@ export const useLocaleStore = create<LocaleState>()(
 	)
 )
 
+// Sync store when i18next language changes
 i18n.on('languageChanged', (lng: string) => {
 	if (internalUpdate) return
 	const { lang } = useLocaleStore.getState()
 	if (lang !== lng) useLocaleStore.setState({ lang: lng })
+})
+
+// Sync store when i18next finishes initialization
+i18n.on('initialized', () => {
+	const detectedLang = i18n.language
+	const { lang } = useLocaleStore.getState()
+	if (lang !== detectedLang) {
+		useLocaleStore.setState({ lang: detectedLang })
+	}
 })

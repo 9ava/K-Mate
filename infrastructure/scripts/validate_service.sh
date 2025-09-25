@@ -4,8 +4,8 @@ set -euo pipefail
 # ── 설정(환경변수로 덮어쓰기 가능) ─────────────────────────────────────────────
 # Nginx → 앱(3000) 프록시 경유 헬스 체크 (앱이 살아있어야 200)
 URL="${HEALTH_URL:-http://127.0.0.1/app-health}"
-TRIES="${TRIES:-36}"     # 총 대기 시간 = TRIES * SLEEP (기본 36*5=180초)
-SLEEP="${SLEEP:-5}"
+TRIES="${TRIES:-18}"     # 총 대기 시간 = TRIES * SLEEP (기본 18*3=54초)
+SLEEP="${SLEEP:-3}"
 SERVICE_NAME="${SERVICE_NAME:-kmate}"  # systemd 서비스명
 # (옵션) 외부 도메인 헬스 추가 확인: ex) export DOMAIN=v0.k-mate.org
 DOMAIN="${DOMAIN:-}"
