@@ -17,7 +17,13 @@
 			"cafe": "K-咖啡 ☕",
 			"bookmarks": "我的收藏 🔖",
 			"popular": "热门地点 🌟"
-		}
+		},
+		"location": {
+			"my_location": "转到我的位置",
+			"start_tracking": "开始实时定位",
+			"stop_tracking": "停止定位"
+		},
+		"nearby_radius": "附近半径"
 	},
 	"kcourse": {
 		"tabs": {
@@ -26,7 +32,8 @@
 		},
 		"buttons": {
 			"create_course": "创建路线",
-			"first_course": "创建第一个路线"
+			"first_course": "创建第一个路线",
+			"unsave_course": "删除已保存路线"
 		},
 		"titles": {
 			"my_travel_course": "我的旅行路线",
@@ -44,7 +51,10 @@
 		"messages": {
 			"loading": "加载中...",
 			"no_courses": "还没有创建旅行路线。",
-			"create_course_message": "创建属于你的旅行路线吧！"
+			"create_course_message": "创建属于你的旅行路线吧！",
+			"confirm_unsave": "确定要从保存列表中删除这个路线吗？",
+			"unsave_success": "路线已从保存列表中删除。",
+			"unsave_failed": "删除路线失败。"
 		}
 	},
 	"planner": {

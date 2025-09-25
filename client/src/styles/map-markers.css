@@ -1,0 +1,74 @@
+/* K-Map Marker Styles */
+
+/* 크기, 테두리, 그림자, 애니메이션 공통 */
+.km-pin {
+	width: 24px;
+	height: 24px;
+	border-radius: 9999px;
+	display: grid;
+	place-items: center;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+	border: 2px solid #ffffff; /* 흰색 테두리 */
+	transform: translateZ(0);
+	transition: transform 120ms ease, box-shadow 120ms ease;
+	cursor: pointer;
+}
+
+.km-pin:hover {
+	transform: scale(1.2);
+	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.km-pin i {
+	font-size: 12px;
+	line-height: 1;
+	color: #ffffff;
+}
+
+/* 카테고리 컬러 */
+.km-pin.travel {
+	background: #3b82f6;
+} /* 파랑 */
+.km-pin.food {
+	background: #ef4444;
+} /* 빨강 */
+.km-pin.cafe {
+	background: #f59e0b;
+} /* 주황 */
+.km-pin.etc {
+	background: #6b7280;
+} /* 회색 */
+
+/* 사용자(내 위치) 마커: 파란 원 + 더 두꺼운 링 느낌 */
+.km-pin.me {
+	background: #3b82f6;
+	border-width: 3px;
+	width: 20px;
+	height: 20px;
+}
+
+.km-pin.me i {
+	font-size: 10px;
+}
+
+/* 클러스터 아이콘 */
+.km-cluster {
+	min-width: 28px;
+	height: 28px;
+	padding: 0 6px;
+	border-radius: 9999px;
+	display: grid;
+	place-items: center;
+	background: #374151; /* 어두운 회색 */
+	color: #ffffff;
+	font-weight: 700;
+	font-size: 12px;
+	border: 2px solid #ffffff;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+	transition: transform 120ms ease;
+	user-select: none;
+}
+
+.km-cluster:hover {
+	transform: scale(1.1);
+}

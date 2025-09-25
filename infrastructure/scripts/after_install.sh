@@ -30,14 +30,14 @@ if [ ! -f "${APP_DIR}/dist/main.js" ]; then
 fi
 log "OK: dist/main.js 존재"
 
-# 1) Node 20 보장(가능 시 대체)
+# 1) Node 20 보장
 if command -v node >/dev/null 2>&1; then
   NODE_V="$(node -v 2>/dev/null || echo v0.0.0)"
   NODE_MAJOR="${NODE_V#v}"; NODE_MAJOR="${NODE_MAJOR%%.*}"
   if [[ "${NODE_MAJOR}" =~ ^[0-9]+$ ]] && [ "${NODE_MAJOR}" -lt 20 ]; then
     log "node ${NODE_V} (<20) 감지 → alternatives 로 node-20 지정 시도"
-    alternatives --set node /usr/bin/node-20 2>/dev/null || true
-    alternatives --set npm  /usr/bin/npm-20  2>/dev/null || true
+    sudo alternatives --set node /usr/bin/node-20 2>/dev/null || true
+    sudo alternatives --set npm  /usr/bin/npm-20  2>/dev/null || true
   fi
 else
   log "경고: node 명령을 찾을 수 없습니다. before_install.sh 에서 설치되어야 합니다."
@@ -69,26 +69,102 @@ fi
 
 # 3) 권한/소유권 정리
 log "권한/소유권 정리"
-chown -R ec2-user:ec2-user /var/www/k-mate
-chmod -R u=rwX,g=rX,o=rX /var/www/k-mate || true
+sudo chown -R ec2-user:ec2-user /var/www/k-mate
+sudo chmod -R u=rwX,g=rX,o=rX /var/www/k-mate || true
+
+# 3.5) ✅ NGINX 설정 멱등 적용
+log "NGINX 설정 멱등 적용(디렉터리/맵/upstream/serverblock)"
+
+# 3.5.0 디렉터리 보장
+sudo install -d -m 755 /etc/nginx/conf.d
+
+# 3.5.1 connection upgrade 맵(항상 동일 내용으로 보장)
+sudo tee /etc/nginx/conf.d/00-connection-upgrade.conf >/dev/null <<'CONF'
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+CONF
+
+# 3.5.2 표준 upstream 단일화
+sudo tee /etc/nginx/conf.d/10-upstreams.conf >/dev/null <<'CONF'
+upstream kmate_upstream {
+  server 127.0.0.1:3000;
+  keepalive 64;
+}
+CONF
+
+# 3.5.3 다른 conf들에서 동일 upstream 블록이 있으면 제거(중복 방지)
+for f in /etc/nginx/conf.d/*.conf; do
+  base="$(basename "$f")"
+  [ "$base" = "10-upstreams.conf" ] && continue
+  sudo sed -i '/^[[:space:]]*upstream[[:space:]]\+kmate_upstream[[:space:]]*{/,/^[[:space:]]*}/d' "$f" || true
+done
+
+# 3.5.4 k-mate.org 서버 블록 생성/갱신
+sudo tee /etc/nginx/conf.d/k-mate.conf >/dev/null <<'CONF'
+server {
+    listen 80;
+    server_name k-mate.org www.k-mate.org;
+
+    # SPA 정적 서빙
+    root /var/www/k-mate/client/dist;
+    index index.html index.htm;
+    location /assets/ { try_files $uri =404; }
+    location / { try_files $uri $uri/ /index.html; }
+
+    # 헬스 체크(항상 200)
+    location = /health { return 200; }
+
+    # 백엔드 프록시 (OAuth 등)
+    location ^~ /auth/ {
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+        proxy_read_timeout    60s;
+        proxy_connect_timeout 3s;
+        proxy_pass http://kmate_upstream;
+    }
+
+    location ^~ /api/ {
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout    60s;
+        proxy_connect_timeout 3s;
+        proxy_pass http://kmate_upstream;
+    }
+}
+CONF
+
+# 3.5.5 v0 서브도메인 conf 잔재 제거(있다면)
+sudo rm -f /etc/nginx/conf.d/kmate.conf 2>/dev/null || true
 
 # 4) systemd / nginx 재적용(문법 검사 포함)
 log "systemd daemon-reload"
-systemctl daemon-reload
+sudo systemctl daemon-reload
 
 log "nginx -t"
-nginx -t
+if ! sudo nginx -t; then
+  log "nginx -T (요약)"
+  sudo nginx -T 2>&1 | egrep -n 'upstream kmate_upstream|server_name|listen 80|location \^~ /auth/|try_files .* /index\.html' || true
+  exit 1
+fi
+
 log "nginx reload"
-systemctl reload nginx || systemctl restart nginx
+sudo systemctl reload nginx || sudo systemctl restart nginx
 
 # 5) (옵션) DB 마이그레이션
 if [ "${RUN_MIGRATIONS}" = "true" ]; then
   log "DB 마이그레이션 실행"
-  # 프로젝트에 맞게 커맨드 조정:
-  # 예) Nest + TypeORM:
-  # npm run migration:run
-  # 또는
-  # npx typeorm migration:run -d dist/database/data-source.js
+  # 예) npm run migration:run
+  # 또는 npx typeorm migration:run -d dist/database/data-source.js
 fi
 
 log "after_install 완료"

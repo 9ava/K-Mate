@@ -17,7 +17,13 @@
 			"cafe": "K-카페 ☕",
 			"bookmarks": "내 북마크 🔖",
 			"popular": "인기 장소 🌟"
-		}
+		},
+		"location": {
+			"my_location": "내 위치로 이동",
+			"start_tracking": "실시간 위치 추적 시작",
+			"stop_tracking": "위치 추적 중지"
+		},
+		"nearby_radius": "주변 반경"
 	},
 	"kcourse": {
 		"tabs": {
@@ -26,7 +32,8 @@
 		},
 		"buttons": {
 			"create_course": "코스만들기",
-			"first_course": "첫 번째 코스 만들기"
+			"first_course": "첫 번째 코스 만들기",
+			"unsave_course": "저장된 코스 삭제"
 		},
 		"titles": {
 			"my_travel_course": "나의 여행코스",
@@ -44,7 +51,10 @@
 		"messages": {
 			"loading": "로딩중...",
 			"no_courses": "아직 만든 여행코스가 없습니다.",
-			"create_course_message": "나만의 여행코스를 만들어보세요!"
+			"create_course_message": "나만의 여행코스를 만들어보세요!",
+			"confirm_unsave": "정말로 이 코스를 저장 목록에서 삭제하시겠습니까?",
+			"unsave_success": "코스가 저장 목록에서 삭제되었습니다.",
+			"unsave_failed": "코스 삭제에 실패했습니다."
 		}
 	},
 	"planner": {
