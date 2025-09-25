@@ -51,6 +51,13 @@ async function bootstrap() {
 	const doc = SwaggerModule.createDocument(app, config)
 	SwaggerModule.setup('api/docs', app, doc)
 
+	// Add redirect for Google OAuth callback (legacy URL support)
+	app.use('/auth/google/callback', (req, res) => {
+		const queryString = req.url.includes('?') ? req.url.split('?')[1] : ''
+		const newUrl = `/api/auth/google/callback${queryString ? '?' + queryString : ''}`
+		res.redirect(newUrl)
+	})
+
 	const port = Number(process.env.APP_PORT ?? 3000)
 	await app.listen(port)
 	console.log(`API listening on http://localhost:${port}`)
