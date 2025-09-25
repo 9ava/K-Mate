@@ -37,6 +37,11 @@ export interface KMapMarkersResponse {
 
 // Convert Place entity to KMapMarker format
 function placeToKMapMarker(place: Place): KMapMarker {
+	// Generate photo URL from Google Photos API name
+	const photoUrl = place.photosJson?.[0]?.name
+		? `/api/places/photo?name=${encodeURIComponent(place.photosJson[0].name)}&maxHeightPx=400`
+		: undefined
+
 	return {
 		id: place.id,
 		place_id: place.googlePlaceId,
@@ -46,7 +51,7 @@ function placeToKMapMarker(place: Place): KMapMarker {
 		latitude: place.lat,
 		longitude: place.lng,
 		description: place.description || undefined,
-		imageUrl: place.photosJson?.[0]?.url || undefined,
+		imageUrl: photoUrl,
 		status: 'active', // Places are active by default
 		createdAt: place.createdAt,
 		updatedAt: place.updatedAt
