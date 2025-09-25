@@ -17,6 +17,7 @@ import AddMarkerPage from '../pages/admin/AddMarkerPage'
 import EditMarkerPage from '../pages/admin/EditMarkerPage'
 import UserManagePage from '../pages/admin/UserManagePage'
 import StatisticsPage from '../pages/admin/StatisticsPage'
+import MyPage from '../pages/MyPage'
 
 const AppRouter = () => {
 	return (
@@ -42,6 +43,7 @@ const AppRouter = () => {
 					<Route path="/admin/map/edit/:id" element={<EditMarkerPage />} />
 					<Route path="/admin/users" element={<UserManagePage />} />
 					<Route path="/admin/statistics" element={<StatisticsPage />} />
+					<Route path="/mypage" element={<MyPage />} />
 				</Routes>
 			</main>
 		</BrowserRouter>
