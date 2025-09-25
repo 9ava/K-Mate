@@ -24,6 +24,7 @@ i18n
 		detection: {
 			order: ['localStorage', 'querystring', 'navigator'],
 			caches: ['localStorage'],
+			lookupQuerystring: 'lng',
 		},
 		saveMissing: false,
 	})

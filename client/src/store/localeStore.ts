@@ -20,6 +20,12 @@ export const useLocaleStore = create<LocaleState>()(
 	)
 )
 
+// Initialize with English if no stored preference exists
+const storedLang = localStorage.getItem('kmate-lang')
+if (!storedLang) {
+	i18n.changeLanguage('en')
+}
+
 i18n.on('languageChanged', (lng: string) => {
 	if (internalUpdate) return
 	const { lang } = useLocaleStore.getState()
