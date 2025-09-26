@@ -11,29 +11,22 @@ i18n
 	.use(initReactI18next)
 	.init({
 		fallbackLng: 'en',
-		lng: 'en', // Force English initially
+
 		supportedLngs: ['en', 'ko', 'zh'],
 		load: 'languageOnly',
 		ns: ['common'],
 		defaultNS: 'common',
-		debug: true,
+		debug: import.meta.env.DEV,
 		interpolation: { escapeValue: true },
 		backend: {
 			loadPath: '/locales/{{lng}}/{{ns}}.json?v=' + VERSION,
 		},
 		detection: {
-			order: ['localStorage', 'querystring', 'navigator'],
-			caches: ['localStorage'],
+			order: ['querystring'],
+			caches: [],
 			lookupQuerystring: 'lng',
-			lookupLocalStorage: 'i18nextLng',
 		},
 		saveMissing: false,
-	})
-	.then(() => {
-		console.log('i18n initialized with language:', i18n.language)
-		console.log('localStorage i18nextLng:', localStorage.getItem('i18nextLng'))
-		console.log('localStorage kmate-lang:', localStorage.getItem('kmate-lang'))
-		console.log('All localStorage keys:', Object.keys(localStorage))
 	})
 
 export default i18n

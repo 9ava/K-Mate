@@ -61,6 +61,14 @@ export class Post {
 	@Column({ type: 'longtext', nullable: false })
 	content!: string
 
+	@ApiProperty({ description: '이미지 URL (S3 등)', required: false })
+	@Column({
+		name: 'image_url',
+		type: 'text',
+		nullable: true
+	})
+	imageUrl?: string
+
 	@ApiProperty({
 		description: '게시글 타입',
 		enum: ['community', 'tips', 'trend'],

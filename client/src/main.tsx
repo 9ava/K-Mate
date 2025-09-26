@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import './styles/index.css'
 import { I18nextProvider } from 'react-i18next'
 import App from './App.tsx'
+import { cleanupLanguageStorage } from './utils/language-cleanup'
+
+// Clean up conflicting language storage first
+cleanupLanguageStorage()
 
 // Load dev admin utilities in development
 if (import.meta.env.DEV) {
@@ -28,5 +32,3 @@ function renderApp(i18n: any) {
 		</StrictMode>
 	)
 }
-
-

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../features/auth/auth.store'
 import { fetchPosts, createPost, type KBuzzList } from '../api/kbuzz'
 import { toKstFromUtcShort } from '../lib/date'
+import { uploadToS3, generateCommunityImageKey, validateImageFile } from '../api/s3'
 
 /* ----------------------- Types ----------------------- */
 interface Article {
@@ -150,12 +151,13 @@ export default function KBuzzPage() {
 		content: '',
 	})
 
-	// 이미지 업로드 UI는 그대로 두되, 서버는 아직 이미지 저장 안 하므로 미리보기만
+	// 이미지 업로드 (S3 사용)
 	const [imageFile, setImageFile] = useState<File | null>(null)
 	const [imagePreview, setImagePreview] = useState<string | null>(null)
+	const [imageUrl, setImageUrl] = useState<string | null>(null)
+	const [uploading, setUploading] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const MAX_MB = 5
-	const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
 
 	function handlePickClick() {
 		fileInputRef.current?.click()
@@ -163,28 +165,48 @@ export default function KBuzzPage() {
 	function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const f = e.target.files?.[0]
 		if (!f) return
-		if (!ALLOWED.includes(f.type)) {
-			alert('이미지는 JPG/PNG/WebP만 업로드할 수 있어요.')
+
+		const validation = validateImageFile(f, MAX_MB)
+		if (!validation.isValid) {
+			alert(validation.error)
 			e.target.value = ''
 			return
 		}
-		if (f.size > MAX_MB * 1024 * 1024) {
-			alert(`파일 용량은 최대 ${MAX_MB}MB까지 가능해요.`)
-			e.target.value = ''
-			return
-		}
+
 		setImageFile(f)
 		setImagePreview(URL.createObjectURL(f))
+		setImageUrl(null) // Reset uploaded URL
 	}
 	function clearImage() {
 		setImageFile(null)
 		setImagePreview(null)
+		setImageUrl(null)
 		if (fileInputRef.current) fileInputRef.current.value = ''
 	}
 
 	const resetDraft = () => {
 		setDraft({ title: '', content: '' })
 		clearImage()
+	}
+
+	// Upload image to S3
+	const uploadImageToS3 = async (): Promise<string | null> => {
+		if (!imageFile || !user) return null
+
+		try {
+			setUploading(true)
+			const userId = typeof user.id === 'number' ? user.id : parseInt(user.id as string, 10)
+			const key = generateCommunityImageKey(userId, imageFile.name)
+			const uploadedUrl = await uploadToS3(imageFile, key)
+			setImageUrl(uploadedUrl)
+			return uploadedUrl
+		} catch (error) {
+			console.error('Image upload failed:', error)
+			alert('이미지 업로드에 실패했습니다.')
+			return null
+		} finally {
+			setUploading(false)
+		}
 	}
 	const handleCreate = () => {
 		if (!user) {
@@ -210,12 +232,27 @@ export default function KBuzzPage() {
 		}
 
 		try {
-			await createPost({
+			// Upload image to S3 if present
+			let finalImageUrl = imageUrl
+			if (imageFile && !finalImageUrl) {
+				finalImageUrl = await uploadImageToS3()
+				if (!finalImageUrl) return // Upload failed
+			}
+
+			// Create post with optional image URL
+			const postData: any = {
 				title,
 				content,
-				postType: 'community', // 커뮤니티에만 사용자 작성 허용
+				postType: 'community',
 				status: 'published',
-			})
+			}
+
+			// Add image URL if available
+			if (finalImageUrl) {
+				postData.imageUrl = finalImageUrl
+			}
+
+			await createPost(postData)
 			// 생성 후 현재 페이지 목록 새로 고침
 			loadCommunity(page)
 			handleClose()
@@ -430,29 +467,62 @@ export default function KBuzzPage() {
 										/>
 									</div>
 								) : (
-									<div className="rounded-lg border p-3 flex items-center gap-3">
-										<img
-											src={imagePreview}
-											alt="preview"
-											className="h-16 w-16 rounded object-cover border"
-										/>
-										<div className="flex-1">
-											<div className="text-sm font-medium truncate">
-												{imageFile?.name ?? '이미지'}
-											</div>
-											{imageFile && (
-												<div className="text-xs text-gray-500">
-													{(imageFile.size / 1024 / 1024).toFixed(2)} MB
+									<div className="rounded-lg border p-3">
+										<div className="flex items-center gap-3 mb-2">
+											<img
+												src={imagePreview}
+												alt="preview"
+												className="h-16 w-16 rounded object-cover border"
+											/>
+											<div className="flex-1">
+												<div className="text-sm font-medium truncate">
+													{imageFile?.name ?? '이미지'}
 												</div>
-											)}
+												{imageFile && (
+													<div className="text-xs text-gray-500">
+														{(imageFile.size / 1024 / 1024).toFixed(2)} MB
+													</div>
+												)}
+												{imageUrl && (
+													<div className="text-xs text-green-600 flex items-center gap-1">
+														<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+															<path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+														</svg>
+														업로드 완료
+													</div>
+												)}
+											</div>
+											<button
+												type="button"
+												onClick={clearImage}
+												className="px-2.5 py-1 text-sm rounded border hover:bg-gray-50"
+											>
+												제거
+											</button>
 										</div>
-										<button
-											type="button"
-											onClick={clearImage}
-											className="px-2.5 py-1 text-sm rounded border hover:bg-gray-50"
-										>
-											제거
-										</button>
+										{!imageUrl && (
+											<div className="flex gap-2">
+												<button
+													type="button"
+													onClick={uploadImageToS3}
+													disabled={uploading}
+													className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+												>
+													{uploading ? (
+														<>
+															<svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+																<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+																<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+															</svg>
+															업로드 중...
+														</>
+													) : (
+														'S3에 업로드'
+													)}
+												</button>
+												<span className="text-xs text-gray-400 self-center">게시 전 미리 업로드하거나 게시할 때 자동 업로드됩니다</span>
+											</div>
+										)}
 									</div>
 								)}
 							</div>
@@ -467,11 +537,17 @@ export default function KBuzzPage() {
 								</button>
 								<button
 									type="submit"
-									className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
-									disabled={!user}
-									title={!user ? '로그인 후 작성할 수 있어요' : undefined}
+									className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+									disabled={!user || uploading}
+									title={!user ? '로그인 후 작성할 수 있어요' : uploading ? '업로드 중...' : undefined}
 								>
-									Post
+									{uploading && (
+										<svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+											<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+											<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										</svg>
+									)}
+									{uploading ? 'Uploading...' : 'Post'}
 								</button>
 							</div>
 						</form>
