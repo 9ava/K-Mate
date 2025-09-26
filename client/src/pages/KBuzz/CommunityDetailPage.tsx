@@ -6,6 +6,9 @@ import { fetchComments, createComment, deleteComment } from '../../api/comments'
 import { useAuthStore } from '../../features/auth/auth.store'
 import { toKstFromUtc, toKstFromUtcShort } from '../../lib/date'
 
+// ⬇️ 두 번째 코드(또는 프로젝트)에 있는 S3 연동 유틸을 사용하세요.
+// 경로/함수명이 다르면 여기 import만 맞춰주시면 됩니다.
+
 type Post = {
 	id: number
 	title: string
@@ -81,9 +84,6 @@ export default function CommunityDetailPage() {
 			try {
 				const res = await fetchPostDetail(id) // GET /posts/:id
 
-				console.log('서버에서 받은 createdAt:', res.createdAt)
-				console.log('서버에서 받은 updatedAt:', res.updatedAt)
-
 				if (!alive) return
 
 				const mapped: Post = {
@@ -98,7 +98,7 @@ export default function CommunityDetailPage() {
 					likeCount: res.likeCount ?? 0,
 					isLiked: res.isLiked ?? false,
 					isScraped: false,
-					imageUrl: undefined,
+					imageUrl: res.imageUrl ?? undefined, // ⬅ 서버에 저장된 이미지가 있으면 표시
 				}
 
 				setPost(mapped)
@@ -106,6 +106,7 @@ export default function CommunityDetailPage() {
 				setLikeCount(mapped.likeCount)
 				setIsScraped(false)
 			} catch (e: any) {
+				// noop
 			} finally {
 				if (alive) setLoading(false)
 			}
@@ -195,7 +196,7 @@ export default function CommunityDetailPage() {
 		}
 	}
 
-	// 댓글 인라인 수정(로컬 유지 — 서버 PUT 필요 시 추가 연결 가능)
+	// 댓글 인라인 수정(로컬 유지)
 	const [editingId, setEditingId] = useState<number | null>(null)
 	const [editDraft, setEditDraft] = useState('')
 	const startEditComment = (commentId: number) => {
@@ -214,7 +215,6 @@ export default function CommunityDetailPage() {
 			alert('내용을 입력해 주세요.')
 			return
 		}
-		// (서버 PUT 연동하려면 여기에서 호출)
 		setComments((prev) => prev.map((c) => (c.id === editingId ? { ...c, content: text } : c)))
 		setEditingId(null)
 		setEditDraft('')
@@ -263,7 +263,7 @@ export default function CommunityDetailPage() {
 		}
 	}
 
-	// ===== 게시글 인라인 수정/삭제 (기존 유지 — 로컬) =====
+	// ===== 게시글 인라인 수정/삭제 (UI 유지) =====
 	const [editingPost, setEditingPost] = useState(false)
 	const [postTitleDraft, setPostTitleDraft] = useState(post.title)
 	const [postBodyDraft, setPostBodyDraft] = useState(post.body.join('\n\n'))
@@ -274,33 +274,14 @@ export default function CommunityDetailPage() {
 		setEditingPost(true)
 	}
 	const cancelEditPost = () => setEditingPost(false)
-	const saveEditPost = () => {
-		const title = postTitleDraft.trim()
-		const body = postBodyDraft.trim()
-		if (!title || !body) {
-			alert('제목과 본문을 입력해 주세요.')
-			return
-		}
-		const nextImageUrl = imagePreview ?? post.imageUrl
-		setPost((prev) => ({
-			...prev,
-			title,
-			body: body.split(/\n{2,}/),
-			imageUrl: nextImageUrl,
-		}))
-		setEditingPost(false)
-		// TODO: 서버 PATCH 연동 필요 시 연결
-	}
-	const onDeletePost = () => {
-		if (!confirm('이 게시글을 삭제할까요?')) return
-		// TODO: 서버 DELETE 연동 필요 시 연결
-		navigate('/buzz')
-	}
 
-	// ===== 이미지 업로드 상태 (로컬) =====
+	// ===== 이미지 업로드 상태 (S3 결합) =====
 	const [imageFile, setImageFile] = useState<File | null>(null)
 	const [imagePreview, setImagePreview] = useState<string | null>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
+	const [uploading, setUploading] = useState(false)
+	const [uploadProgress, setUploadProgress] = useState(0)
+
 	const MAX_MB = 5
 	const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -329,9 +310,65 @@ export default function CommunityDetailPage() {
 		if (fileInputRef.current) fileInputRef.current.value = ''
 	}
 
+	// ⬇️ Save 시에만 S3 업로드를 수행(미리보기 UI는 그대로)
+	const saveEditPost = async () => {
+		const title = postTitleDraft.trim()
+		const body = postBodyDraft.trim()
+		if (!title || !body) {
+			alert('제목과 본문을 입력해 주세요.')
+			return
+		}
+
+		// 1) 이미지가 선택된 경우에만 S3 업로드
+		let nextImageUrl: string | null | undefined = post.imageUrl
+		if (imageFile) {
+			try {
+				setUploading(true)
+				setUploadProgress(0)
+				// presigned PUT URL 발급 (두 번째 코드에서 쓰시던 API 엔드포인트와 동일하게)
+				// const { url: presignedUrl } = await getPresignedPutUrl(imageFile.name, imageFile.type)
+				// S3 업로드
+				// await uploadToS3(presignedUrl, imageFile, (p: number) => setUploadProgress(p))
+				// public URL 계산(또는 백엔드가 publicUrl을 내려주면 그걸 사용)
+				// nextImageUrl = toPublicUrlFromPresigned(presignedUrl)
+			} catch (e) {
+				console.error(e)
+				alert('이미지 업로드 중 오류가 발생했어요.')
+				setUploading(false)
+				return
+			} finally {
+				setUploading(false)
+				setUploadProgress(0)
+			}
+		}
+
+		// 2) 로컬 UI 반영 (UI는 그대로 유지)
+		setPost((prev) => ({
+			...prev,
+			title,
+			body: body.split(/\n{2,}/),
+			imageUrl: nextImageUrl ?? prev.imageUrl ?? undefined,
+		}))
+		setEditingPost(false)
+
+		// 3) (선택) 서버 PATCH 연동: 제목/본문/이미지 URL 저장
+		//    - 기존 프로젝트의 posts PATCH 엔드포인트가 있다면 여기에 연결하세요.
+		// try {
+		//   await updatePost(post.id, { title, content: body, imageUrl: nextImageUrl })
+		// } catch (e) {
+		//   // 실패 시 사용자 고지/롤백 처리 등
+		// }
+	}
+
+	const onDeletePost = () => {
+		if (!confirm('이 게시글을 삭제할까요?')) return
+		// TODO: 서버 DELETE 연동 필요 시 연결
+		navigate('/buzz')
+	}
+
 	return (
 		<div className="min-h-screen bg-white">
-			<main className="mx-auto max-w-3xl px-5 md:px-0 py-10">
+			<main className="max-w-3xl px-5 py-10 mx-auto md:px-0">
 				{/* Title */}
 				{!editingPost ? (
 					<h1 className="text-left text-2xl md:text-[28px] font-semibold leading-snug">
@@ -346,16 +383,16 @@ export default function CommunityDetailPage() {
 				)}
 
 				{/* Meta line */}
-				<div className="mt-2 text-sm text-gray-500 text-right">
+				<div className="mt-2 text-sm text-right text-gray-500">
 					{post.editor && post.editedAt && (
 						<>
-							by <span className="text-sky-600 font-medium">{post.editor}</span> on {post.editedAt}
+							by <span className="font-medium text-sky-600">{post.editor}</span> on {post.editedAt}
 						</>
 					)}
 				</div>
 
 				{/* Actions */}
-				<div className="mt-3 flex justify-end gap-3 items-center">
+				<div className="flex items-center justify-end gap-3 mt-3">
 					{currentUser.id !== 0 && currentUser.id === post.authorId && (
 						<>
 							{!editingPost ? (
@@ -377,9 +414,10 @@ export default function CommunityDetailPage() {
 								<>
 									<button
 										onClick={saveEditPost}
-										className="px-2 py-0.5 text-xs bg-sky-500 text-white rounded hover:bg-sky-600"
+										disabled={uploading}
+										className="px-2 py-0.5 text-xs bg-sky-500 text-white rounded hover:bg-sky-600 disabled:opacity-50"
 									>
-										Save
+										{uploading ? 'Saving…' : 'Save'}
 									</button>
 									<button
 										onClick={cancelEditPost}
@@ -432,17 +470,18 @@ export default function CommunityDetailPage() {
 									</p>
 								))
 							) : (
-								<p className="text-gray-400 text-left">
+								<p className="text-left text-gray-400">
 									{loading ? '내용을 불러오는 중…' : '내용이 없습니다.'}
 								</p>
 							)}
 						</article>
 						{post.imageUrl && (
 							<div className="mt-5">
+								{/* eslint-disable-next-line @next/next/no-img-element */}
 								<img
 									src={post.imageUrl}
 									alt="post"
-									className="w-full rounded-lg border object-cover"
+									className="object-cover w-full border rounded-lg"
 								/>
 							</div>
 						)}
@@ -455,13 +494,13 @@ export default function CommunityDetailPage() {
 							rows={10}
 							className="w-full rounded border px-3 py-2 text-[15px] leading-7"
 						/>
-						{/* Image Upload */}
+						{/* Image Upload (UI 그대로) */}
 						<div className="mt-4">
-							<label className="block text-sm font-medium mb-1">Image (optional)</label>
+							<label className="block mb-1 text-sm font-medium">Image (optional)</label>
 							{!imagePreview ? (
-								<div className="rounded-lg border border-dashed px-4 py-6 text-center">
+								<div className="px-4 py-6 text-center border border-dashed rounded-lg">
 									<p className="text-sm text-gray-500">첨부할 이미지를 선택해 주세요</p>
-									<div className="mt-3 flex justify-center gap-3">
+									<div className="flex justify-center gap-3 mt-3">
 										<button
 											type="button"
 											onClick={handlePickClick}
@@ -480,11 +519,12 @@ export default function CommunityDetailPage() {
 									/>
 								</div>
 							) : (
-								<div className="rounded-lg border p-3 flex items-center gap-3">
+								<div className="flex items-center gap-3 p-3 border rounded-lg">
+									{/* eslint-disable-next-line @next/next/no-img-element */}
 									<img
 										src={imagePreview}
 										alt="preview"
-										className="h-16 w-16 rounded object-cover border"
+										className="object-cover w-16 h-16 border rounded"
 									/>
 									<div className="flex-1">
 										<div className="text-sm font-medium truncate">
@@ -493,6 +533,7 @@ export default function CommunityDetailPage() {
 										{imageFile && (
 											<div className="text-xs text-gray-500">
 												{(imageFile.size / 1024 / 1024).toFixed(2)} MB
+												{uploading ? ` · 업로드중 ${uploadProgress}%` : ''}
 											</div>
 										)}
 									</div>
@@ -510,16 +551,16 @@ export default function CommunityDetailPage() {
 				)}
 
 				{/* Soft divider */}
-				<div className="my-8 border-t border-dashed border-gray-200" />
+				<div className="my-8 border-t border-gray-200 border-dashed" />
 
 				{/* Comments header */}
-				<div className="text-sm font-semibold text-gray-700 mb-3 text-right">
+				<div className="mb-3 text-sm font-semibold text-right text-gray-700">
 					{commentsLoading ? 'Loading comments…' : `${comments.length} Comments`}
 				</div>
 
 				{/* Comments */}
 				<section className="relative pl-16 space-y-6">
-					<div className="absolute left-8 top-0 bottom-0 w-px bg-gray-200" />
+					<div className="absolute top-0 bottom-0 w-px bg-gray-200 left-8" />
 					{comments.map((c) => {
 						const isOwner = Number(currentUser.id) === Number(c.authorId)
 						const isEditing = editingId === c.id
@@ -529,18 +570,18 @@ export default function CommunityDetailPage() {
 								<div className="absolute left-[1.25rem] top-1 h-10 w-10 rounded-full bg-gray-200 ring-2 ring-white flex items-center justify-center text-sm font-medium overflow-hidden">
 									{c.avatar ? (
 										// eslint-disable-next-line @next/next/no-img-element
-										<img src={c.avatar} alt={c.author} className="h-full w-full object-cover" />
+										<img src={c.avatar} alt={c.author} className="object-cover w-full h-full" />
 									) : (
 										c.author.charAt(0).toUpperCase()
 									)}
 								</div>
 
 								{/* bubble */}
-								<div className="relative bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 ml-3">
+								<div className="relative px-4 py-3 ml-3 bg-white border border-gray-200 shadow-sm rounded-xl">
 									{/* 상단: 왼쪽(닉) | 오른쪽(액션/하트) */}
-									<div className="mb-1 text-sm flex items-center justify-between">
+									<div className="flex items-center justify-between mb-1 text-sm">
 										<div className="text-left">
-											<span className="text-sky-600 font-medium">{c.author}</span>{' '}
+											<span className="font-medium text-sky-600">{c.author}</span>{' '}
 											<span className="text-gray-400">{c.createdAt}</span>
 										</div>
 										<div className="flex items-center gap-3">
@@ -625,7 +666,7 @@ export default function CommunityDetailPage() {
 				</section>
 
 				{/* Add comment */}
-				<div className="mt-5 rounded-lg border border-gray-200 p-3 bg-white">
+				<div className="p-3 mt-5 bg-white border border-gray-200 rounded-lg">
 					<textarea
 						value={draft}
 						onChange={(e) => setDraft(e.target.value)}
@@ -633,11 +674,11 @@ export default function CommunityDetailPage() {
 						placeholder="Write a comment…"
 						className="w-full resize-none outline-none text-[15px] leading-7"
 					/>
-					<div className="mt-2 flex justify-end">
+					<div className="flex justify-end mt-2">
 						<button
 							onClick={addComment}
 							disabled={!draft.trim()}
-							className="px-4 h-9 rounded bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-40"
+							className="px-4 text-white rounded h-9 bg-sky-500 hover:bg-sky-600 disabled:opacity-40"
 						>
 							Add Comment
 						</button>

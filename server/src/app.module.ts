@@ -12,6 +12,7 @@ import { InteractionsModule } from './features/interactions/interactions.module'
 import { CommentsModule } from './features/comments/comments.module'
 import { CoursesModule } from './features/courses/courses.module'
 import { AdminModule } from './features/admin/admin.module'
+import { S3Module } from './s3/s3.module'
 
 
 
@@ -40,6 +41,7 @@ import { AdminModule } from './features/admin/admin.module'
 		CommentsModule,
 		CoursesModule,
 		AdminModule,
+		S3Module,
 		// UsersModule,  ... (추가 시 여기에 import)
 
 	],
