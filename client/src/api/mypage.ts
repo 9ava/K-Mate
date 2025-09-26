@@ -36,6 +36,7 @@ export interface BookmarkItem {
 	lng: number
 	googleMapsUrl: string
 	type: string
+	photoUrl?: string | null
 	createdAt: string
 }
 

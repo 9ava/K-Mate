@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getMyCourses, getSavedCourses } from '../api/mypage'
 import type { MyCourseItem, SavedCourseItem, PaginationQueryDto } from '../api/mypage'
@@ -8,8 +8,17 @@ type TabType = 'created' | 'saved'
 
 export default function MyCoursesPage() {
 	const navigate = useNavigate()
+	const [searchParams] = useSearchParams()
 	const { isAuthed } = useAuth()
-	const [activeTab, setActiveTab] = useState<TabType>('created')
+	
+	// URL 파라미터에서 탭 타입을 확인하여 초기값 설정
+	const getInitialTab = (): TabType => {
+		const tabParam = searchParams.get('tab')
+		if (tabParam === 'saved') return 'saved'
+		return 'created'
+	}
+	
+	const [activeTab, setActiveTab] = useState<TabType>(getInitialTab())
 	const [myCourses, setMyCourses] = useState<MyCourseItem[]>([])
 	const [savedCourses, setSavedCourses] = useState<SavedCourseItem[]>([])
 	const [loading, setLoading] = useState(true)
@@ -78,6 +87,11 @@ export default function MyCoursesPage() {
 	const handleTabChange = (tab: TabType) => {
 		setActiveTab(tab)
 		setPagination(prev => ({ ...prev, page: 1 }))
+		
+		// URL 파라미터 업데이트
+		const newSearchParams = new URLSearchParams(searchParams)
+		newSearchParams.set('tab', tab)
+		navigate(`/mypage/courses?${newSearchParams.toString()}`, { replace: true })
 	}
 
 	const currentTotal = activeTab === 'created' ? pagination.myTotal : pagination.savedTotal

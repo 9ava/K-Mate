@@ -130,11 +130,11 @@ const MyPage = () => {
 	}
 
 	const handleSavedCoursesClick = () => {
-		navigate('/mypage/courses')
+		navigate('/mypage/courses?tab=saved')
 	}
 
 	const handleMyCoursesClick = () => {
-		navigate('/mypage/courses')
+		navigate('/mypage/courses?tab=created')
 	}
 
 	const handleScrapsClick = () => {

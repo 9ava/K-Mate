@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getMyBookmarks } from '../api/mypage'
+import { getPlaceDetail } from '../api/places'
 import type { BookmarkItem, PaginationQueryDto } from '../api/mypage'
+import type { Place } from '../types/place'
 
 export default function MyBookmarksPage() {
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
 	const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([])
+	const [bookmarkPhotos, setBookmarkPhotos] = useState<Record<string, string>>({})
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
-	const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+	const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid')
 	const [pagination, setPagination] = useState({
 		total: 0,
 		page: 1,
@@ -38,6 +41,33 @@ export default function MyBookmarksPage() {
 				...prev,
 				total: data.total
 			}))
+
+			// 각 북마크의 사진을 가져오기
+			const photoPromises = data.bookmarks.map(async (bookmark) => {
+				try {
+					const placeDetail = await getPlaceDetail(bookmark.placeId)
+					return {
+						placeId: bookmark.placeId,
+						photoUrl: placeDetail.photoUrl || null
+					}
+				} catch (error) {
+					console.warn(`Failed to load photo for ${bookmark.name}:`, error)
+					return {
+						placeId: bookmark.placeId,
+						photoUrl: null
+					}
+				}
+			})
+
+			const photoResults = await Promise.all(photoPromises)
+			const photoMap: Record<string, string> = {}
+			photoResults.forEach(result => {
+				if (result.photoUrl) {
+					photoMap[result.placeId] = result.photoUrl
+				}
+			})
+			setBookmarkPhotos(photoMap)
+
 			setError(null)
 		} catch (error) {
 			console.error('북마크 로드 실패:', error)
@@ -168,18 +198,6 @@ export default function MyBookmarksPage() {
 					{/* 뷰 모드 토글 */}
 					<div className="flex items-center bg-white rounded-lg shadow-sm border border-gray-200 p-1">
 						<button
-							onClick={() => setViewMode('list')}
-							className={`p-2 rounded-md transition-colors ${
-								viewMode === 'list'
-									? 'bg-blue-600 text-white'
-									: 'text-gray-400 hover:text-gray-600'
-							}`}
-						>
-							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-							</svg>
-						</button>
-						<button
 							onClick={() => setViewMode('grid')}
 							className={`p-2 rounded-md transition-colors ${
 								viewMode === 'grid'
@@ -189,6 +207,18 @@ export default function MyBookmarksPage() {
 						>
 							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+							</svg>
+						</button>
+						<button
+							onClick={() => setViewMode('list')}
+							className={`p-2 rounded-md transition-colors ${
+								viewMode === 'list'
+									? 'bg-blue-600 text-white'
+									: 'text-gray-400 hover:text-gray-600'
+							}`}
+						>
+							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
 							</svg>
 						</button>
 					</div>
@@ -211,7 +241,66 @@ export default function MyBookmarksPage() {
 							장소 찾아보기
 						</button>
 					</div>
-				) : viewMode === 'list' ? (
+				) : viewMode === 'grid' ? (
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+						{bookmarks.map((bookmark) => (
+							<div
+								key={bookmark.id}
+								className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer"
+								onClick={() => handleBookmarkClick(bookmark)}
+							>
+								<div className="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden">
+									<div className="absolute top-4 left-4 z-10">
+										<span className={`px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(bookmark.type)}`}>
+											{getTypeLabel(bookmark.type)}
+										</span>
+									</div>
+									{bookmarkPhotos[bookmark.placeId] ? (
+										<img
+											src={bookmarkPhotos[bookmark.placeId]}
+											alt={bookmark.name}
+											className="w-full h-full object-cover"
+											onError={(e) => {
+												// 이미지 로드 실패 시 기본 아이콘 표시
+												const target = e.target as HTMLImageElement
+												target.style.display = 'none'
+												const parent = target.parentElement
+												if (parent) {
+													const fallback = parent.querySelector('.fallback-icon') as HTMLElement
+													if (fallback) fallback.style.display = 'flex'
+												}
+											}}
+										/>
+									) : null}
+									<div className={`fallback-icon absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 ${bookmarkPhotos[bookmark.placeId] ? 'hidden' : ''}`}>
+										<svg className="w-16 h-16 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+										</svg>
+									</div>
+								</div>
+								<div className="p-4">
+									<h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-1">
+										{bookmark.name}
+									</h3>
+									<p className="text-gray-600 text-sm mb-3 line-clamp-2">
+										{bookmark.address}
+									</p>
+									<div className="flex items-center justify-between text-sm text-gray-500">
+										<div className="flex items-center gap-1">
+											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+											</svg>
+											<span>{new Date(bookmark.createdAt).toLocaleDateString('ko-KR')}</span>
+										</div>
+										<svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+										</svg>
+									</div>
+								</div>
+							</div>
+						))}
+					</div>
+				) : (
 					<div className="space-y-4">
 						{bookmarks.map((bookmark) => (
 							<div
@@ -257,48 +346,6 @@ export default function MyBookmarksPage() {
 									</div>
 									<div className="ml-4">
 										<svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-										</svg>
-									</div>
-								</div>
-							</div>
-						))}
-					</div>
-				) : (
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-						{bookmarks.map((bookmark) => (
-							<div
-								key={bookmark.id}
-								className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer"
-								onClick={() => handleBookmarkClick(bookmark)}
-							>
-								<div className="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
-									<div className="absolute top-4 left-4">
-										<span className={`px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(bookmark.type)}`}>
-											{getTypeLabel(bookmark.type)}
-										</span>
-									</div>
-									<div className="absolute inset-0 flex items-center justify-center">
-										<svg className="w-16 h-16 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-										</svg>
-									</div>
-								</div>
-								<div className="p-4">
-									<h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-1">
-										{bookmark.name}
-									</h3>
-									<p className="text-gray-600 text-sm mb-3 line-clamp-2">
-										{bookmark.address}
-									</p>
-									<div className="flex items-center justify-between text-sm text-gray-500">
-										<div className="flex items-center gap-1">
-											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-											</svg>
-											<span>{new Date(bookmark.createdAt).toLocaleDateString('ko-KR')}</span>
-										</div>
-										<svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
 										</svg>
 									</div>
