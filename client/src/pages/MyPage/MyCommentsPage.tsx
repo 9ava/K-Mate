@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/useAuth'
-import { getMyComments } from '../api/mypage'
-import type { MyCommentItem, PaginationQueryDto } from '../api/mypage'
+import { useAuth } from '../../features/auth/useAuth'
+import { getMyComments } from '../../api/mypage'
+import type { MyCommentItem, PaginationQueryDto } from '../../api/mypage'
 
 export default function MyCommentsPage() {
 	const { t } = useTranslation()

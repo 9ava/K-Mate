@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../features/auth/useAuth'
-import { getMyCourses, getSavedCourses } from '../api/mypage'
-import { getCourse } from '../api/courses'
-import { getPlaceDetail } from '../api/places'
-import type { MyCourseItem, SavedCourseItem, PaginationQueryDto } from '../api/mypage'
+import { useAuth } from '../../features/auth/useAuth'
+import { getMyCourses, getSavedCourses } from '../../api/mypage'
+import { getCourse } from '../../api/courses'
+import { getPlaceDetail } from '../../api/places'
+import type { MyCourseItem, SavedCourseItem, PaginationQueryDto } from '../../api/mypage'
 
 type TabType = 'created' | 'saved'
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/useAuth'
-import { getMyScraps } from '../api/mypage'
-import type { ScrapItem, PaginationQueryDto } from '../api/mypage'
+import { useAuth } from '../../features/auth/useAuth'
+import { getMyScraps } from '../../api/mypage'
+import type { ScrapItem, PaginationQueryDto } from '../../api/mypage'
 
 export default function MyScrapsPage() {
 	const { t } = useTranslation()

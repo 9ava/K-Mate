@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/useAuth'
-import { getMyBookmarks } from '../api/mypage'
-import { getPlaceDetail } from '../api/places'
-import type { BookmarkItem, PaginationQueryDto } from '../api/mypage'
+import { useAuth } from '../../features/auth/useAuth'
+import { getMyBookmarks } from '../../api/mypage'
+import { getPlaceDetail } from '../../api/places'
+import type { BookmarkItem, PaginationQueryDto } from '../../api/mypage'
 
 export default function MyBookmarksPage() {
 	const { t } = useTranslation()
