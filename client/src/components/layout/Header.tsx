@@ -19,7 +19,7 @@ function GoogleLoginButton() {
 				className="w-4 h-4 sm:w-5 sm:h-5"
 			/>
 			<span className="hidden sm:inline">{t('auth.continue_google')}</span>
-			<span className="sm:hidden">로그인</span>
+			<span className="sm:hidden">{t('auth.login', '로그인')}</span>
 		</button>
 	)
 }
@@ -118,7 +118,7 @@ export default function Header() {
 										to="/mypage"
 										className="block w-full px-3 py-2 text-sm text-left transition-colors rounded hover:bg-gray-100"
 									>
-										마이페이지
+										{t('nav.mypage', '마이페이지')}
 									</Link>
 									<button
 										onClick={logout}
@@ -216,7 +216,7 @@ export default function Header() {
 							{/* 언어 스위처 (모바일) */}
 							<div className="px-4 py-3 border-t border-gray-100 mt-2">
 								<div className="flex items-center justify-between">
-									<span className="text-sm font-medium text-gray-700">언어</span>
+									<span className="text-sm font-medium text-gray-700">{t('common.language', '언어')}</span>
 									<LanguageSwitcher />
 								</div>
 							</div>

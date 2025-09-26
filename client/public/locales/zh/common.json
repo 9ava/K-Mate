@@ -5,16 +5,19 @@
 		"error": "错误",
 		"success": "成功",
 		"cancel": "取消",
-		"confirm": "确认"
+		"confirm": "确认",
+		"language": "语言"
 	},
 	"nav": {
 		"kmap": "K-地图",
 		"kcourse": "K-行程",
 		"kbuzz": "K-社区",
-		"admin": "管理员"
+		"admin": "管理员",
+		"mypage": "我的页面"
 	},
 	"auth": {
 		"continue_google": "使用 Google 继续",
+		"login": "登录",
 		"signout": "退出登录",
 		"welcome_title": "欢迎使用 K-Mate",
 		"welcome_subtitle": "一览韩国所有旅游信息",

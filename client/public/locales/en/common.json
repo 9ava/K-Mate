@@ -5,16 +5,19 @@
 		"error": "Error",
 		"success": "Success",
 		"cancel": "Cancel",
-		"confirm": "Confirm"
+		"confirm": "Confirm",
+		"language": "Language"
 	},
 	"nav": {
 		"kmap": "K-Map",
 		"kcourse": "K-Course",
 		"kbuzz": "K-Buzz",
-		"admin": "Admin"
+		"admin": "Admin",
+		"mypage": "My Page"
 	},
 	"auth": {
 		"continue_google": "Continue with Google",
+		"login": "Login",
 		"signout": "Sign out",
 		"welcome_title": "Welcome to K-Mate",
 		"welcome_subtitle": "All Korean travel information at a glance",
