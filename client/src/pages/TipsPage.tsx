@@ -3,136 +3,39 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/layout/Sidebar'
 import { Loader } from '@googlemaps/js-api-loader'
-import type { TipCategory, TipItem } from '../types/tips'
+import type { TipItem } from '../types/tips'
+import TmoneyGuide from './TipsArticle/TmoneyGuide'
+import MpassGuide from './TipsArticle/MpassGuide'
+import CatchTableGuide from './TipsArticle/CatchTableGuide'
 
-/* ----------------------- 임시 정적 데이터 ----------------------- */
-const TIPS_DATA: TipItem[] = [
+// ✅ Tips 전용 탭 타입 (전역 타입과 분리: KMap 영향 없음)
+type UITab = 'transportation' | 'reservation'
+
+// ✅ 목록 전용 타입: 전역 TipItem에서 필요한 필드만 사용 + category를 새 키로
+type TipListItem = Pick<TipItem, 'id' | 'title' | 'summary' | 'tags'> & { category: UITab }
+
+/* ✅ 목록 전용 데이터: 새 카테고리 키 사용 */
+const TIPS_DATA: TipListItem[] = [
 	{
 		id: 'tmoney-basics',
-		category: 'travel',
-		title: '티머니 카드 사용법',
-		summary: '구매 → 충전 → 승/하차 태그 기본 흐름',
+		category: 'transportation',
+		title: 'Tmoney card',
+		summary: 'How to use the Tmoney card',
 		tags: ['교통', '티머니'],
-		sections: [
-			{
-				id: 'tmoney-what',
-				heading: '티머니란?',
-				body: '대중교통 선불 교통카드. 편의점/지하철역에서 구매·충전 후 승/하차 때 태그.',
-				notes: ['분실 시 잔액 환불 어려울 수 있어 보관 주의'],
-			},
-			{
-				id: 'tmoney-charge',
-				heading: '구매 & 충전',
-				steps: [
-					'편의점 또는 지하철역에서 카드 구매',
-					'무인충전기/카운터에서 충전',
-					'초반엔 실물 카드 추천',
-				],
-			},
-			{
-				id: 'tmoney-tag',
-				heading: '이용',
-				steps: [
-					'승차 태그 → 이동 → 하차 태그',
-					'환승 시 하차 태그 후 다음 교통수단 승차 태그',
-					'최종 하차 시 반드시 하차 태그',
-				],
-			},
-		],
-		links: [{ label: '티머니 공식', url: 'https://www.tmoney.co.kr', external: true }],
 	},
 	{
-		id: 'transfer-basics',
-		category: 'travel',
-		title: '버스/지하철 환승 기본',
-		summary: '환승 인정 시간 개념, 태그 순서',
-		tags: ['환승'],
-		sections: [
-			{
-				id: 'window',
-				heading: '환승 인정 시간',
-				body: '대체로 “하차 태그 후 일정 시간 내 다음 승차 태그” 시 환승 인정(지역·운영사별 상이).',
-				notes: ['항상 하차 태그 필수', '장거리 이동 전 잔액 충분히 준비'],
-			},
-			{
-				id: 'order',
-				heading: '태그 순서',
-				steps: ['승차 태그', '하차 태그', '환승 승차 태그', '최종 하차 태그'],
-			},
-		],
-		links: [{ label: '서울교통공사', url: 'https://www.seoulmetro.co.kr', external: true }],
+		id: 'mpass-card',
+		category: 'transportation',
+		title: 'Mpass card',
+		summary: 'How to use the Mpass card',
+		tags: ['transportation', 'pass'],
 	},
 	{
 		id: 'catchtable-howto',
-		category: 'food',
-		title: '캐치테이블 예약 사용법',
-		summary: '앱 설치 → 매장검색 → 날짜/시간/인원 선택 → 예약 확정',
+		category: 'reservation',
+		title: 'CatchTable',
+		summary: 'How to use the CatchTable',
 		tags: ['예약', '레스토랑'],
-		sections: [
-			{
-				id: 'ct-overview',
-				heading: '개요',
-				body: '인기 레스토랑 실시간 좌석/대기 확인 및 예약 플랫폼.',
-			},
-			{
-				id: 'ct-steps',
-				heading: '절차',
-				steps: ['앱 설치·회원가입', '매장 검색', '날짜/시간/인원 선택', '예약 확정 알림 확인'],
-				notes: ['피크타임엔 알림/웨이팅 기능 활용'],
-			},
-		],
-		links: [{ label: '캐치테이블', url: 'https://www.catchtable.co.kr', external: true }],
-	},
-	{
-		id: 'tabling-howto',
-		category: 'food',
-		title: '테이블링 웨이팅 사용법',
-		summary: '원격 줄서기 → 호출 알림 → 입장 체크',
-		tags: ['웨이팅'],
-		sections: [
-			{
-				id: 'tb-overview',
-				heading: '개요',
-				body: '원격 웨이팅/현장 번호표 관리 앱. 미리 줄 서고 호출 시 입장.',
-			},
-			{
-				id: 'tb-steps',
-				heading: '절차',
-				steps: ['앱 설치·위치 권한', '매장 검색 후 웨이팅 등록', '호출 알림→도착→입장'],
-				notes: ['호출 후 제한 시간 지나면 순번 넘어갈 수 있음'],
-			},
-		],
-		links: [{ label: '테이블링', url: 'https://tabling.co.kr', external: true }],
-	},
-	{
-		id: 'catchtable-cafe',
-		category: 'cafe',
-		title: '인기 카페 예약 팁(캐치테이블)',
-		summary: '피크타임 회피 + 취소석 알림 활용',
-		tags: ['카페', '예약'],
-		sections: [
-			{
-				id: 'tips',
-				heading: '핵심 팁',
-				steps: ['주말 13~17시 피하기', '즐겨찾기/알림 설정', '인원 유연성 확보'],
-			},
-		],
-		links: [{ label: '캐치테이블', url: 'https://www.catchtable.co.kr', external: true }],
-	},
-	{
-		id: 'tabling-cafe',
-		category: 'cafe',
-		title: '인기 카페 웨이팅 팁(테이블링)',
-		summary: '원격 웨이팅 + 동선 관리',
-		tags: ['카페', '웨이팅'],
-		sections: [
-			{
-				id: 'tips2',
-				heading: '핵심 팁',
-				steps: ['원격 등록 후 근처 대기', '호출 즉시 이동', '악천후 시 실내 대기 가능한 지점'],
-			},
-		],
-		links: [{ label: '테이블링', url: 'https://tabling.co.kr', external: true }],
 	},
 ]
 
@@ -145,25 +48,41 @@ export default function TipsPage() {
 	useEffect(() => {
 		const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 		const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string) || undefined
+		if (!API_KEY) {
+			console.error('Google Maps API key is missing.')
+			return
+		}
+		if (mapObjRef.current) {
+			console.warn('Map is already initialized.')
+			return
+		}
 		const loader = new Loader({
 			apiKey: API_KEY,
 			version: 'weekly',
 			libraries: ['marker', 'places'],
 		})
-		loader.importLibrary('maps').then(() => {
-			if (!mapRef.current) return
-			mapObjRef.current = new google.maps.Map(mapRef.current, {
-				center: { lat: 37.5113, lng: 127.0592 },
-				zoom: 14,
-				mapId: MAP_ID,
-				disableDefaultUI: false,
+		loader
+			.importLibrary('maps')
+			.then(() => {
+				if (!mapRef.current) {
+					console.error('Map container is not available.')
+					return
+				}
+				mapObjRef.current = new google.maps.Map(mapRef.current, {
+					center: { lat: 37.5113, lng: 127.0592 },
+					zoom: 14,
+					mapId: MAP_ID,
+					disableDefaultUI: false,
+				})
 			})
-		})
+			.catch((error) => {
+				console.error('Failed to load Google Maps:', error)
+			})
 	}, [])
 
-	// 상태
-	const [tab, setTab] = useState<TipCategory>('travel')
-	const items: TipItem[] = TIPS_DATA.filter((t) => t.category === tab)
+	// ✅ Tips 전용 탭 상태
+	const [tab, setTab] = useState<UITab>('transportation')
+	const items: TipListItem[] = TIPS_DATA.filter((t) => t.category === tab)
 	const [selectedId, setSelectedId] = useState<string | null>(null)
 
 	const selected = useMemo(() => {
@@ -186,22 +105,22 @@ export default function TipsPage() {
 			<div className="w-16 bg-white border-r shrink-0">
 				<Sidebar
 					active=""
-					onSelectType={(t) => navigate(`/kmap?type=${t}`)}
+					onSelectType={(t) => navigate(`/kmap?type=${t}`)} // ← KMap 용 (그대로 둠)
 					onShowTips={() => {
-						/* 이미 /tips 페이지라 동작 없음 or navigate('/tips') */
+						// Implement functionality or remove this prop
 					}}
-					isTipsActive={true} // ✅ TIPS 아이콘 활성화 표시
+					isTipsActive={true}
 				/>
 			</div>
 
-			{/* 왼쪽 리스트 폭 고정 */}
-			<div className="w-[360px] border-r overflow-y-auto ">
+			{/* 왼쪽 리스트 */}
+			<div className="w-[360px] border-r overflow-y-auto">
 				<div className="p-4">
 					<h2 className="text-lg font-semibold">TIPS</h2>
 
-					{/* 카테고리 탭 */}
+					{/* ✅ 카테고리 탭: Transportation / Reservation 만 노출 */}
 					<div className="flex gap-2 mt-3 mb-4">
-						{(['travel', 'food', 'cafe'] as TipCategory[]).map((c) => (
+						{(['transportation', 'reservation'] as UITab[]).map((c) => (
 							<button
 								key={c}
 								onClick={() => {
@@ -213,97 +132,87 @@ export default function TipsPage() {
 									tab === c ? 'bg-gray-900 text-white' : 'bg-white hover:bg-gray-50',
 								].join(' ')}
 							>
-								{c === 'travel' ? 'Travel' : c === 'food' ? 'Food' : 'Cafe'}
+								{c === 'transportation' ? 'Transportation' : 'Reservation'}
 							</button>
 						))}
 					</div>
 
 					{/* 목록 */}
-					<ul className="divide-y">
-						{items.map((tip, idx) => {
-							const active = tip.id === selectedId
-							return (
-								<li
-									key={tip.id}
-									className={[
-										'p-3 cursor-pointer hover:bg-gray-50',
-										active ? 'bg-gray-50' : '',
-									].join(' ')}
-									onClick={() => setSelectedId(tip.id)}
-								>
-									<div className="flex items-center gap-3">
-										<div className="w-6 h-6 flex items-center justify-center rounded-full border text-xs">
-											{idx + 1}
+					<div
+						className="relative"
+						onClick={(e) => {
+							if (e.target === e.currentTarget) {
+								setSelectedId(null)
+							}
+						}}
+						role="listbox"
+					>
+						<ul className="divide-y">
+							{items.map((tip, idx) => {
+								const active = tip.id === selectedId
+								return (
+									<li
+										key={tip.id}
+										className={[
+											'p-3 cursor-pointer hover:bg-gray-50',
+											active ? 'bg-gray-50' : '',
+										].join(' ')}
+										onClick={(e) => {
+											e.stopPropagation()
+											setSelectedId((cur) => (cur === tip.id ? null : tip.id))
+										}}
+										aria-selected={active}
+										role="option"
+									>
+										<div className="flex items-center gap-3">
+											<div className="w-6 h-6 flex items-center justify-center rounded-full border text-xs">
+												{idx + 1}
+											</div>
+											<div className="min-w-0">
+												<p className="font-medium truncate">{tip.title}</p>
+												{tip.summary && (
+													<p className="text-xs text-gray-500 truncate">{tip.summary}</p>
+												)}
+											</div>
 										</div>
-										<div className="min-w-0">
-											<p className="font-medium truncate">{tip.title}</p>
-											{tip.summary && (
-												<p className="text-xs text-gray-500 truncate">{tip.summary}</p>
-											)}
-										</div>
-									</div>
-								</li>
-							)
-						})}
-					</ul>
+									</li>
+								)
+							})}
+						</ul>
+					</div>
 				</div>
 			</div>
 
-			{/* 중앙 상세: 선택됐을 때만 */}
+			{/* 중앙 상세 */}
 			{selected && (
-				<div className="w-[520px] border-r overflow-y-auto">
+				<div className="w-[520px] border-r overflow-y-auto" key={selectedId}>
 					<div className="p-5">
-						<div className="flex items-start justify-between gap-3">
-							<div>
-								<h3 className="text-xl font-semibold">{selected.title}</h3>
-								{selected.summary && <p className="mt-1 text-gray-600">{selected.summary}</p>}
-							</div>
+						{/* 상단: 공통 헤더 삭제, Close만 유지 */}
+						<div className="flex items-start justify-between">
 							<button
 								onClick={() => setSelectedId(null)}
-								className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50"
+								className="ml-auto px-3 py-1.5 text-sm rounded border hover:bg-gray-50"
 								aria-label="닫기"
 							>
-								닫기
+								Close
 							</button>
 						</div>
 
-						<div className="mt-4 space-y-5">
-							{selected.sections.map((sec) => (
-								<section key={sec.id}>
-									<h4 className="font-medium">{sec.heading}</h4>
-									{sec.body && <p className="mt-1 text-gray-700">{sec.body}</p>}
-									{sec.steps && (
-										<ol className="mt-2 list-decimal pl-5 space-y-1">
-											{sec.steps.map((s, i) => (
-												<li key={i}>{s}</li>
-											))}
-										</ol>
-									)}
-									{sec.notes && (
-										<ul className="mt-2 list-disc pl-5 text-gray-600 space-y-1">
-											{sec.notes.map((n, i) => (
-												<li key={i}>{n}</li>
-											))}
-										</ul>
-									)}
-								</section>
-							))}
-						</div>
-
-						{selected.links && selected.links.length > 0 && (
-							<div className="mt-5 flex flex-wrap gap-2">
-								{selected.links.map((l) => (
-									<a
-										key={l.url}
-										href={l.url}
-										target={l.external ? '_blank' : '_self'}
-										rel="noreferrer"
-										className="text-sm underline hover:no-underline"
-									>
-										{l.label}
-									</a>
-								))}
+						{/* 본문 */}
+						{selected.id === 'tmoney-basics' ? (
+							<div className="mt-3">
+								<TmoneyGuide />
 							</div>
+						) : selected.id === 'mpass-card' ? (
+							<div className="mt-3">
+								<MpassGuide />
+							</div>
+						) : selected.id === 'catchtable-howto' ? (
+							<div className="mt-3">
+								<CatchTableGuide />
+							</div>
+						) : (
+							<div className="mt-4 text-sm text-gray-500">준비 중인 콘텐츠입니다.</div>
 						)}
 					</div>
 				</div>

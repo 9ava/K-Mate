@@ -1,4 +1,4 @@
-export type TipCategory = 'travel' | 'food' | 'cafe'
+export type TipCategory = 'transportation' | 'reservation'
 
 export type TipSection = {
 	id: string
@@ -21,7 +21,8 @@ export type TipItem = {
 	summary?: string
 	tags?: string[]
 	updatedAt?: string
-	sections: TipSection[]
+	/** 👇 목록 전용 카드에서는 비워둘 수 있도록 optional 로 변경 */
+	sections?: TipSection[]
 	links?: TipLink[]
 	locale?: 'ko' | 'en'
 }
