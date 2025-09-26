@@ -65,17 +65,33 @@ export async function getPublicCourses(
 	page: number = 1,
 	limit: number = 10
 ): Promise<GetCoursesResponse> {
-	const response = await fetch(`${API_BASE}/courses/public?page=${page}&limit=${limit}`, {
+	const url = `${API_BASE}/courses/public?page=${page}&limit=${limit}`
+	console.log('Fetching public courses from:', url)
+
+	const response = await fetch(url, {
 		method: 'GET',
 		// 공개 코스는 인증 불필요
 	})
 
+	console.log('Response status:', response.status)
+	console.log('Response headers:', response.headers)
+
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')
+		console.error('Error response text:', errorText)
 		throw new Error(errorText || `Failed to fetch public courses: ${response.status}`)
 	}
 
-	return response.json()
+	const responseText = await response.text()
+	console.log('Response text:', responseText.substring(0, 200))
+
+	try {
+		return JSON.parse(responseText)
+	} catch (parseError) {
+		console.error('JSON parse error:', parseError)
+		console.error('Full response text:', responseText)
+		throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`)
+	}
 }
 
 /**

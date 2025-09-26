@@ -8,7 +8,7 @@ let internalUpdate = false
 export const useLocaleStore = create<LocaleState>()(
 	persist(
 		(set, get) => ({
-			lang: i18n.language || 'en',
+			lang: 'en', // Default to English
 			setLang: (lng) => {
 				if (get().lang === lng) return
 				internalUpdate = true
@@ -16,7 +16,15 @@ export const useLocaleStore = create<LocaleState>()(
 				set({ lang: lng })
 			},
 		}),
-		{ name: 'kmate-lang' }
+		{
+			name: 'kmate-lang',
+			onRehydrateStorage: () => (state) => {
+				// After rehydration, sync i18next with the stored language
+				if (state?.lang && state.lang !== i18n.language) {
+					i18n.changeLanguage(state.lang)
+				}
+			},
+		}
 	)
 )
 

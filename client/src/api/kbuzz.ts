@@ -10,6 +10,7 @@ export type KBuzzItem = {
 	id: number
 	title: string
 	content: string
+	imageUrl: string | null
 	postType: PostType
 	category: PostCategory
 	status: PostStatus
@@ -80,6 +81,7 @@ export async function createPost(input: {
 	postType: PostType
 	category?: Exclude<PostCategory, null>
 	status?: PostStatus
+	imageUrl?: string
 }) {
 	const { data } = await api.post('/posts', input)
 	return data.data as KBuzzItem
@@ -93,6 +95,7 @@ export async function updatePost(
 		content?: string
 		category?: Exclude<PostCategory, null>
 		status?: PostStatus
+		imageUrl?: string
 	}
 ) {
 	const { data } = await api.put(`/posts/${id}`, input)

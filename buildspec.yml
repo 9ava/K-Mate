@@ -17,7 +17,7 @@ phases:
       - npm --prefix server run build
 
       # 2) 클라이언트 빌드 (프로덕션 API URL 주입)
-      - VITE_API_URL="https://k-mate.org" npm --prefix client run build
+      - VITE_API_URL="https://k-mate.org/api" npm --prefix client run build
 
       # 3) 배포 산출물 디렉터리 구성
       - rm -rf artifact

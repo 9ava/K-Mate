@@ -13,6 +13,7 @@ import { CommentsModule } from './features/comments/comments.module'
 import { CoursesModule } from './features/courses/courses.module'
 import { AdminModule } from './features/admin/admin.module'
 import { MypageModule } from './features/mypage/mypage.module'
+import { S3Module } from './s3/s3.module'
 
 
 
@@ -42,8 +43,7 @@ import { MypageModule } from './features/mypage/mypage.module'
 		CoursesModule,
 		AdminModule,
 		MypageModule,         // 마이페이지 기능
-		// UsersModule,  ... (추가 시 여기에 import)
-
+		S3Module,
 	],
 	controllers: [AppController],
 	providers: [AppService],

@@ -3,7 +3,6 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import Backend from 'i18next-http-backend'
 
-const BASE = import.meta.env.VITE_I18N_BASE_URL || ''
 const VERSION = import.meta.env.VITE_I18N_VERSION || '1'
 
 i18n
@@ -12,6 +11,7 @@ i18n
 	.use(initReactI18next)
 	.init({
 		fallbackLng: 'en',
+
 		supportedLngs: ['en', 'ko', 'zh'],
 		load: 'languageOnly',
 		ns: ['common'],
@@ -19,11 +19,12 @@ i18n
 		debug: import.meta.env.DEV,
 		interpolation: { escapeValue: true },
 		backend: {
-			loadPath: `${BASE || ''}/locales/{{lng}}/{{ns}}.json?v=${VERSION}`,
+			loadPath: '/locales/{{lng}}/{{ns}}.json?v=' + VERSION,
 		},
 		detection: {
-			order: ['localStorage', 'querystring', 'navigator'],
-			caches: ['localStorage'],
+			order: ['querystring'],
+			caches: [],
+			lookupQuerystring: 'lng',
 		},
 		saveMissing: false,
 	})
