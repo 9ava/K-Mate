@@ -18,6 +18,11 @@ import EditMarkerPage from '../pages/admin/EditMarkerPage'
 import UserManagePage from '../pages/admin/UserManagePage'
 import StatisticsPage from '../pages/admin/StatisticsPage'
 import MyPage from '../pages/MyPage'
+import MyPostsPage from '../pages/MyPostsPage'
+import MyScrapsPage from '../pages/MyScrapsPage'
+import MyCommentsPage from '../pages/MyCommentsPage'
+import MyBookmarksPage from '../pages/MyBookmarksPage'
+import MyCoursesPage from '../pages/MyCoursesPage'
 import ErrorDisplayDemoPage from '../pages/ErrorDisplayDemoPage'
 
 const AppRouter = () => {
@@ -47,6 +52,11 @@ const AppRouter = () => {
 					<Route path="/admin/users" element={<UserManagePage />} />
 					<Route path="/admin/statistics" element={<StatisticsPage />} />
 					<Route path="/mypage" element={<MyPage />} />
+					<Route path="/mypage/posts" element={<MyPostsPage />} />
+					<Route path="/mypage/scraps" element={<MyScrapsPage />} />
+					<Route path="/mypage/comments" element={<MyCommentsPage />} />
+					<Route path="/mypage/bookmarks" element={<MyBookmarksPage />} />
+					<Route path="/mypage/courses" element={<MyCoursesPage />} />
 					<Route path="/demo/error" element={<ErrorDisplayDemoPage />} />
 				</Routes>
 			</main>

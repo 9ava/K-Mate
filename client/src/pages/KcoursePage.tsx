@@ -1,6 +1,6 @@
 // src/pages/KCoursePage.tsx
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getMyCourses, getPublicCourses, unsaveCourse } from '../api/courses'
 import { getPlaceDetail } from '../api/places'
@@ -458,7 +458,18 @@ function TravelCourseGrid({
 
 export default function KCoursePage() {
 	const { t } = useTranslation()
-	const [activeTab, setActiveTab] = useState<Tab>('monthly-best')
+	const [searchParams] = useSearchParams()
+	
+	// URL 파라미터에서 초기 탭 설정
+	const getInitialTab = (): Tab => {
+		const tab = searchParams.get('tab')
+		if (tab === 'my' || tab === 'saved') {
+			return 'my-course'
+		}
+		return 'monthly-best'
+	}
+	
+	const [activeTab, setActiveTab] = useState<Tab>(getInitialTab())
 	const [myCourses, setMyCourses] = useState<TravelCourse[]>([])
 	const [savedCourses, setSavedCourses] = useState<TravelCourse[]>([])
 	const [publicCourses, setPublicCourses] = useState<TravelCourse[]>([])

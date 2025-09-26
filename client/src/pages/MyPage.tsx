@@ -1,11 +1,18 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { getUserActivityStats } from '../api/mypage'
+import type { UserActivityStats } from '../api/mypage'
+import { useAuth } from '../features/auth/useAuth'
+
 interface ActivityCardProps {
 	iconClass: string
 	title: string
 	count: number
 	category: 'K-Map' | 'K-Course' | 'K-Buzz'
+	onClick?: () => void
 }
 
-const ActivityCard = ({ iconClass, title, count, category }: ActivityCardProps) => {
+const ActivityCard = ({ iconClass, title, count, category, onClick }: ActivityCardProps) => {
 	// 카테고리별 색상 설정 (테두리는 단색으로 통일)
 	const getCategoryColors = (cat: string) => {
 		switch (cat) {
@@ -35,7 +42,10 @@ const ActivityCard = ({ iconClass, title, count, category }: ActivityCardProps) 
 	const colors = getCategoryColors(category)
 
 	return (
-		<div className="p-8 transition-all duration-200 bg-white border-2 border-gray-200 shadow-sm cursor-pointer rounded-xl hover:shadow-lg">
+		<div 
+			className="p-8 transition-all duration-200 bg-white border-2 border-gray-200 shadow-sm cursor-pointer rounded-xl hover:shadow-lg"
+			onClick={onClick}
+		>
 			<div className="flex flex-col items-center space-y-4">
 				{/* 카테고리 배지 */}
 				<div className={`px-3 py-1 text-xs font-bold text-white ${colors.badge} rounded-full`}>
@@ -56,18 +66,137 @@ const ActivityCard = ({ iconClass, title, count, category }: ActivityCardProps) 
 }
 
 const MyPage = () => {
+	const navigate = useNavigate()
+	const { isAuthed } = useAuth()
+	const [stats, setStats] = useState<UserActivityStats | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+
+	// API에서 활동 통계 로드
+	useEffect(() => {
+		if (!isAuthed) {
+			navigate('/login')
+			return
+		}
+
+		const loadStats = async () => {
+			try {
+				setLoading(true)
+				const data = await getUserActivityStats()
+				setStats(data)
+				setError(null)
+			} catch (error) {
+				console.error('활동 통계 로드 실패:', error)
+				setError('활동 통계를 불러오는데 실패했습니다.')
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		loadStats()
+	}, [isAuthed, navigate])
+
+	// 로딩 중이거나 인증되지 않은 경우
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen bg-gray-50">
+				<div className="text-center">
+					<div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin"></div>
+					<p className="text-gray-600">활동 통계를 불러오는 중...</p>
+				</div>
+			</div>
+		)
+	}
+
+	if (error || !stats) {
+		return (
+			<div className="flex items-center justify-center min-h-screen bg-gray-50">
+				<div className="text-center">
+					<p className="mb-4 text-red-600">{error || '데이터를 불러올 수 없습니다.'}</p>
+					<button 
+						onClick={() => window.location.reload()} 
+						className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+					>
+						다시 시도
+					</button>
+				</div>
+			</div>
+		)
+	}
+
+	// 클릭 핸들러들
+	const handleBookmarksClick = () => {
+		navigate('/mypage/bookmarks')
+	}
+
+	const handleSavedCoursesClick = () => {
+		navigate('/mypage/courses')
+	}
+
+	const handleMyCoursesClick = () => {
+		navigate('/mypage/courses')
+	}
+
+	const handleScrapsClick = () => {
+		navigate('/mypage/scraps')
+	}
+
+	const handlePostsClick = () => {
+		navigate('/mypage/posts')
+	}
+
+	const handleCommentsClick = () => {
+		navigate('/mypage/comments')
+	}
+
 	// 위쪽 3개 - 장소/코스 관련
 	const topActivities = [
-		{ iconClass: 'fi-rr-bookmark', title: '북마크한 장소', count: 0, category: 'K-Map' as const },
-		{ iconClass: 'fi-rr-map-marker', title: '저장한 코스', count: 1, category: 'K-Course' as const },
-		{ iconClass: 'fi-rr-map-marker-plus', title: '내가 만든 코스', count: 0, category: 'K-Course' as const },
+		{ 
+			iconClass: 'fi-rr-bookmark', 
+			title: '북마크한 장소', 
+			count: stats.bookmarkCount, 
+			category: 'K-Map' as const,
+			onClick: handleBookmarksClick
+		},
+		{ 
+			iconClass: 'fi-rr-map-marker', 
+			title: '저장한 코스', 
+			count: stats.savedCourseCount, 
+			category: 'K-Course' as const,
+			onClick: handleSavedCoursesClick
+		},
+		{ 
+			iconClass: 'fi-rr-map-marker-plus', 
+			title: '내가 만든 코스', 
+			count: stats.courseCount, 
+			category: 'K-Course' as const,
+			onClick: handleMyCoursesClick
+		},
 	]
 
 	// 아래쪽 3개 - 글/댓글 관련
 	const bottomActivities = [
-		{ iconClass: 'fi-rr-document', title: '스크랩한 글', count: 0, category: 'K-Buzz' as const },
-		{ iconClass: 'fi-rr-edit', title: '내가 쓴 글', count: 0, category: 'K-Buzz' as const },
-		{ iconClass: 'fi-rr-comment-alt', title: '내가 쓴 댓글', count: 0, category: 'K-Buzz' as const },
+		{ 
+			iconClass: 'fi-rr-document', 
+			title: '스크랩한 글', 
+			count: stats.scrapCount, 
+			category: 'K-Buzz' as const,
+			onClick: handleScrapsClick
+		},
+		{ 
+			iconClass: 'fi-rr-edit', 
+			title: '내가 쓴 글', 
+			count: stats.postCount, 
+			category: 'K-Buzz' as const,
+			onClick: handlePostsClick
+		},
+		{ 
+			iconClass: 'fi-rr-comment-alt', 
+			title: '내가 쓴 댓글', 
+			count: stats.commentCount, 
+			category: 'K-Buzz' as const,
+			onClick: handleCommentsClick
+		},
 	]
 
 	return (
@@ -86,6 +215,7 @@ const MyPage = () => {
 									title={activity.title}
 									count={activity.count}
 									category={activity.category}
+									onClick={activity.onClick}
 								/>
 							))}
 						</div>
@@ -101,6 +231,7 @@ const MyPage = () => {
 									title={activity.title}
 									count={activity.count}
 									category={activity.category}
+									onClick={activity.onClick}
 								/>
 							))}
 						</div>
