@@ -150,22 +150,24 @@
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
 
-		/* 폰트: Geist 변수 → 시스템 폰트 폴백 */
-		font-family: var(
-			--font-sans,
-			ui-sans-serif,
-			system-ui,
-			-apple-system,
-			'Segoe UI',
-			Roboto,
-			'Noto Sans',
-			Ubuntu,
-			Cantarell,
-			'Helvetica Neue',
-			Arial,
-			'Apple Color Emoji',
-			'Segoe UI Emoji'
-		);
+		/* Noto Sans 다국어 폰트 패밀리 */
+		font-family: 'Noto Sans', 'Noto Sans KR', 'Noto Sans SC', 
+			ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 
+			Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 
+			'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+	}
+
+	/* 언어별 폰트 지정 */
+	:lang(ko) {
+		font-family: 'Noto Sans KR', 'Noto Sans', sans-serif;
+	}
+
+	:lang(en) {
+		font-family: 'Noto Sans', 'Noto Sans KR', sans-serif;
+	}
+
+	:lang(zh), :lang(zh-CN) {
+		font-family: 'Noto Sans SC', 'Noto Sans', 'Noto Sans KR', sans-serif;
 	}
 
 	code {
