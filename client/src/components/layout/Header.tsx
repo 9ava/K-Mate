@@ -36,7 +36,7 @@ export default function Header() {
 					{/* 좌측: 로고 */}
 					<div className="flex items-center">
 						<Link to="/" className="flex items-center gap-1.5 sm:gap-2">
-							<div className="grid w-7 h-7 sm:w-8 sm:h-8 text-xs sm:text-sm font-bold text-white bg-black rounded-full place-items-center">
+							<div className="grid text-xs font-bold text-white bg-black rounded-full w-7 h-7 sm:w-8 sm:h-8 sm:text-sm place-items-center">
 								K
 							</div>
 							<span className="text-sm font-semibold sm:text-base">- Mate</span>
@@ -44,7 +44,7 @@ export default function Header() {
 					</div>
 
 					{/* 중앙: Nav (데스크탑만 표시) */}
-					<nav className="hidden items-center gap-4 text-sm md:flex lg:gap-6">
+					<nav className="items-center hidden gap-4 text-sm md:flex lg:gap-6">
 						<NavLink 
 							to="/kmap"
 							className={({ isActive }) => 
@@ -97,7 +97,7 @@ export default function Header() {
 						{/* 로그인/아바타 */}
 						{isAuthed ? (
 							<div className="relative group">
-								<div className="grid w-7 h-7 sm:w-8 sm:h-8 text-xs sm:text-sm font-bold text-white transition-colors bg-blue-500 rounded-full cursor-pointer place-items-center hover:bg-blue-600">
+								<div className="grid text-xs font-bold text-white transition-colors bg-blue-500 rounded-full cursor-pointer w-7 h-7 sm:w-8 sm:h-8 sm:text-sm place-items-center hover:bg-blue-600">
 									{initial}
 								</div>
 								<div className="absolute right-0 z-50 invisible p-2 mt-1 transition-all duration-200 ease-in-out bg-white border rounded-lg shadow opacity-0 w-44 group-hover:visible group-hover:opacity-100">
@@ -174,7 +174,7 @@ export default function Header() {
 					/>
 					
 					{/* 메뉴 패널 */}
-					<div className="fixed top-14 left-0 right-0 bg-white border-b shadow-lg">
+					<div className="fixed left-0 right-0 bg-white border-b shadow-lg top-14">
 						<div className="py-4">
 							{/* 네비게이션 링크 */}
 							<div className="space-y-1">
@@ -214,7 +214,7 @@ export default function Header() {
 							</div>
 							
 							{/* 언어 스위처 (모바일) */}
-							<div className="px-4 py-3 border-t border-gray-100 mt-2">
+							<div className="px-4 py-3 mt-2 border-t border-gray-100">
 								<div className="flex items-center justify-between">
 									<span className="text-sm font-medium text-gray-700">{t('common.language', '언어')}</span>
 									<LanguageSwitcher />
