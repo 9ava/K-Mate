@@ -30,6 +30,8 @@ const AppRouter = () => {
 					<Route path="/login/callback" element={<AuthCallbackPage />} />
 					<Route path="/kcourse" element={<KcoursePage />} />
 					<Route path="/kcourse/:courseId" element={<CourseDetailPage />} />
+					{/* Redirect /courses/* to /kcourse/* for backward compatibility */}
+					<Route path="/courses/:courseId" element={<CourseDetailPage />} />
 					<Route path="/planner" element={<PlannerPage />} />
 					<Route path="/kmap" element={<KmapPage />} />
 					<Route path="/buzz" element={<KBuzzPage />} />
