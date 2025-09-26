@@ -50,35 +50,40 @@ export class PostsService {
 		query: GetPostsQueryDto,
 		userId?: number
 	): Promise<{ posts: PostResponseDto[]; total: number }> {
-		const { page = 1, limit = 10, postType, category, status, search } = query
-		const skip = (page - 1) * limit
+		try {
+			const { page = 1, limit = 10, postType, category, status, search } = query
+			const skip = (page - 1) * limit
 
-		const qb = this.postRepo
-			.createQueryBuilder('post')
-			.leftJoinAndSelect('post.author', 'author')
-			.orderBy('post.createdAt', 'DESC')
-			.skip(skip)
-			.take(limit)
+			const qb = this.postRepo
+				.createQueryBuilder('post')
+				.leftJoinAndSelect('post.author', 'author')
+				.orderBy('post.createdAt', 'DESC')
+				.skip(skip)
+				.take(limit)
 
-		if (postType) {
-			qb.andWhere('post.postType = :postType', { postType })
-		}
-		if (category) {
-			qb.andWhere('post.category = :category', { category })
-		}
-		if (status) {
-			qb.andWhere('post.status = :status', { status })
-		}
+			if (postType) {
+				qb.andWhere('post.postType = :postType', { postType })
+			}
+			if (category) {
+				qb.andWhere('post.category = :category', { category })
+			}
+			if (status) {
+				qb.andWhere('post.status = :status', { status })
+			}
 
-		if (search) {
-			qb.andWhere('(post.title LIKE :search OR post.content LIKE :search)', {
-				search: `%${search}%`,
-			})
-		}
+			if (search) {
+				qb.andWhere('(post.title LIKE :search OR post.content LIKE :search)', {
+					search: `%${search}%`,
+				})
+			}
 
-		const [rows, total] = await qb.getManyAndCount()
-		const posts = await Promise.all(rows.map((p) => this.formatPostResponse(p, userId)))
-		return { posts, total }
+			const [rows, total] = await qb.getManyAndCount()
+			const posts = await Promise.all(rows.map((p) => this.formatPostResponse(p, userId)))
+			return { posts, total }
+		} catch (error) {
+			console.error('Error in getPosts:', error)
+			throw error
+		}
 	}
 
 	/** 게시글 상세 (조회수 +1) */

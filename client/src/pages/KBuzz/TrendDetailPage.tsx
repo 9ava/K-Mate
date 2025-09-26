@@ -142,7 +142,7 @@ export default function TrendDetailPage() {
 			const uploadedUrl = await uploadToS3(imageFile, key)
 
 			// 업로드 성공 시 이미지 URL을 editDraft에 업데이트
-			setEditDraft(prev => ({ ...prev, image: uploadedUrl }))
+			setEditDraft((prev) => ({ ...prev, image: uploadedUrl }))
 			return uploadedUrl
 		} catch (error) {
 			console.error('Image upload failed:', error)
@@ -182,7 +182,7 @@ export default function TrendDetailPage() {
 					title: data.title,
 					author: data.author?.name || 'K-Mate',
 					content: data.content || '',
-					image: extras.image || fallbackImage,
+					image: data.imageUrl || extras.image || fallbackImage,
 					aboutTitle: extras.aboutTitle || 'About K-Trend',
 					aboutDescription:
 						extras.aboutDescription ||
@@ -455,11 +455,11 @@ export default function TrendDetailPage() {
 									</div>
 
 									{/* 파일 업로드 섹션 */}
-									<div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+									<div className="p-4 border-2 border-gray-300 border-dashed rounded-lg">
 										{!imagePreview ? (
 											<div className="text-center">
-												<p className="text-sm text-gray-500 mb-2">새 이미지를 S3에 업로드</p>
-												<label className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer">
+												<p className="mb-2 text-sm text-gray-500">새 이미지를 S3에 업로드</p>
+												<label className="inline-block px-4 py-2 text-gray-700 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200">
 													파일 선택
 													<input
 														type="file"
@@ -468,7 +468,7 @@ export default function TrendDetailPage() {
 														className="hidden"
 													/>
 												</label>
-												<p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · 최대 5MB</p>
+												<p className="mt-1 text-xs text-gray-400">JPG, PNG, WebP · 최대 5MB</p>
 											</div>
 										) : (
 											<div>
@@ -476,7 +476,7 @@ export default function TrendDetailPage() {
 													<img
 														src={imagePreview}
 														alt="선택된 이미지"
-														className="w-20 h-20 object-cover rounded border"
+														className="object-cover w-20 h-20 border rounded"
 													/>
 													<div className="flex-1">
 														<p className="text-sm font-medium">{imageFile?.name}</p>
@@ -489,7 +489,7 @@ export default function TrendDetailPage() {
 													<button
 														type="button"
 														onClick={clearImageSelection}
-														className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+														className="px-2 py-1 text-sm text-gray-600 rounded hover:bg-gray-100"
 													>
 														×
 													</button>
@@ -500,13 +500,28 @@ export default function TrendDetailPage() {
 														type="button"
 														onClick={uploadImageToS3}
 														disabled={uploading}
-														className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+														className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 													>
 														{uploading ? (
 															<>
-																<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-																	<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-																	<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+																<svg
+																	className="w-4 h-4 animate-spin"
+																	fill="none"
+																	viewBox="0 0 24 24"
+																>
+																	<circle
+																		className="opacity-25"
+																		cx="12"
+																		cy="12"
+																		r="10"
+																		stroke="currentColor"
+																		strokeWidth="4"
+																	></circle>
+																	<path
+																		className="opacity-75"
+																		fill="currentColor"
+																		d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+																	></path>
 																</svg>
 																업로드 중...
 															</>
@@ -582,13 +597,24 @@ export default function TrendDetailPage() {
 									</button>
 									<button
 										type="submit"
-										className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										className="flex items-center gap-2 px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
 										disabled={uploading}
 									>
 										{uploading && (
-											<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-												<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-												<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											<svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+												<circle
+													className="opacity-25"
+													cx="12"
+													cy="12"
+													r="10"
+													stroke="currentColor"
+													strokeWidth="4"
+												></circle>
+												<path
+													className="opacity-75"
+													fill="currentColor"
+													d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+												></path>
 											</svg>
 										)}
 										{uploading ? '업로드 중...' : '수정 완료'}
