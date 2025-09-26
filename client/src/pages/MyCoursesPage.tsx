@@ -76,8 +76,7 @@ export default function MyCoursesPage() {
 
 			setError(null)
 		} catch (error) {
-			console.error('코스 로드 실패:', error)
-			setError('코스를 불러오는데 실패했습니다.')
+			setError(t('mypage.messages.failed_to_load_courses'))
 		} finally {
 			setLoading(false)
 		}
@@ -85,30 +84,22 @@ export default function MyCoursesPage() {
 
 	// 코스들의 사진을 로드하는 함수
 	const loadCoursePhotos = async (courses: any[]) => {
-		console.log('🔄 Loading photos for courses:', courses.length)
-		
 		const photoPromises = courses.map(async (course) => {
 			const actualCourse = 'course' in course ? course.course : course
-			console.log(`📝 Course ${actualCourse.id} - getting full course details`)
 			
 			try {
 				// 각 코스의 상세 정보(stops 포함)를 가져오기
 				const courseResponse = await getCourse(actualCourse.id)
 				const fullCourseData = courseResponse.data
-				console.log(`📋 Full course data for ${actualCourse.id}:`, fullCourseData)
 				
 				// KcoursePage와 동일한 방식: 첫 번째 스톱의 externalId 확인
 				const firstStop = fullCourseData.stops?.[0]
-				console.log(`📍 First stop for course ${actualCourse.id}:`, firstStop)
 				
 				if (!firstStop?.externalId) {
-					console.log(`❌ No externalId for course ${actualCourse.id}`)
 					return { courseId: actualCourse.id, photoUrl: null }
 				}
 
-				console.log(`🔍 Getting place detail for ${firstStop.externalId}`)
 				const placeDetail = await getPlaceDetail(firstStop.externalId)
-				console.log(`📸 Photo URL for course ${actualCourse.id}:`, placeDetail.photoUrl)
 				return {
 					courseId: actualCourse.id,
 					photoUrl: placeDetail.photoUrl || null
@@ -126,7 +117,6 @@ export default function MyCoursesPage() {
 				photoMap[result.courseId] = result.photoUrl
 			}
 		})
-		console.log('🎨 Final photo map:', photoMap)
 		setCoursePhotos(photoMap)
 	}
 

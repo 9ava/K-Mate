@@ -88,7 +88,6 @@ const MyPage = () => {
 				setStats(data)
 				setError(null)
 			} catch (error) {
-				console.error('활동 통계 로드 실패:', error)
 				setError(t('mypage.messages.failed_to_load_stats'))
 			} finally {
 				setLoading(false)

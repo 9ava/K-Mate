@@ -41,7 +41,6 @@ export default function MyCommentsPage() {
 			}))
 			setError(null)
 		} catch (error) {
-			console.error('내가 쓴 댓글 로드 실패:', error)
 			setError(t('mypage.messages.failed_to_load_comments'))
 		} finally {
 			setLoading(false)

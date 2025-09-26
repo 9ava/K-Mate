@@ -41,7 +41,6 @@ export default function MyPostsPage() {
 			}))
 			setError(null)
 		} catch (error) {
-			console.error('내가 쓴 글 로드 실패:', error)
 			setError(t('mypage.messages.failed_to_load_posts'))
 		} finally {
 			setLoading(false)

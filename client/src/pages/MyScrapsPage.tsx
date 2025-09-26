@@ -41,7 +41,6 @@ export default function MyScrapsPage() {
 			}))
 			setError(null)
 		} catch (error) {
-			console.error('스크랩한 글 로드 실패:', error)
 			setError(t('mypage.messages.failed_to_load_scraps'))
 		} finally {
 			setLoading(false)

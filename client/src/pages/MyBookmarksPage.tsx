@@ -71,7 +71,6 @@ export default function MyBookmarksPage() {
 
 			setError(null)
 		} catch (error) {
-			console.error('북마크 로드 실패:', error)
 			setError(t('mypage.messages.failed_to_load_bookmarks'))
 		} finally {
 			setLoading(false)

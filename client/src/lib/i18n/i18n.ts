@@ -16,7 +16,7 @@ i18n
 		load: 'languageOnly',
 		ns: ['common'],
 		defaultNS: 'common',
-		debug: import.meta.env.DEV,
+		debug: false,
 		interpolation: { escapeValue: true },
 		backend: {
 			loadPath: '/locales/{{lng}}/{{ns}}.json?v=' + VERSION,
