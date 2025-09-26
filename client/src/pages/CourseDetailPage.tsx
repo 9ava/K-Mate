@@ -1,6 +1,6 @@
 // src/pages/CourseDetailPage.tsx
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCourse, updateCourse, deleteCourse, saveCourse, unsaveCourse } from '../api/courses'
 import { getPlaceDetail } from '../api/places'
 import { useAuth } from '../features/auth/useAuth'
@@ -24,6 +24,7 @@ type Stop = {
 export default function CourseDetailPage() {
 	const { courseId } = useParams<{ courseId: string }>()
 	const navigate = useNavigate()
+	const [searchParams] = useSearchParams()
 	const { user } = useAuth()
 	
 	const [course, setCourse] = useState<Course | null>(null)
@@ -34,6 +35,20 @@ export default function CourseDetailPage() {
 	const [isSaved, setIsSaved] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [actionLoading, setActionLoading] = useState(false)
+
+	// 목록으로 돌아가기 핸들러
+	const handleBackToList = () => {
+		const from = searchParams.get('from')
+		const tab = searchParams.get('tab')
+		
+		if (from === 'mypage' && tab) {
+			// MyPage의 코스에서 온 경우 MyCoursesPage로 돌아가기
+			navigate(`/mypage/courses?tab=${tab}`)
+		} else {
+			// 기본적으로 KcoursePage로 돌아가기
+			navigate('/kcourse')
+		}
+	}
 
 	// 코스 데이터를 Stop 배열로 변환
 	const convertCourseToStops = async (courseData: Course): Promise<Stop[]> => {
@@ -229,7 +244,7 @@ export default function CourseDetailPage() {
 				<div className="flex items-center justify-between mx-auto max-w-7xl">
 					<div className="flex items-center gap-4">
 						<button
-							onClick={() => navigate('/kcourse')}
+							onClick={handleBackToList}
 							className="text-gray-500 hover:text-gray-700"
 						>
 							← 목록으로

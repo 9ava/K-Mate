@@ -4,7 +4,6 @@ import { useAuth } from '../features/auth/useAuth'
 import { getMyBookmarks } from '../api/mypage'
 import { getPlaceDetail } from '../api/places'
 import type { BookmarkItem, PaginationQueryDto } from '../api/mypage'
-import type { Place } from '../types/place'
 
 export default function MyBookmarksPage() {
 	const navigate = useNavigate()
