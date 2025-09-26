@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { getUserActivityStats } from '../api/mypage'
 import type { UserActivityStats } from '../api/mypage'
@@ -66,6 +67,7 @@ const ActivityCard = ({ iconClass, title, count, category, onClick }: ActivityCa
 }
 
 const MyPage = () => {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
 	const [stats, setStats] = useState<UserActivityStats | null>(null)
@@ -87,7 +89,7 @@ const MyPage = () => {
 				setError(null)
 			} catch (error) {
 				console.error('활동 통계 로드 실패:', error)
-				setError('활동 통계를 불러오는데 실패했습니다.')
+				setError(t('mypage.messages.failed_to_load_stats'))
 			} finally {
 				setLoading(false)
 			}
@@ -102,7 +104,7 @@ const MyPage = () => {
 			<div className="flex items-center justify-center min-h-screen bg-gray-50">
 				<div className="text-center">
 					<div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin"></div>
-					<p className="text-gray-600">활동 통계를 불러오는 중...</p>
+					<p className="text-gray-600">{t('mypage.messages.loading_stats')}</p>
 				</div>
 			</div>
 		)
@@ -112,12 +114,12 @@ const MyPage = () => {
 		return (
 			<div className="flex items-center justify-center min-h-screen bg-gray-50">
 				<div className="text-center">
-					<p className="mb-4 text-red-600">{error || '데이터를 불러올 수 없습니다.'}</p>
+					<p className="mb-4 text-red-600">{error || t('mypage.messages.failed_to_load_data')}</p>
 					<button 
 						onClick={() => window.location.reload()} 
 						className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
 					>
-						다시 시도
+						{t('mypage.buttons.retry')}
 					</button>
 				</div>
 			</div>
@@ -153,21 +155,21 @@ const MyPage = () => {
 	const topActivities = [
 		{ 
 			iconClass: 'fi-rr-bookmark', 
-			title: '북마크한 장소', 
+			title: t('mypage.titles.bookmarks'), 
 			count: stats.bookmarkCount, 
 			category: 'K-Map' as const,
 			onClick: handleBookmarksClick
 		},
 		{ 
 			iconClass: 'fi-rr-map-marker', 
-			title: '저장한 코스', 
+			title: t('mypage.titles.saved_courses'), 
 			count: stats.savedCourseCount, 
 			category: 'K-Course' as const,
 			onClick: handleSavedCoursesClick
 		},
 		{ 
 			iconClass: 'fi-rr-map-marker-plus', 
-			title: '내가 만든 코스', 
+			title: t('mypage.titles.created_courses'), 
 			count: stats.courseCount, 
 			category: 'K-Course' as const,
 			onClick: handleMyCoursesClick
@@ -178,21 +180,21 @@ const MyPage = () => {
 	const bottomActivities = [
 		{ 
 			iconClass: 'fi-rr-document', 
-			title: '스크랩한 글', 
+			title: t('mypage.titles.scraps'), 
 			count: stats.scrapCount, 
 			category: 'K-Buzz' as const,
 			onClick: handleScrapsClick
 		},
 		{ 
 			iconClass: 'fi-rr-edit', 
-			title: '내가 쓴 글', 
+			title: t('mypage.titles.posts'), 
 			count: stats.postCount, 
 			category: 'K-Buzz' as const,
 			onClick: handlePostsClick
 		},
 		{ 
 			iconClass: 'fi-rr-comment-alt', 
-			title: '내가 쓴 댓글', 
+			title: t('mypage.titles.comments'), 
 			count: stats.commentCount, 
 			category: 'K-Buzz' as const,
 			onClick: handleCommentsClick
@@ -203,7 +205,7 @@ const MyPage = () => {
 		<div className="min-h-screen bg-gray-50">
 			<div className="max-w-4xl mx-auto">
 				<div className="px-6 py-8">
-					<h1 className="mb-16 text-2xl font-bold text-center text-gray-900">나의 활동</h1>
+					<h1 className="mb-16 text-2xl font-bold text-center text-gray-900">{t('mypage.titles.my_activities')}</h1>
 
 					{/* 위쪽 3개 - 장소/코스 관련 */}
 					<div className="mb-16">

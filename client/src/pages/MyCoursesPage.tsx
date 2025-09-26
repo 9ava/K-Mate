@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../features/auth/useAuth'
 import { getMyCourses, getSavedCourses } from '../api/mypage'
 import { getCourse } from '../api/courses'
@@ -9,6 +10,7 @@ import type { MyCourseItem, SavedCourseItem, PaginationQueryDto } from '../api/m
 type TabType = 'created' | 'saved'
 
 export default function MyCoursesPage() {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const [searchParams] = useSearchParams()
 	const { isAuthed } = useAuth()
@@ -141,7 +143,7 @@ export default function MyCoursesPage() {
 	}
 
 	const getVisibilityLabel = (visibility: string) => {
-		return visibility === 'public' ? '공개' : '비공개'
+		return visibility === 'public' ? t('mypage.labels.public') : t('mypage.labels.private')
 	}
 
 	const handleTabChange = (tab: TabType) => {
@@ -167,7 +169,7 @@ export default function MyCoursesPage() {
 			<div className="flex items-center justify-center min-h-screen bg-gray-50">
 				<div className="text-center">
 					<div className="w-12 h-12 mx-auto mb-4 border-b-2 border-green-600 rounded-full animate-spin"></div>
-					<p className="text-gray-600">코스를 불러오는 중...</p>
+					<p className="text-gray-600">{t('mypage.messages.loading_courses')}</p>
 				</div>
 			</div>
 		)
@@ -182,7 +184,7 @@ export default function MyCoursesPage() {
 						onClick={loadCourses} 
 						className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
 					>
-						다시 시도
+						{t('common.retry')}
 					</button>
 				</div>
 			</div>
@@ -203,12 +205,12 @@ export default function MyCoursesPage() {
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
 							</svg>
 						</button>
-						<h1 className="text-2xl font-bold text-gray-900">내 여행 코스</h1>
+						<h1 className="text-2xl font-bold text-gray-900">{t('mypage.titles.my_courses')}</h1>
 						<div className="px-3 py-1 text-sm font-bold text-white bg-green-500 rounded-full">
-							K-Course
+							{t('mypage.badges.kcourse')}
 						</div>
 					</div>
-					<p className="text-gray-600">내가 만들고 저장한 여행 코스 목록입니다.</p>
+					<p className="text-gray-600">{t('mypage.messages.create_course_message')}</p>
 				</div>
 
 				{/* 탭 네비게이션 */}
@@ -225,7 +227,7 @@ export default function MyCoursesPage() {
 							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
 							</svg>
-							<span>내가 만든 코스</span>
+							<span>{t('mypage.labels.created_courses')}</span>
 							<span className={`text-xs px-2 py-1 rounded-full ${
 								activeTab === 'created' ? 'bg-white/20' : 'bg-gray-100'
 							}`}>
@@ -244,7 +246,7 @@ export default function MyCoursesPage() {
 							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
 							</svg>
-							<span>저장한 코스</span>
+							<span>{t('mypage.labels.saved_courses')}</span>
 							<span className={`text-xs px-2 py-1 rounded-full ${
 								activeTab === 'saved' ? 'bg-white/20' : 'bg-gray-100'
 							}`}>
@@ -269,7 +271,7 @@ export default function MyCoursesPage() {
 							)}
 						</div>
 						<h3 className="mb-2 text-lg font-medium text-gray-900">
-							{activeTab === 'created' ? '만든 코스가 없습니다' : '저장한 코스가 없습니다'}
+							{activeTab === 'created' ? t('mypage.messages.no_created_courses') : t('mypage.messages.no_saved_courses')}
 						</h3>
 						<p className="mb-6 text-gray-500">
 							{activeTab === 'created' 
@@ -281,7 +283,7 @@ export default function MyCoursesPage() {
 							onClick={() => navigate(activeTab === 'created' ? '/planner' : '/kcourse')}
 							className="px-6 py-3 text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700"
 						>
-							{activeTab === 'created' ? '코스 만들기' : '코스 둘러보기'}
+							{activeTab === 'created' ? t('mypage.buttons.create_course') : t('mypage.buttons.browse_courses')}
 						</button>
 					</div>
 				) : (
@@ -379,7 +381,7 @@ export default function MyCoursesPage() {
 								disabled={pagination.page === 1}
 								className="px-3 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								이전
+								{t('mypage.buttons.previous')}
 							</button>
 							
 							{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -406,7 +408,7 @@ export default function MyCoursesPage() {
 								disabled={pagination.page === totalPages}
 								className="px-3 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								다음
+								{t('mypage.buttons.next')}
 							</button>
 						</div>
 					</div>

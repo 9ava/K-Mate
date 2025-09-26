@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getMyBookmarks } from '../api/mypage'
@@ -6,6 +7,7 @@ import { getPlaceDetail } from '../api/places'
 import type { BookmarkItem, PaginationQueryDto } from '../api/mypage'
 
 export default function MyBookmarksPage() {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
 	const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([])
@@ -70,7 +72,7 @@ export default function MyBookmarksPage() {
 			setError(null)
 		} catch (error) {
 			console.error('북마크 로드 실패:', error)
-			setError('북마크를 불러오는데 실패했습니다.')
+			setError(t('mypage.messages.failed_to_load_bookmarks'))
 		} finally {
 			setLoading(false)
 		}
@@ -97,11 +99,11 @@ export default function MyBookmarksPage() {
 	const getTypeLabel = (type: string) => {
 		switch (type) {
 			case 'travel':
-				return '관광지'
+				return t('mypage.labels.travel')
 			case 'food':
-				return '음식점'
+				return t('mypage.labels.food')
 			case 'cafe':
-				return '카페'
+				return t('mypage.labels.cafe')
 			default:
 				return type
 		}
@@ -118,7 +120,7 @@ export default function MyBookmarksPage() {
 			<div className="flex items-center justify-center min-h-screen bg-gray-50">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-					<p className="text-gray-600">북마크를 불러오는 중...</p>
+					<p className="text-gray-600">{t('mypage.messages.loading_bookmarks')}</p>
 				</div>
 			</div>
 		)
@@ -133,7 +135,7 @@ export default function MyBookmarksPage() {
 						onClick={loadBookmarks} 
 						className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 					>
-						다시 시도
+						{t('mypage.buttons.retry')}
 					</button>
 				</div>
 			</div>
@@ -154,12 +156,12 @@ export default function MyBookmarksPage() {
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
 							</svg>
 						</button>
-						<h1 className="text-2xl font-bold text-gray-900">북마크한 장소</h1>
+						<h1 className="text-2xl font-bold text-gray-900">{t('mypage.titles.bookmarks')}</h1>
 						<div className="px-3 py-1 bg-blue-500 text-white text-sm font-bold rounded-full">
 							K-Map
 						</div>
 					</div>
-					<p className="text-gray-600">내가 저장한 장소 목록입니다.</p>
+					<p className="text-gray-600">{t('mypage.descriptions.bookmarks')}</p>
 				</div>
 
 				{/* 통계 및 뷰 모드 */}
@@ -168,28 +170,28 @@ export default function MyBookmarksPage() {
 						<div className="flex items-center gap-4">
 							<div className="text-center">
 								<div className="text-xl font-bold text-gray-900">{pagination.total}</div>
-								<div className="text-sm text-gray-500">전체 장소</div>
+								<div className="text-sm text-gray-500">{t('mypage.labels.total_places')}</div>
 							</div>
 							<div className="w-px h-8 bg-gray-200"></div>
 							<div className="text-center">
 								<div className="text-xl font-bold text-blue-600">
 									{bookmarks.filter(b => b.type === 'travel').length}
 								</div>
-								<div className="text-sm text-gray-500">관광지</div>
+								<div className="text-sm text-gray-500">{t('mypage.labels.travel')}</div>
 							</div>
 							<div className="w-px h-8 bg-gray-200"></div>
 							<div className="text-center">
 								<div className="text-xl font-bold text-red-600">
 									{bookmarks.filter(b => b.type === 'food').length}
 								</div>
-								<div className="text-sm text-gray-500">음식점</div>
+								<div className="text-sm text-gray-500">{t('mypage.labels.food')}</div>
 							</div>
 							<div className="w-px h-8 bg-gray-200"></div>
 							<div className="text-center">
 								<div className="text-xl font-bold text-yellow-600">
 									{bookmarks.filter(b => b.type === 'cafe').length}
 								</div>
-								<div className="text-sm text-gray-500">카페</div>
+								<div className="text-sm text-gray-500">{t('mypage.labels.cafe')}</div>
 							</div>
 						</div>
 					</div>
@@ -231,13 +233,13 @@ export default function MyBookmarksPage() {
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
 							</svg>
 						</div>
-						<h3 className="text-lg font-medium text-gray-900 mb-2">북마크한 장소가 없습니다</h3>
-						<p className="text-gray-500 mb-6">K-Map에서 마음에 드는 장소를 북마크해보세요!</p>
+						<h3 className="text-lg font-medium text-gray-900 mb-2">{t('mypage.messages.no_bookmarks')}</h3>
+						<p className="text-gray-500 mb-6">{t('mypage.messages.no_bookmarks_description')}</p>
 						<button
 							onClick={() => navigate('/kmap')}
 							className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
 						>
-							장소 찾아보기
+							{t('mypage.buttons.find_places')}
 						</button>
 					</div>
 				) : viewMode === 'grid' ? (
@@ -317,7 +319,7 @@ export default function MyBookmarksPage() {
 												<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
 												</svg>
-												<span>북마크</span>
+												<span>{t('mypage.labels.bookmark')}</span>
 											</div>
 										</div>
 										<h2 className="text-lg font-semibold text-gray-900 mb-2 hover:text-blue-600 transition-colors">
@@ -363,7 +365,7 @@ export default function MyBookmarksPage() {
 								disabled={pagination.page === 1}
 								className="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								이전
+								{t('mypage.buttons.previous')}
 							</button>
 							
 							{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -390,7 +392,7 @@ export default function MyBookmarksPage() {
 								disabled={pagination.page === totalPages}
 								className="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								다음
+								{t('mypage.buttons.next')}
 							</button>
 						</div>
 					</div>

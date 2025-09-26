@@ -138,5 +138,83 @@
 			"title": "입력 오류",
 			"message": "입력하신 정보를 다시 확인해주세요."
 		}
+	},
+	"mypage": {
+		"titles": {
+			"mypage": "마이페이지",
+			"my_activities": "나의 활동",
+			"my_courses": "내 여행 코스", 
+			"bookmarks": "북마크한 장소",
+			"posts": "내가 쓴 글",
+			"comments": "내가 쓴 댓글",
+			"scraps": "스크랩한 글",
+			"saved_courses": "저장한 코스",
+			"created_courses": "내가 만든 코스"
+		},
+		"descriptions": {
+			"bookmarks": "내가 저장한 장소 목록입니다.",
+			"courses": "내가 만들고 저장한 여행 코스입니다.",
+			"posts": "내가 작성한 게시글 목록입니다.",
+			"comments": "내가 작성한 댓글 목록입니다.",
+			"scraps": "내가 스크랩한 글 목록입니다."
+		},
+		"labels": {
+			"total_places": "전체 장소",
+			"travel": "관광지",
+			"food": "음식점",
+			"cafe": "카페",
+			"created_courses": "내가 만든 코스",
+			"saved_courses": "저장한 코스",
+			"public": "공개",
+			"private": "비공개",
+			"bookmark": "북마크",
+			"saved": "저장됨",
+			"loading": "불러오는 중...",
+			"no_data": "데이터가 없습니다",
+			"view_mode": "보기 모드",
+			"grid_view": "격자 보기",
+			"list_view": "목록 보기"
+		},
+		"messages": {
+			"loading_stats": "활동 통계를 불러오는 중...",
+			"loading_courses": "코스를 불러오는 중...",
+			"loading_bookmarks": "북마크를 불러오는 중...",
+			"loading_posts": "게시글을 불러오는 중...",
+			"loading_comments": "댓글을 불러오는 중...",
+			"loading_scraps": "스크랩을 불러오는 중...",
+			"failed_load_stats": "활동 통계를 불러오는데 실패했습니다.",
+			"failed_load_courses": "코스를 불러오는데 실패했습니다.",
+			"failed_load_bookmarks": "북마크를 불러오는데 실패했습니다.",
+			"failed_load_posts": "게시글을 불러오는데 실패했습니다.",
+			"failed_load_comments": "댓글을 불러오는데 실패했습니다.",
+			"failed_load_scraps": "스크랩을 불러오는데 실패했습니다.",
+			"no_courses_created": "만든 코스가 없습니다",
+			"no_courses_saved": "저장한 코스가 없습니다",
+			"no_bookmarks": "북마크한 장소가 없습니다",
+			"no_posts": "작성한 게시글이 없습니다",
+			"no_comments": "작성한 댓글이 없습니다",
+			"no_scraps": "스크랩한 글이 없습니다",
+			"create_course_message": "나만의 여행 코스를 만들어보세요!",
+			"save_course_message": "마음에 드는 코스를 저장해보세요!",
+			"bookmark_message": "K-Map에서 마음에 드는 장소를 북마크해보세요!",
+			"post_message": "K-Buzz에서 첫 번째 글을 작성해보세요!",
+			"comment_message": "다른 사람의 글에 댓글을 남겨보세요!",
+			"scrap_message": "마음에 드는 글을 스크랩해보세요!"
+		},
+		"buttons": {
+			"create_course": "코스 만들기",
+			"browse_courses": "코스 둘러보기",
+			"find_places": "장소 찾아보기",
+			"write_post": "글 작성하기",
+			"browse_posts": "글 둘러보기",
+			"previous": "이전",
+			"next": "다음",
+			"back_to_mypage": "마이페이지로 돌아가기"
+		},
+		"badges": {
+			"kmap": "K-Map",
+			"kcourse": "K-Course",
+			"kbuzz": "K-Buzz"
+		}
 	}
 }

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getMyPosts } from '../api/mypage'
 import type { MyPostItem, PaginationQueryDto } from '../api/mypage'
 
 export default function MyPostsPage() {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
 	const [posts, setPosts] = useState<MyPostItem[]>([])
@@ -40,7 +42,7 @@ export default function MyPostsPage() {
 			setError(null)
 		} catch (error) {
 			console.error('내가 쓴 글 로드 실패:', error)
-			setError('내가 쓴 글을 불러오는데 실패했습니다.')
+			setError(t('mypage.messages.failed_to_load_posts'))
 		} finally {
 			setLoading(false)
 		}
@@ -114,7 +116,7 @@ export default function MyPostsPage() {
 			<div className="flex items-center justify-center min-h-screen bg-gray-50">
 				<div className="text-center">
 					<div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin"></div>
-					<p className="text-gray-600">내가 쓴 글을 불러오는 중...</p>
+					<p className="text-gray-600">{t('mypage.messages.loading_posts')}</p>
 				</div>
 			</div>
 		)
@@ -129,7 +131,7 @@ export default function MyPostsPage() {
 						onClick={loadPosts} 
 						className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
 					>
-						다시 시도
+						{t('mypage.buttons.retry')}
 					</button>
 				</div>
 			</div>
@@ -150,12 +152,12 @@ export default function MyPostsPage() {
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
 							</svg>
 						</button>
-						<h1 className="text-2xl font-bold text-gray-900">내가 쓴 글</h1>
+						<h1 className="text-2xl font-bold text-gray-900">{t('mypage.titles.posts')}</h1>
 						<div className="px-3 py-1 text-sm font-bold text-white bg-orange-500 rounded-full">
 							K-Buzz
 						</div>
 					</div>
-					<p className="text-gray-600">내가 작성한 게시글 목록입니다.</p>
+					<p className="text-gray-600">{t('mypage.descriptions.posts')}</p>
 				</div>
 
 				{/* 통계 */}
@@ -192,13 +194,13 @@ export default function MyPostsPage() {
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 							</svg>
 						</div>
-						<h3 className="mb-2 text-lg font-medium text-gray-900">작성한 글이 없습니다</h3>
-						<p className="mb-6 text-gray-500">K-Buzz에서 첫 번째 글을 작성해보세요!</p>
+						<h3 className="mb-2 text-lg font-medium text-gray-900">{t('mypage.messages.no_posts')}</h3>
+						<p className="mb-6 text-gray-500">{t('mypage.messages.post_message')}</p>
 						<button
 							onClick={() => navigate('/buzz')}
 							className="px-6 py-3 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
 						>
-							글 작성하러 가기
+							{t('mypage.buttons.write_post')}
 						</button>
 					</div>
 				) : (
@@ -268,7 +270,7 @@ export default function MyPostsPage() {
 								disabled={pagination.page === 1}
 								className="px-3 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								이전
+								{t('mypage.buttons.previous')}
 							</button>
 							
 							{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -295,7 +297,7 @@ export default function MyPostsPage() {
 								disabled={pagination.page === totalPages}
 								className="px-3 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								다음
+								{t('mypage.buttons.next')}
 							</button>
 						</div>
 					</div>

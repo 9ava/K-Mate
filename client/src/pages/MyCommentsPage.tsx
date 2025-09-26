@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getMyComments } from '../api/mypage'
 import type { MyCommentItem, PaginationQueryDto } from '../api/mypage'
 
 export default function MyCommentsPage() {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
 	const [comments, setComments] = useState<MyCommentItem[]>([])
@@ -40,7 +42,7 @@ export default function MyCommentsPage() {
 			setError(null)
 		} catch (error) {
 			console.error('내가 쓴 댓글 로드 실패:', error)
-			setError('내가 쓴 댓글을 불러오는데 실패했습니다.')
+			setError(t('mypage.messages.failed_to_load_comments'))
 		} finally {
 			setLoading(false)
 		}
@@ -88,7 +90,7 @@ export default function MyCommentsPage() {
 			<div className="flex items-center justify-center min-h-screen bg-gray-50">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-					<p className="text-gray-600">내가 쓴 댓글을 불러오는 중...</p>
+					<p className="text-gray-600">{t('mypage.messages.loading_comments')}</p>
 				</div>
 			</div>
 		)
@@ -103,7 +105,7 @@ export default function MyCommentsPage() {
 						onClick={loadComments} 
 						className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 					>
-						다시 시도
+						{t('mypage.buttons.retry')}
 					</button>
 				</div>
 			</div>
@@ -124,12 +126,12 @@ export default function MyCommentsPage() {
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
 							</svg>
 						</button>
-						<h1 className="text-2xl font-bold text-gray-900">내가 쓴 댓글</h1>
+						<h1 className="text-2xl font-bold text-gray-900">{t('mypage.titles.comments')}</h1>
 						<div className="px-3 py-1 bg-orange-500 text-white text-sm font-bold rounded-full">
 							K-Buzz
 						</div>
 					</div>
-					<p className="text-gray-600">내가 작성한 댓글 목록입니다.</p>
+					<p className="text-gray-600">{t('mypage.descriptions.comments')}</p>
 				</div>
 
 				{/* 통계 */}

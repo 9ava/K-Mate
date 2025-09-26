@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getMyScraps } from '../api/mypage'
 import type { ScrapItem, PaginationQueryDto } from '../api/mypage'
 
 export default function MyScrapsPage() {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
 	const [scraps, setScraps] = useState<ScrapItem[]>([])
@@ -40,7 +42,7 @@ export default function MyScrapsPage() {
 			setError(null)
 		} catch (error) {
 			console.error('스크랩한 글 로드 실패:', error)
-			setError('스크랩한 글을 불러오는데 실패했습니다.')
+			setError(t('mypage.messages.failed_to_load_scraps'))
 		} finally {
 			setLoading(false)
 		}
@@ -88,7 +90,7 @@ export default function MyScrapsPage() {
 			<div className="flex items-center justify-center min-h-screen bg-gray-50">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-					<p className="text-gray-600">스크랩한 글을 불러오는 중...</p>
+					<p className="text-gray-600">{t('mypage.messages.loading_scraps')}</p>
 				</div>
 			</div>
 		)

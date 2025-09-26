@@ -138,5 +138,85 @@
 			"title": "输入错误",
 			"message": "请检查您输入的信息。"
 		}
+	},
+	"mypage": {
+		"titles": {
+			"mypage": "我的页面",
+			"my_activities": "我的活动",
+			"my_courses": "我的旅行路线", 
+			"bookmarks": "收藏的地点",
+			"posts": "我的帖子",
+			"comments": "我的评论",
+			"scraps": "我的收藏",
+			"saved_courses": "保存的路线",
+			"created_courses": "创建的路线"
+		},
+		"descriptions": {
+			"bookmarks": "我收藏的地点列表。",
+			"courses": "我创建和保存的旅行路线。",
+			"posts": "我发表的帖子列表。",
+			"comments": "我发表的评论列表。",
+			"scraps": "我收藏的帖子列表。"
+		},
+		"labels": {
+			"total_places": "总地点",
+			"travel": "旅游景点",
+			"food": "餐厅",
+			"cafe": "咖啡厅",
+			"created_courses": "创建的路线",
+			"saved_courses": "保存的路线",
+			"public": "公开",
+			"private": "私有",
+			"bookmark": "收藏",
+			"saved": "已保存",
+			"loading": "加载中...",
+			"no_data": "无数据",
+			"view_mode": "查看模式",
+			"grid_view": "网格视图",
+			"list_view": "列表视图"
+		},
+		"messages": {
+			"loading_stats": "正在加载活动统计...",
+			"loading_courses": "正在加载路线...",
+			"loading_bookmarks": "正在加载收藏...",
+			"loading_posts": "正在加载帖子...",
+			"loading_comments": "正在加载评论...",
+			"loading_scraps": "正在加载收藏...",
+			"failed_to_load_stats": "加载活动统计失败。",
+			"failed_to_load_data": "无法加载数据。",
+			"failed_to_load_courses": "加载路线失败。",
+			"failed_to_load_bookmarks": "加载收藏失败。",
+			"failed_to_load_posts": "加载帖子失败。",
+			"failed_to_load_comments": "加载评论失败。",
+			"failed_to_load_scraps": "加载收藏失败。",
+			"no_created_courses": "没有创建的路线",
+			"no_saved_courses": "没有保存的路线",
+			"no_bookmarks": "没有收藏的地点",
+			"no_posts": "没有发表的帖子",
+			"no_comments": "没有发表的评论",
+			"no_scraps": "没有收藏的帖子",
+			"create_course_message": "创建属于你的旅行路线吧！",
+			"save_course_message": "保存你喜欢的路线！",
+			"no_bookmarks_description": "在K-Map上收藏你喜欢的地点吧！",
+			"post_message": "在K-Buzz上发表你的第一篇帖子！",
+			"comment_message": "在其他人的帖子上留下评论吧！",
+			"scrap_message": "收藏你喜欢的帖子吧！"
+		},
+		"buttons": {
+			"create_course": "创建路线",
+			"browse_courses": "浏览路线",
+			"find_places": "查找地点",
+			"write_post": "写帖子",
+			"browse_posts": "浏览帖子",
+			"previous": "上一页",
+			"next": "下一页",
+			"back_to_mypage": "回到我的页面",
+			"retry": "重试"
+		},
+		"badges": {
+			"kmap": "K-Map",
+			"kcourse": "K-Course",
+			"kbuzz": "K-Buzz"
+		}
 	}
 }
