@@ -39,6 +39,7 @@ export class PostsService {
 			postType: dto.postType,
 			category: dto.category ?? null,
 			status: dto.status ?? 'published',
+			imageUrl: dto.imageUrl || undefined,
 		})
 		const saved = await this.postRepo.save(entity)
 		return this.formatPostResponse(saved)
@@ -52,28 +53,30 @@ export class PostsService {
 		const { page = 1, limit = 10, postType, category, status, search } = query
 		const skip = (page - 1) * limit
 
-		const where: any = {}
-		if (postType) where.postType = postType
-		if (category) where.category = category
-		if (status) where.status = status
+		const qb = this.postRepo
+			.createQueryBuilder('post')
+			.leftJoinAndSelect('post.author', 'author')
+			.orderBy('post.createdAt', 'DESC')
+			.skip(skip)
+			.take(limit)
 
-		const findOptions: FindManyOptions<Post> = {
-			where,
-			relations: ['author'],
-			order: { createdAt: 'DESC' },
-			skip,
-			take: limit,
+		if (postType) {
+			qb.andWhere('post.postType = :postType', { postType })
+		}
+		if (category) {
+			qb.andWhere('post.category = :category', { category })
+		}
+		if (status) {
+			qb.andWhere('post.status = :status', { status })
 		}
 
 		if (search) {
-			// 제목/내용 OR 검색
-			findOptions.where = [
-				{ ...where, title: Like(`%${search}%`) },
-				{ ...where, content: Like(`%${search}%`) },
-			]
+			qb.andWhere('(post.title LIKE :search OR post.content LIKE :search)', {
+				search: `%${search}%`,
+			})
 		}
 
-		const [rows, total] = await this.postRepo.findAndCount(findOptions)
+		const [rows, total] = await qb.getManyAndCount()
 		const posts = await Promise.all(rows.map((p) => this.formatPostResponse(p, userId)))
 		return { posts, total }
 	}
@@ -117,6 +120,7 @@ export class PostsService {
 		if (dto.content !== undefined) updateData.content = dto.content
 		if (dto.category !== undefined) updateData.category = dto.category
 		if (dto.status !== undefined) updateData.status = dto.status
+		if (dto.imageUrl !== undefined) updateData.imageUrl = dto.imageUrl
 
 		await this.postRepo.update(id, updateData)
 		const updated = await this.postRepo.findOne({ where: { id }, relations: ['author'] })
@@ -180,7 +184,13 @@ export class PostsService {
 		const { page = 1, limit = 10, category, search } = query
 		const skip = (page - 1) * limit
 
-		const where: any = { status: 'published' }
+		const qb = this.postRepo
+			.createQueryBuilder('post')
+			.leftJoinAndSelect('post.author', 'author')
+			.where('post.status = :status', { status: 'published' })
+			.orderBy('post.createdAt', 'DESC')
+			.skip(skip)
+			.take(limit)
 
 		// 프론트 카테고리 → 백엔드 카테고리 매핑
 		if (category) {
@@ -194,25 +204,17 @@ export class PostsService {
 				activity: 'general',
 				other: 'general',
 			}
-			where.category = map[category] ?? category
-		}
-
-		const findOptions: FindManyOptions<Post> = {
-			where,
-			relations: ['author'],
-			order: { createdAt: 'DESC' },
-			skip,
-			take: limit,
+			const backendCategory = map[category] ?? category
+			qb.andWhere('post.category = :category', { category: backendCategory })
 		}
 
 		if (search) {
-			findOptions.where = [
-				{ ...where, title: Like(`%${search}%`) },
-				{ ...where, content: Like(`%${search}%`) },
-			]
+			qb.andWhere('(post.title LIKE :search OR post.content LIKE :search)', {
+				search: `%${search}%`,
+			})
 		}
 
-		const [rows, total] = await this.postRepo.findAndCount(findOptions)
+		const [rows, total] = await qb.getManyAndCount()
 
 		const buzzes = await Promise.all(
 			rows.map(async (post) => {
@@ -314,6 +316,7 @@ export class PostsService {
 			},
 			title: post.title,
 			content: post.content,
+			imageUrl: post.imageUrl || null,
 			postType: post.postType,
 			category: post.category,
 			status: post.status,

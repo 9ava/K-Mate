@@ -37,8 +37,8 @@ type Actions = {
 	deleteCommunityPost: (id: number) => void
 
 	// Trend articles management actions
-	addTrendArticle: (article: Omit<TrendArticle, 'id'>) => void
-	updateTrendArticle: (id: number, updates: Partial<TrendArticle>) => void
+	addTrendArticle: (article: Omit<TrendArticle, 'id'>) => Promise<void>
+	updateTrendArticle: (id: number, updates: Partial<TrendArticle>) => Promise<void>
 	deleteTrendArticle: (id: number) => void
 
 	// Admin content management actions
@@ -223,23 +223,71 @@ export const useContentStore = create<State & Actions>()(
 			},
 
 			// Trend articles actions
-			addTrendArticle: (articleData) => {
-				const newArticle: TrendArticle = {
-					...articleData,
-					id: Date.now(), // Simple ID generation
-				}
+			addTrendArticle: async (articleData) => {
+				try {
+					// Call the backend API to create trend article
+					const { createPost } = await import('../../api/kbuzz')
+					const createdPost = await createPost({
+						title: articleData.title,
+						content: articleData.content,
+						postType: 'trend',
+						status: 'published',
+						imageUrl: articleData.image || undefined,
+					})
 
-				set((state) => ({
-					trendArticles: [...state.trendArticles, newArticle],
-				}))
+					// Convert backend response to TrendArticle format
+					const newArticle: TrendArticle = {
+						id: createdPost.id,
+						title: createdPost.title,
+						author: createdPost.author?.name || 'Admin',
+						image: createdPost.imageUrl || articleData.image,
+						content: createdPost.content,
+						aboutTitle: articleData.aboutTitle,
+						aboutDescription: articleData.aboutDescription,
+					}
+
+					set((state) => ({
+						trendArticles: [...state.trendArticles, newArticle],
+					}))
+				} catch (error) {
+					console.error('Failed to create trend article:', error)
+					// Fallback to local storage if API fails
+					const newArticle: TrendArticle = {
+						...articleData,
+						id: Date.now(),
+					}
+
+					set((state) => ({
+						trendArticles: [...state.trendArticles, newArticle],
+					}))
+				}
 			},
 
-			updateTrendArticle: (id, updates) => {
-				set((state) => ({
-					trendArticles: state.trendArticles.map(article =>
-						article.id === id ? { ...article, ...updates } : article
-					),
-				}))
+			updateTrendArticle: async (id, updates) => {
+				try {
+					// Call the backend API to update trend article
+					const { updatePost } = await import('../../api/kbuzz')
+					await updatePost(id, {
+						title: updates.title,
+						content: updates.content,
+						imageUrl: updates.image || undefined,
+					})
+
+					// Update local state
+					set((state) => ({
+						trendArticles: state.trendArticles.map(article =>
+							article.id === id ? { ...article, ...updates } : article
+						),
+					}))
+				} catch (error) {
+					console.error('Failed to update trend article:', error)
+					// Fallback to local update if API fails
+					set((state) => ({
+						trendArticles: state.trendArticles.map(article =>
+							article.id === id ? { ...article, ...updates } : article
+						),
+					}))
+				}
 			},
 
 			deleteTrendArticle: (id) => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../features/auth/useAuth'
 import { useContentStore } from '../features/content/content.store'
+import { uploadToS3, generateTrendImageKey, validateImageFile } from '../api/s3'
 
 export default function ConnectPage() {
 	const { refresh, ready, isAuthed } = useAuth()
@@ -17,6 +18,16 @@ export default function ConnectPage() {
 	// Create modal state
 	const [createModalOpen, setCreateModalOpen] = useState(false)
 	const [createDraft, setCreateDraft] = useState({ title: '', author: '', image: '', content: '', aboutTitle: '', aboutDescription: '' })
+
+	// S3 upload state for create modal
+	const [createImageFile, setCreateImageFile] = useState<File | null>(null)
+	const [createImagePreview, setCreateImagePreview] = useState<string | null>(null)
+	const [createUploading, setCreateUploading] = useState(false)
+
+	// S3 upload state for edit modal
+	const [editImageFile, setEditImageFile] = useState<File | null>(null)
+	const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
+	const [editUploading, setEditUploading] = useState(false)
 
 	// Use shared content store
 	const {
@@ -123,22 +134,39 @@ export default function ConnectPage() {
 		setEditModalOpen(false)
 		setEditingArticle(null)
 		setEditDraft({ title: '', author: '', image: '', content: '', aboutTitle: '', aboutDescription: '' })
+		// Reset edit image upload states
+		setEditImageFile(null)
+		setEditImagePreview(null)
+		setEditUploading(false)
 	}
 
-	const handleEditSubmit = (e: React.FormEvent) => {
+	const handleEditSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
 		if (!editingArticle || !editDraft.title.trim()) return
 
-		updateTrendArticle(editingArticle.id, {
-			title: editDraft.title.trim(),
-			author: editDraft.author.trim(),
-			image: editDraft.image.trim(),
-			content: editDraft.content.trim(),
-			aboutTitle: editDraft.aboutTitle.trim(),
-			aboutDescription: editDraft.aboutDescription.trim()
-		})
+		try {
+			// Upload image to S3 if there's a file selected but not uploaded
+			let finalImageUrl = editDraft.image
+			if (editImageFile && !finalImageUrl) {
+				const uploadedUrl = await uploadEditImageToS3()
+				if (!uploadedUrl) return // Upload failed
+				finalImageUrl = uploadedUrl
+			}
 
-		handleEditClose()
+			await updateTrendArticle(editingArticle.id, {
+				title: editDraft.title.trim(),
+				author: editDraft.author.trim(),
+				image: finalImageUrl || editDraft.image.trim(),
+				content: editDraft.content.trim(),
+				aboutTitle: editDraft.aboutTitle.trim(),
+				aboutDescription: editDraft.aboutDescription.trim()
+			})
+
+			handleEditClose()
+		} catch (error) {
+			console.error('Edit article failed:', error)
+			alert('아티클 수정에 실패했습니다.')
+		}
 	}
 
 	const handleDeleteArticle = (article: any) => {
@@ -156,22 +184,122 @@ export default function ConnectPage() {
 	const handleCreateClose = () => {
 		setCreateModalOpen(false)
 		setCreateDraft({ title: '', author: '', image: '', content: '', aboutTitle: '', aboutDescription: '' })
+		// Reset create image upload states
+		setCreateImageFile(null)
+		setCreateImagePreview(null)
+		setCreateUploading(false)
 	}
 
-	const handleCreateSubmit = (e: React.FormEvent) => {
+	const handleCreateSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
 		if (!createDraft.title.trim()) return
 
-		addTrendArticle({
-			title: createDraft.title.trim(),
-			author: createDraft.author.trim(),
-			image: createDraft.image.trim(),
-			content: createDraft.content.trim(),
-			aboutTitle: createDraft.aboutTitle.trim(),
-			aboutDescription: createDraft.aboutDescription.trim()
-		})
+		try {
+			// Upload image to S3 if there's a file selected but not uploaded
+			let finalImageUrl = createDraft.image
+			if (createImageFile && !finalImageUrl) {
+				const uploadedUrl = await uploadCreateImageToS3()
+				if (!uploadedUrl) return // Upload failed
+				finalImageUrl = uploadedUrl
+			}
 
-		handleCreateClose()
+			await addTrendArticle({
+				title: createDraft.title.trim(),
+				author: createDraft.author.trim(),
+				image: finalImageUrl || '',
+				content: createDraft.content.trim(),
+				aboutTitle: createDraft.aboutTitle.trim(),
+				aboutDescription: createDraft.aboutDescription.trim()
+			})
+
+			handleCreateClose()
+		} catch (error) {
+			console.error('Create article failed:', error)
+			alert('아티클 생성에 실패했습니다.')
+		}
+	}
+
+	// Image upload helper functions
+	const handleCreateImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0]
+		if (!file) return
+
+		const validation = validateImageFile(file, 5)
+		if (!validation.isValid) {
+			alert(validation.error)
+			e.target.value = ''
+			return
+		}
+
+		setCreateImageFile(file)
+		setCreateImagePreview(URL.createObjectURL(file))
+	}
+
+	const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0]
+		if (!file) return
+
+		const validation = validateImageFile(file, 5)
+		if (!validation.isValid) {
+			alert(validation.error)
+			e.target.value = ''
+			return
+		}
+
+		setEditImageFile(file)
+		setEditImagePreview(URL.createObjectURL(file))
+	}
+
+	const uploadCreateImageToS3 = async (): Promise<string | null> => {
+		if (!createImageFile) return null
+
+		try {
+			setCreateUploading(true)
+			// Use a temporary ID for new articles (will be replaced when article is created)
+			const tempId = Date.now()
+			const key = generateTrendImageKey(tempId, createImageFile.name)
+			const uploadedUrl = await uploadToS3(createImageFile, key)
+
+			// Update image URL in draft
+			setCreateDraft(prev => ({ ...prev, image: uploadedUrl }))
+			return uploadedUrl
+		} catch (error) {
+			console.error('Create image upload failed:', error)
+			alert('이미지 업로드에 실패했습니다.')
+			return null
+		} finally {
+			setCreateUploading(false)
+		}
+	}
+
+	const uploadEditImageToS3 = async (): Promise<string | null> => {
+		if (!editImageFile || !editingArticle) return null
+
+		try {
+			setEditUploading(true)
+			const key = generateTrendImageKey(editingArticle.id, editImageFile.name)
+			const uploadedUrl = await uploadToS3(editImageFile, key)
+
+			// Update image URL in draft
+			setEditDraft(prev => ({ ...prev, image: uploadedUrl }))
+			return uploadedUrl
+		} catch (error) {
+			console.error('Edit image upload failed:', error)
+			alert('이미지 업로드에 실패했습니다.')
+			return null
+		} finally {
+			setEditUploading(false)
+		}
+	}
+
+	const clearCreateImage = () => {
+		setCreateImageFile(null)
+		setCreateImagePreview(null)
+	}
+
+	const clearEditImage = () => {
+		setEditImageFile(null)
+		setEditImagePreview(null)
 	}
 
 	const getStatusBadge = (status: string) => {
@@ -510,16 +638,95 @@ export default function ConnectPage() {
 									/>
 								</div>
 
+								{/* 이미지 업로드 (S3) */}
 								<div>
-									<label className="block mb-1 text-sm font-medium">이미지 URL</label>
-									<input
-										type="url"
-										value={editDraft.image}
-										onChange={(e) => setEditDraft((d) => ({ ...d, image: e.target.value }))}
-										placeholder="이미지 URL을 입력하세요"
-										className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
-										required
-									/>
+									<label className="block mb-1 text-sm font-medium">이미지</label>
+
+									{/* 현재 이미지 URL 입력 */}
+									<div className="mb-3">
+										<input
+											type="url"
+											value={editDraft.image}
+											onChange={(e) => setEditDraft((d) => ({ ...d, image: e.target.value }))}
+											placeholder="이미지 URL을 입력하거나 파일을 업로드하세요"
+											className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+										/>
+									</div>
+
+									{/* 파일 업로드 섹션 */}
+									<div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+										{!editImagePreview ? (
+											<div className="text-center">
+												<p className="text-sm text-gray-500 mb-2">새 이미지를 S3에 업로드</p>
+												<label className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer">
+													파일 선택
+													<input
+														type="file"
+														accept="image/png,image/jpeg,image/webp"
+														onChange={handleEditImageSelect}
+														className="hidden"
+													/>
+												</label>
+												<p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · 최대 5MB</p>
+											</div>
+										) : (
+											<div>
+												<div className="flex items-start gap-3 mb-3">
+													<img
+														src={editImagePreview}
+														alt="선택된 이미지"
+														className="w-20 h-20 object-cover rounded border"
+													/>
+													<div className="flex-1">
+														<p className="text-sm font-medium">{editImageFile?.name}</p>
+														{editImageFile && (
+															<p className="text-xs text-gray-500">
+																{(editImageFile.size / 1024 / 1024).toFixed(2)} MB
+															</p>
+														)}
+														{editDraft.image && editImageFile && (
+															<p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+																<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+																	<path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+																</svg>
+																업로드 완료
+															</p>
+														)}
+													</div>
+													<button
+														type="button"
+														onClick={clearEditImage}
+														className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+													>
+														×
+													</button>
+												</div>
+
+												{editImageFile && !editDraft.image && (
+													<div className="flex gap-2">
+														<button
+															type="button"
+															onClick={uploadEditImageToS3}
+															disabled={editUploading}
+															className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+														>
+															{editUploading ? (
+																<>
+																	<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+																		<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+																		<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+																	</svg>
+																	업로드 중...
+																</>
+															) : (
+																'S3에 업로드'
+															)}
+														</button>
+													</div>
+												)}
+											</div>
+										)}
+									</div>
 								</div>
 
 								<div>
@@ -580,9 +787,16 @@ export default function ConnectPage() {
 									</button>
 									<button
 										type="submit"
-										className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+										className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										disabled={editUploading}
 									>
-										수정 완료
+										{editUploading && (
+											<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+												<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+												<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+										)}
+										{editUploading ? '업로드 중...' : '수정 완료'}
 									</button>
 								</div>
 							</form>
@@ -631,16 +845,95 @@ export default function ConnectPage() {
 									/>
 								</div>
 
+								{/* 이미지 업로드 (S3) */}
 								<div>
-									<label className="block mb-1 text-sm font-medium">이미지 URL</label>
-									<input
-										type="url"
-										value={createDraft.image}
-										onChange={(e) => setCreateDraft((d) => ({ ...d, image: e.target.value }))}
-										placeholder="이미지 URL을 입력하세요"
-										className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
-										required
-									/>
+									<label className="block mb-1 text-sm font-medium">이미지</label>
+
+									{/* 현재 이미지 URL 입력 */}
+									<div className="mb-3">
+										<input
+											type="url"
+											value={createDraft.image}
+											onChange={(e) => setCreateDraft((d) => ({ ...d, image: e.target.value }))}
+											placeholder="이미지 URL을 입력하거나 파일을 업로드하세요"
+											className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+										/>
+									</div>
+
+									{/* 파일 업로드 섹션 */}
+									<div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+										{!createImagePreview ? (
+											<div className="text-center">
+												<p className="text-sm text-gray-500 mb-2">새 이미지를 S3에 업로드</p>
+												<label className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer">
+													파일 선택
+													<input
+														type="file"
+														accept="image/png,image/jpeg,image/webp"
+														onChange={handleCreateImageSelect}
+														className="hidden"
+													/>
+												</label>
+												<p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · 최대 5MB</p>
+											</div>
+										) : (
+											<div>
+												<div className="flex items-start gap-3 mb-3">
+													<img
+														src={createImagePreview}
+														alt="선택된 이미지"
+														className="w-20 h-20 object-cover rounded border"
+													/>
+													<div className="flex-1">
+														<p className="text-sm font-medium">{createImageFile?.name}</p>
+														{createImageFile && (
+															<p className="text-xs text-gray-500">
+																{(createImageFile.size / 1024 / 1024).toFixed(2)} MB
+															</p>
+														)}
+														{createDraft.image && createImageFile && (
+															<p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+																<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+																	<path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+																</svg>
+																업로드 완료
+															</p>
+														)}
+													</div>
+													<button
+														type="button"
+														onClick={clearCreateImage}
+														className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+													>
+														×
+													</button>
+												</div>
+
+												{createImageFile && !createDraft.image && (
+													<div className="flex gap-2">
+														<button
+															type="button"
+															onClick={uploadCreateImageToS3}
+															disabled={createUploading}
+															className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+														>
+															{createUploading ? (
+																<>
+																	<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+																		<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+																		<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+																	</svg>
+																	업로드 중...
+																</>
+															) : (
+																'S3에 업로드'
+															)}
+														</button>
+													</div>
+												)}
+											</div>
+										)}
+									</div>
 								</div>
 
 								<div>
@@ -701,9 +994,16 @@ export default function ConnectPage() {
 									</button>
 									<button
 										type="submit"
-										className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+										className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										disabled={createUploading}
 									>
-										아티클 추가
+										{createUploading && (
+											<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+												<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+												<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+										)}
+										{createUploading ? '업로드 중...' : '아티클 추가'}
 									</button>
 								</div>
 							</form>

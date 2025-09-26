@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../features/auth/useAuth'
 import { fetchPostDetail, updatePost } from '../../api/kbuzz'
+import { uploadToS3, generateTrendImageKey, validateImageFile } from '../../api/s3'
 
 type ArticleView = {
 	id: number
@@ -82,6 +83,11 @@ export default function TrendDetailPage() {
 		aboutTitle: '',
 		aboutDescription: '',
 	})
+
+	// S3 이미지 업로드
+	const [imageFile, setImageFile] = useState<File | null>(null)
+	const [imagePreview, setImagePreview] = useState<string | null>(null)
+	const [uploading, setUploading] = useState(false)
 	const openEdit = () => {
 		if (!article) return
 		setEditDraft({
@@ -104,6 +110,53 @@ export default function TrendDetailPage() {
 			aboutTitle: '',
 			aboutDescription: '',
 		})
+		// Reset image upload states
+		setImageFile(null)
+		setImagePreview(null)
+		setUploading(false)
+	}
+
+	// 이미지 파일 선택 처리
+	const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0]
+		if (!file) return
+
+		const validation = validateImageFile(file, 5)
+		if (!validation.isValid) {
+			alert(validation.error)
+			e.target.value = ''
+			return
+		}
+
+		setImageFile(file)
+		setImagePreview(URL.createObjectURL(file))
+	}
+
+	// S3에 이미지 업로드
+	const uploadImageToS3 = async (): Promise<string | null> => {
+		if (!imageFile || !article) return null
+
+		try {
+			setUploading(true)
+			const key = generateTrendImageKey(article.id, imageFile.name)
+			const uploadedUrl = await uploadToS3(imageFile, key)
+
+			// 업로드 성공 시 이미지 URL을 editDraft에 업데이트
+			setEditDraft(prev => ({ ...prev, image: uploadedUrl }))
+			return uploadedUrl
+		} catch (error) {
+			console.error('Image upload failed:', error)
+			alert('이미지 업로드에 실패했습니다.')
+			return null
+		} finally {
+			setUploading(false)
+		}
+	}
+
+	// 이미지 선택 초기화
+	const clearImageSelection = () => {
+		setImageFile(null)
+		setImagePreview(null)
 	}
 
 	// 🔄 서버에서 상세 불러오기 + 로컬 확장 필드 합치기
@@ -386,16 +439,85 @@ export default function TrendDetailPage() {
 									/>
 								</div>
 
-								{/* 이미지 URL (UI만, 서버 반영X) */}
+								{/* 이미지 업로드 (S3) */}
 								<div>
-									<label className="block mb-1 text-sm font-medium">이미지 URL (화면 표시용)</label>
-									<input
-										type="url"
-										value={editDraft.image}
-										onChange={(e) => setEditDraft((d) => ({ ...d, image: e.target.value }))}
-										placeholder="https://…"
-										className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
-									/>
+									<label className="block mb-1 text-sm font-medium">이미지</label>
+
+									{/* 현재 이미지 URL 입력 */}
+									<div className="mb-3">
+										<input
+											type="url"
+											value={editDraft.image}
+											onChange={(e) => setEditDraft((d) => ({ ...d, image: e.target.value }))}
+											placeholder="이미지 URL을 입력하거나 파일을 업로드하세요"
+											className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+										/>
+									</div>
+
+									{/* 파일 업로드 섹션 */}
+									<div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+										{!imagePreview ? (
+											<div className="text-center">
+												<p className="text-sm text-gray-500 mb-2">새 이미지를 S3에 업로드</p>
+												<label className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer">
+													파일 선택
+													<input
+														type="file"
+														accept="image/png,image/jpeg,image/webp"
+														onChange={handleImageSelect}
+														className="hidden"
+													/>
+												</label>
+												<p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · 최대 5MB</p>
+											</div>
+										) : (
+											<div>
+												<div className="flex items-start gap-3 mb-3">
+													<img
+														src={imagePreview}
+														alt="선택된 이미지"
+														className="w-20 h-20 object-cover rounded border"
+													/>
+													<div className="flex-1">
+														<p className="text-sm font-medium">{imageFile?.name}</p>
+														{imageFile && (
+															<p className="text-xs text-gray-500">
+																{(imageFile.size / 1024 / 1024).toFixed(2)} MB
+															</p>
+														)}
+													</div>
+													<button
+														type="button"
+														onClick={clearImageSelection}
+														className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+													>
+														×
+													</button>
+												</div>
+
+												<div className="flex gap-2">
+													<button
+														type="button"
+														onClick={uploadImageToS3}
+														disabled={uploading}
+														className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+													>
+														{uploading ? (
+															<>
+																<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+																	<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+																	<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+																</svg>
+																업로드 중...
+															</>
+														) : (
+															'S3에 업로드'
+														)}
+													</button>
+												</div>
+											</div>
+										)}
+									</div>
 								</div>
 
 								{/* 내용 */}
@@ -460,9 +582,16 @@ export default function TrendDetailPage() {
 									</button>
 									<button
 										type="submit"
-										className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+										className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										disabled={uploading}
 									>
-										수정 완료
+										{uploading && (
+											<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+												<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+												<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+										)}
+										{uploading ? '업로드 중...' : '수정 완료'}
 									</button>
 								</div>
 							</form>
