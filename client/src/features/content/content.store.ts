@@ -38,6 +38,7 @@ type Actions = {
 	updateTrendArticle: (id: number, updates: Partial<TrendArticle>) => Promise<void>
 	deleteTrendArticle: (id: number) => void
 	updateContentStatus: (id: number, status: 'active' | 'hidden' | 'reported') => void
+	deleteContent: (id: number) => void
 }
 
 export const useContentStore = create<State & Actions>()(
