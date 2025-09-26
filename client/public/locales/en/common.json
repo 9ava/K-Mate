@@ -1,4 +1,12 @@
 {
+	"common": {
+		"retry": "Retry",
+		"loading": "Loading...",
+		"error": "Error",
+		"success": "Success",
+		"cancel": "Cancel",
+		"confirm": "Confirm"
+	},
 	"nav": {
 		"kmap": "K-Map",
 		"kcourse": "K-Course",
@@ -104,6 +112,28 @@
 			"add_at_least_one_place": "Please add at least one place.",
 			"course_saved": "Course saved successfully!",
 			"save_failed": "Failed to save"
+		}
+	},
+	"error": {
+		"network": {
+			"title": "Network Connection Error",
+			"message": "Please check your internet connection."
+		},
+		"notFound": {
+			"title": "Data Not Found",
+			"message": "The requested information does not exist."
+		},
+		"unauthorized": {
+			"title": "Access Denied",
+			"message": "Login is required for this service."
+		},
+		"server": {
+			"title": "Server Error",
+			"message": "Please try again in a moment."
+		},
+		"validation": {
+			"title": "Input Error",
+			"message": "Please check the information you entered."
 		}
 	}
 }

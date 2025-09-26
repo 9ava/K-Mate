@@ -1,4 +1,12 @@
 {
+	"common": {
+		"retry": "다시 시도",
+		"loading": "로딩중...",
+		"error": "오류",
+		"success": "성공",
+		"cancel": "취소",
+		"confirm": "확인"
+	},
 	"nav": {
 		"kmap": "K-맵",
 		"kcourse": "K-코스",
@@ -104,6 +112,28 @@
 			"add_at_least_one_place": "최소 1개 이상의 장소를 담아주세요.",
 			"course_saved": "코스가 저장되었습니다!",
 			"save_failed": "저장 실패"
+		}
+	},
+	"error": {
+		"network": {
+			"title": "네트워크 연결 오류",
+			"message": "인터넷 연결을 확인해주세요."
+		},
+		"notFound": {
+			"title": "데이터를 찾을 수 없습니다",
+			"message": "요청하신 정보가 존재하지 않습니다."
+		},
+		"unauthorized": {
+			"title": "접근 권한이 없습니다",
+			"message": "로그인이 필요한 서비스입니다."
+		},
+		"server": {
+			"title": "서버 오류",
+			"message": "잠시 후 다시 시도해주세요."
+		},
+		"validation": {
+			"title": "입력 오류",
+			"message": "입력하신 정보를 다시 확인해주세요."
 		}
 	}
 }

@@ -1,4 +1,12 @@
 {
+	"common": {
+		"retry": "重试",
+		"loading": "加载中...",
+		"error": "错误",
+		"success": "成功",
+		"cancel": "取消",
+		"confirm": "确认"
+	},
 	"nav": {
 		"kmap": "K-地图",
 		"kcourse": "K-行程",
@@ -104,6 +112,28 @@
 			"add_at_least_one_place": "请至少添加一个地点。",
 			"course_saved": "路线保存成功！",
 			"save_failed": "保存失败"
+		}
+	},
+	"error": {
+		"network": {
+			"title": "网络连接错误",
+			"message": "请检查您的网络连接。"
+		},
+		"notFound": {
+			"title": "未找到数据",
+			"message": "请求的信息不存在。"
+		},
+		"unauthorized": {
+			"title": "访问被拒绝",
+			"message": "此服务需要登录。"
+		},
+		"server": {
+			"title": "服务器错误",
+			"message": "请稍后再试。"
+		},
+		"validation": {
+			"title": "输入错误",
+			"message": "请检查您输入的信息。"
 		}
 	}
 }
