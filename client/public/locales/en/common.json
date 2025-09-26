@@ -7,7 +7,15 @@
 	},
 	"auth": {
 		"continue_google": "Continue with Google",
-		"signout": "Sign out"
+		"signout": "Sign out",
+		"welcome_title": "Welcome to K-Mate",
+		"welcome_subtitle": "All Korean travel information at a glance",
+		"login_title": "Login and Get Started",
+		"login_subtitle": "Get started easily with your Google account",
+		"error_oauth_failed": "Login failed. Please try again.",
+		"terms_notice": "By logging in, you agree to our Terms of Service and Privacy Policy.",
+		"terms_link": "Terms of Service",
+		"privacy_link": "Privacy Policy"
 	},
 	"kmap": {
 		"titles": {
@@ -24,6 +32,20 @@
 			"stop_tracking": "Stop Tracking"
 		},
 		"nearby_radius": "Nearby Radius"
+	},
+	"features": {
+		"kmap": {
+			"title": "K-Map",
+			"description": "Personalized Maps"
+		},
+		"kcourse": {
+			"title": "K-Course",
+			"description": "Travel Planning"
+		},
+		"kbuzz": {
+			"title": "K-Buzz",
+			"description": "Travel Community"
+		}
 	},
 	"kcourse": {
 		"tabs": {

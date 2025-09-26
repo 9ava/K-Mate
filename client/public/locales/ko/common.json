@@ -7,7 +7,15 @@
 	},
 	"auth": {
 		"continue_google": "구글로 계속하기",
-		"signout": "로그아웃"
+		"signout": "로그아웃",
+		"welcome_title": "K-Mate에 오신 것을 환영합니다",
+		"welcome_subtitle": "한국의 모든 여행 정보를 한눈에",
+		"login_title": "로그인하고 시작하기",
+		"login_subtitle": "Google 계정으로 간편하게 시작하세요",
+		"error_oauth_failed": "로그인에 실패했습니다. 다시 시도해주세요.",
+		"terms_notice": "로그인하시면 서비스 이용약관 및 개인정보 처리방침에 동의하는 것으로 간주됩니다.",
+		"terms_link": "서비스 이용약관",
+		"privacy_link": "개인정보 처리방침"
 	},
 	"kmap": {
 		"titles": {
@@ -24,6 +32,20 @@
 			"stop_tracking": "위치 추적 중지"
 		},
 		"nearby_radius": "주변 반경"
+	},
+	"features": {
+		"kmap": {
+			"title": "K-Map",
+			"description": "맞춤형 지도"
+		},
+		"kcourse": {
+			"title": "K-Course",
+			"description": "여행 계획"
+		},
+		"kbuzz": {
+			"title": "K-Buzz", 
+			"description": "여행 소통"
+		}
 	},
 	"kcourse": {
 		"tabs": {

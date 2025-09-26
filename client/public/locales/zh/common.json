@@ -7,7 +7,15 @@
 	},
 	"auth": {
 		"continue_google": "使用 Google 继续",
-		"signout": "退出登录"
+		"signout": "退出登录",
+		"welcome_title": "欢迎使用 K-Mate",
+		"welcome_subtitle": "一览韩国所有旅游信息",
+		"login_title": "登录并开始使用",
+		"login_subtitle": "使用 Google 账户轻松开始",
+		"error_oauth_failed": "登录失败，请重试。",
+		"terms_notice": "登录即表示您同意我们的服务条款和隐私政策。",
+		"terms_link": "服务条款",
+		"privacy_link": "隐私政策"
 	},
 	"kmap": {
 		"titles": {
@@ -24,6 +32,20 @@
 			"stop_tracking": "停止定位"
 		},
 		"nearby_radius": "附近半径"
+	},
+	"features": {
+		"kmap": {
+			"title": "K-Map",
+			"description": "个性化地图"
+		},
+		"kcourse": {
+			"title": "K-Course", 
+			"description": "旅行规划"
+		},
+		"kbuzz": {
+			"title": "K-Buzz",
+			"description": "旅行社区"
+		}
 	},
 	"kcourse": {
 		"tabs": {
