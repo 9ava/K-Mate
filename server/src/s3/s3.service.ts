@@ -17,7 +17,7 @@ export class S3Service {
 
 	constructor(private configService: ConfigService) {
 		this.region = this.configService.get<string>('AWS_REGION') || 'ap-northeast-2'
-		this.bucket = this.configService.get<string>('S3_BUCKET') || 'myapp-assets-prod'
+		this.bucket = this.configService.get<string>('S3_BUCKET') || 'tmd-2025-team01-image'
 
 		this.s3 = new S3Client({
 			region: this.region,

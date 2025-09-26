@@ -2,7 +2,7 @@
 import { Body, Controller, Post } from '@nestjs/common'
 import { S3Service } from './s3.service'
 
-@Controller('api/s3')
+@Controller('s3')
 export class S3Controller {
 	constructor(private readonly s3: S3Service) {}
 
