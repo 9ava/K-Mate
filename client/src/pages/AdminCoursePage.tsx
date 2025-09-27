@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
-import { getPublicCourses, deleteCourse, toggleCourseAdvertisement } from '../api/courses'
+import { getAllCoursesForAdmin, deleteCourse, toggleCourseAdvertisement, toggleCourseVisibility } from '../api/courses'
 import type { Course } from '../types/course'
 
 export default function AdminCoursePage() {
@@ -25,7 +25,7 @@ export default function AdminCoursePage() {
 	const loadCourses = async () => {
 		try {
 			setLoading(true)
-			const response = await getPublicCourses(currentPage, 20)
+			const response = await getAllCoursesForAdmin(currentPage, 20)
 			setCourses(response.data as Course[])
 			if (response.pagination) {
 				setTotalPages(response.pagination.totalPages)
@@ -56,6 +56,18 @@ export default function AdminCoursePage() {
 		} catch (error) {
 			console.error('Failed to toggle advertisement:', error)
 			alert('광고 설정 변경에 실패했습니다.')
+		}
+	}
+
+	const handleToggleVisibility = async (courseId: string, visibility: 'public' | 'private') => {
+		const newVisibility = visibility === 'public' ? 'private' : 'public'
+		
+		try {
+			await toggleCourseVisibility(courseId, newVisibility)
+			await loadCourses() // 목록 새로고침
+		} catch (error) {
+			console.error('Failed to toggle visibility:', error)
+			alert('공개 설정 변경에 실패했습니다.')
 		}
 	}
 
@@ -208,13 +220,16 @@ export default function AdminCoursePage() {
 												{new Date(course.created_at).toLocaleDateString('ko-KR')}
 											</td>
 											<td className="px-6 py-4">
-												<span className={`px-2 py-1 text-xs font-medium rounded-full ${
-													course.visibility === 'public' 
-														? 'bg-green-100 text-green-800' 
-														: 'bg-gray-100 text-gray-800'
-												}`}>
+												<button
+													onClick={() => handleToggleVisibility(course.id, course.visibility)}
+													className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+														course.visibility === 'public' 
+															? 'bg-green-100 text-green-800 hover:bg-green-200' 
+															: 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+													}`}
+												>
 													{course.visibility === 'public' ? '공개' : '비공개'}
-												</span>
+												</button>
 											</td>
 											<td className="px-6 py-4">
 												<button

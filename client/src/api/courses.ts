@@ -95,6 +95,31 @@ export async function getPublicCourses(
 }
 
 /**
+ * 관리자용 모든 코스 목록 조회 (페이지네이션)
+ * @param page 페이지 번호 (기본값: 1)
+ * @param limit 페이지당 항목 수 (기본값: 10)
+ * @returns 모든 코스 목록(공개/비공개)과 페이지네이션 정보
+ */
+export async function getAllCoursesForAdmin(
+	page: number = 1,
+	limit: number = 10
+): Promise<GetCoursesResponse> {
+	const url = `${API_BASE}/courses/admin/all?page=${page}&limit=${limit}`
+
+	const response = await fetch(url, {
+		method: 'GET',
+		credentials: 'include', // 관리자 권한 확인을 위해 필수
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to fetch all courses for admin: ${response.status}`)
+	}
+
+	return response.json()
+}
+
+/**
  * 특정 코스 상세 조회
  * @param courseId 조회할 코스 ID
  * @returns 코스 상세 정보
@@ -230,6 +255,30 @@ export async function toggleCourseAdvertisement(courseId: string, isAdvertisemen
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')
 		throw new Error(errorText || `Failed to toggle course advertisement: ${response.status}`)
+	}
+
+	return response.json()
+}
+
+/**
+ * 코스 공개/비공개 상태 토글 (관리자 전용)
+ * @param courseId 공개 상태를 변경할 코스 ID
+ * @param visibility 공개 설정 ('public' | 'private')
+ * @returns 변경된 코스 정보
+ */
+export async function toggleCourseVisibility(courseId: string, visibility: 'public' | 'private'): Promise<GetCourseResponse> {
+	const response = await fetch(`${API_BASE}/courses/${courseId}/visibility`, {
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		credentials: 'include',
+		body: JSON.stringify({ visibility }),
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to toggle course visibility: ${response.status}`)
 	}
 
 	return response.json()

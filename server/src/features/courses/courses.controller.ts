@@ -13,6 +13,7 @@ import {
 import { CoursesService } from './courses.service'
 import { CreateCourseDto } from './create-course.dto'
 import { ToggleCourseAdvertisementDto } from './toggle-advertisement.dto'
+import { ToggleCourseVisibilityDto } from './toggle-visibility.dto'
 import { Course } from './course.entity'
 import { RolesGuard } from '../../common/guards/roles.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
@@ -561,6 +562,115 @@ export class CoursesController {
 	async toggleAdvertisement(@Param('id') id: string, @Body() dto: ToggleCourseAdvertisementDto) {
 		const course = await this.coursesService.toggleAdvertisement(id, dto.isAdvertisement)
 		return { success: true, data: course }
+	}
+
+	/**
+	 * 코스 공개/비공개 상태 토글
+	 * - 관리자만 가능
+	 */
+	@ApiOperation({
+		summary: '코스 공개/비공개 상태 토글',
+		description: '관리자가 코스의 공개/비공개 상태를 변경합니다.',
+	})
+	@ApiParam({
+		name: 'id',
+		description: '공개 상태를 변경할 코스 ID',
+		example: '123',
+	})
+	@ApiBody({
+		type: ToggleCourseVisibilityDto,
+		description: '공개 상태 설정',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '공개 상태 변경 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: { $ref: '#/components/schemas/Course' },
+			},
+		},
+	})
+	@ApiResponse({
+		status: 403,
+		description: '관리자 권한 필요',
+	})
+	@ApiResponse({
+		status: 404,
+		description: '코스를 찾을 수 없음',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'), RolesGuard)
+	@Roles('admin')
+	@Put(':id/visibility')
+	async toggleVisibility(@Param('id') id: string, @Body() dto: ToggleCourseVisibilityDto) {
+		const course = await this.coursesService.toggleVisibility(id, dto.visibility)
+		return { success: true, data: course }
+	}
+
+	/**
+	 * 관리자용 모든 코스 목록 조회
+	 * - 공개/비공개 모든 코스 조회 가능
+	 * - 페이지네이션 지원
+	 * - 관리자만 접근 가능
+	 */
+	@ApiOperation({
+		summary: '관리자용 모든 코스 목록 조회',
+		description: '관리자가 모든 코스(공개/비공개)를 조회합니다.',
+	})
+	@ApiQuery({
+		name: 'page',
+		required: false,
+		type: Number,
+		description: '페이지 번호 (기본값: 1)',
+		example: 1,
+	})
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본값: 10)',
+		example: 10,
+	})
+	@ApiResponse({
+		status: 200,
+		description: '관리자용 모든 코스 목록 조회 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: {
+					type: 'array',
+					items: { $ref: '#/components/schemas/Course' },
+				},
+				pagination: {
+					type: 'object',
+					properties: {
+						page: { type: 'number', example: 1 },
+						limit: { type: 'number', example: 10 },
+						total: { type: 'number', example: 50 },
+						totalPages: { type: 'number', example: 5 },
+					},
+				},
+			},
+		},
+	})
+	@ApiResponse({
+		status: 403,
+		description: '관리자 권한 필요',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'), RolesGuard)
+	@Roles('admin')
+	@Get('admin/all')
+	async getAllCoursesForAdmin(@Query('page') page = 1, @Query('limit') limit = 10) {
+		const result = await this.coursesService.getAllCoursesForAdmin(Number(page), Number(limit))
+		return {
+			success: true,
+			data: result.courses,
+			pagination: result.pagination,
+		}
 	}
 
 	/**

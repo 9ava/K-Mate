@@ -138,6 +138,38 @@ export class CoursesService {
 	}
 
 	/**
+	 * 관리자용 모든 코스 목록 조회 (페이지네이션)
+	 * - 공개/비공개 모든 코스 반환
+	 * - 광고가 먼저, 그 다음 최신 생성일 순으로 정렬
+	 * 
+	 * @param page 페이지 번호 (1부터 시작)
+	 * @param limit 페이지당 항목 수
+	 * @returns 모든 코스 목록과 페이지네이션 정보
+	 */
+	async getAllCoursesForAdmin(page: number = 1, limit: number = 10) {
+		const [courses, total] = await this.courseRepo.findAndCount({
+			// visibility 조건 없음 - 모든 코스 조회
+			relations: ['author', 'stops'],
+			order: { 
+				isAdvertisement: 'DESC',  // 광고를 먼저 정렬
+				created_at: 'DESC'        // 그 다음 최신순
+			},
+			skip: (page - 1) * limit,
+			take: limit,
+		})
+
+		return {
+			courses,
+			pagination: {
+				page,
+				limit,
+				total,
+				totalPages: Math.ceil(total / limit),
+			},
+		}
+	}
+
+	/**
 	 * 코스 업데이트
 	 * - 작성자만 수정 가능
 	 * - 기존 경유지들을 삭제하고 새로운 경유지들로 교체
@@ -312,6 +344,25 @@ export class CoursesService {
 		}
 
 		course.isAdvertisement = isAdvertisement
+		await this.courseRepo.save(course)
+
+		return course
+	}
+
+	/**
+	 * 코스 공개/비공개 상태 토글
+	 * - 관리자만 수행 가능
+	 * 
+	 * @param id 코스 ID
+	 * @param visibility 공개 설정 ('public' | 'private')
+	 */
+	async toggleVisibility(id: string, visibility: 'public' | 'private') {
+		const course = await this.courseRepo.findOne({ where: { id } })
+		if (!course) {
+			throw new NotFoundException('코스를 찾을 수 없습니다')
+		}
+
+		course.visibility = visibility
 		await this.courseRepo.save(course)
 
 		return course
