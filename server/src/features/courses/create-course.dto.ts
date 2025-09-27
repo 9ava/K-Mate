@@ -81,6 +81,15 @@ export class CreateCourseDto {
 	@IsIn(['public', 'private'])
 	visibility!: 'public' | 'private'
 
+	@ApiPropertyOptional({
+		description: '코스 카테고리',
+		example: 'all',
+		enum: ['all', 'cultural', 'cafe', 'food'],
+	})
+	@IsOptional()
+	@IsIn(['all', 'cultural', 'cafe', 'food'])
+	category?: 'all' | 'cultural' | 'cafe' | 'food'
+
 	@ApiProperty({
 		description: '코스 경유지 목록',
 		type: [CreateCourseStopDto],

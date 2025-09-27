@@ -36,6 +36,7 @@ export class CoursesService {
 			const course = manager.create(Course, {
 				title: dto.title,
 				visibility: dto.visibility,
+				category: dto.category ?? 'all',
 				authorId: authorId, // string을 그대로 사용 (bigint는 string으로 처리)
 			})
 			await manager.save(course)
@@ -161,6 +162,7 @@ export class CoursesService {
 			await manager.update(Course, id, {
 				title: dto.title,
 				visibility: dto.visibility,
+				category: dto.category ?? 'all',
 				updated_at: new Date(),
 			})
 

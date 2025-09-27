@@ -35,6 +35,7 @@ export default function CourseDetailPage() {
 	const [isSaved, setIsSaved] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [actionLoading, setActionLoading] = useState(false)
+	const [selectedCategory, setSelectedCategory] = useState<'all' | 'cultural' | 'cafe' | 'food'>('all')
 
 	// 목록으로 돌아가기 핸들러
 	const handleBackToList = (needsRefresh: boolean = false) => {
@@ -121,10 +122,9 @@ export default function CourseDetailPage() {
 
 			try {
 				setLoading(true)
-				console.log(`Loading course ${courseId}...`)
 				const response = await getCourse(courseId)
-				console.log(`Course ${courseId} loaded successfully:`, response.data)
 				setCourse(response.data)
+				setSelectedCategory(response.data.category || 'all')
 				const convertedStops = await convertCourseToStops(response.data)
 				setStops(convertedStops)
 				
@@ -161,6 +161,7 @@ export default function CourseDetailPage() {
 			const courseData: CreateCourseRequest = {
 				title: payload.title.trim(),
 				visibility: payload.visibility,
+				category: selectedCategory,
 				stops: stops.map((s, idx) => ({
 					order: idx + 1,
 					name: s.name,
@@ -363,6 +364,8 @@ export default function CourseDetailPage() {
 							saving={saving}
 							initialTitle={course?.title}
 							initialVisibility={course?.visibility}
+							selectedCategory={selectedCategory}
+							onCategoryChange={setSelectedCategory}
 						/>
 					</aside>
 				</div>

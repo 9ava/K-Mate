@@ -20,6 +20,7 @@ export interface Course {
 	id: string
 	title: string
 	visibility: CourseVisibility
+	category?: 'all' | 'cultural' | 'cafe' | 'food'
 	authorId: string
 	author?: {
 		id: string
@@ -38,6 +39,7 @@ export interface Course {
 export interface CreateCourseRequest {
 	title: string
 	visibility: CourseVisibility
+	category?: 'all' | 'cultural' | 'cafe' | 'food'
 	stops: {
 		order: number
 		name: string

@@ -21,9 +21,9 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 	}
 
 	let image = 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768' // 기본 이미지
-	let category: 'cultural' | 'cafe' | 'food' = 'cultural' // 기본 카테고리
+	let category: 'all' | 'cultural' | 'cafe' | 'food' = course.category || 'all' // 코스에서 직접 가져오기
 	
-	// 첫 번째 장소의 Google Places 정보 가져오기
+	// 첫 번째 장소의 Google Places 정보 가져오기 (이미지만)
 	const firstStop = course.stops[0]
 	if (firstStop?.externalId) {
 		try {
@@ -32,20 +32,6 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 				// Google Places API에서 가져온 사진 사용
 				if (placeDetail.photoUrl) {
 					image = placeDetail.photoUrl
-				}
-				// Google Places API 카테고리 매핑
-				switch (placeDetail.type) {
-					case 'travel':
-						category = 'cultural'
-						break
-					case 'food':
-						category = 'food'
-						break
-					case 'cafe':
-						category = 'cafe'
-						break
-					default:
-						category = 'cultural'
 				}
 			}
 		} catch (error) {
@@ -80,7 +66,7 @@ type TravelCourse = {
 	date: string
 	author: string
 	image: string
-	category: 'cultural' | 'cafe' | 'food'
+	category: 'all' | 'cultural' | 'cafe' | 'food'
 	isAdvertisement?: boolean
 	shareCount?: number
 	saveCount?: number
@@ -398,6 +384,11 @@ function TravelCourseCard({
 				</div>
 
 				{/* 카테고리 배지 */}
+				{course.category === 'all' && (
+					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
+						<div className="w-4 h-4 bg-purple-500 rounded-full" />
+					</div>
+				)}
 				{course.category === 'cultural' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
 						<div className="w-4 h-4 bg-blue-400 rounded-full" />
