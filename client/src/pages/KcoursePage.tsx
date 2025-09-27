@@ -147,13 +147,15 @@ function MyTravelCourse({
 	myCourses, 
 	savedCourses, 
 	loading,
-	onUnsaveCourse
+	onUnsaveCourse,
+	onShareCourse
 }: { 
 	onCreate: () => void
 	myCourses: TravelCourse[]
 	savedCourses: TravelCourse[]
 	loading: boolean
 	onUnsaveCourse: (courseId: number) => Promise<void>
+	onShareCourse?: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
 	
@@ -231,7 +233,7 @@ function MyTravelCourse({
 						</div>
 						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 							{myCourses.map((course) => (
-								<TravelCourseCard key={`my-${course.id}`} course={course} isOwned={true} />
+								<TravelCourseCard key={`my-${course.id}`} course={course} isOwned={true} onShare={onShareCourse} />
 							))}
 						</div>
 					</div>
@@ -251,6 +253,7 @@ function MyTravelCourse({
 									course={course} 
 									isOwned={false} 
 									onUnsave={onUnsaveCourse}
+									onShare={onShareCourse}
 								/>
 							))}
 						</div>
@@ -265,11 +268,13 @@ function MyTravelCourse({
 function TravelCourseCard({ 
 	course, 
 	isOwned, 
-	onUnsave 
+	onUnsave,
+	onShare
 }: { 
 	course: TravelCourse
 	isOwned?: boolean
 	onUnsave?: (courseId: number) => Promise<void>
+	onShare?: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
@@ -288,7 +293,14 @@ function TravelCourseCard({
 	const handleShare = async (e: React.MouseEvent) => {
 		e.stopPropagation() // 카드 클릭 이벤트 방지
 		try {
-			await shareCourse(course.id.toString())
+			// 부모 컴포넌트의 onShare 콜백 호출 (상태 업데이트)
+			if (onShare) {
+				await onShare(course.id)
+			} else {
+				// 기본 공유 로직 (onShare가 없을 때)
+				await shareCourse(course.id.toString())
+			}
+			
 			// 공유 성공 시 Navigator API 사용해서 URL 공유
 			if (navigator.share) {
 				await navigator.share({
@@ -462,11 +474,13 @@ const getDefaultTravelCourses = (t: any): TravelCourse[] => [
 function TravelCourseGrid({ 
 	onCreate, 
 	courses, 
-	loading 
+	loading,
+	onShareCourse
 }: { 
 	onCreate: () => void
 	courses: TravelCourse[]
 	loading: boolean
+	onShareCourse?: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
 	
@@ -505,7 +519,7 @@ function TravelCourseGrid({
 
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 					{displayCourses.map((course: TravelCourse) => (
-						<TravelCourseCard key={course.id} course={course} />
+						<TravelCourseCard key={course.id} course={course} onShare={onShareCourse} />
 					))}
 				</div>
 			</div>
@@ -537,6 +551,38 @@ export default function KCoursePage() {
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
 	const goPlanner = () => navigate('/planner')
+
+	// 코스 공유 핸들러 (실시간 업데이트)
+	const handleShareCourse = async (courseId: number) => {
+		try {
+			await shareCourse(courseId.toString())
+			
+			// 내 코스 목록에서 해당 코스의 공유수 증가
+			setMyCourses(prev => prev.map(course => 
+				course.id === courseId 
+					? { ...course, shareCount: (course.shareCount || 0) + 1 }
+					: course
+			))
+			
+			// 저장된 코스 목록에서 해당 코스의 공유수 증가
+			setSavedCourses(prev => prev.map(course => 
+				course.id === courseId 
+					? { ...course, shareCount: (course.shareCount || 0) + 1 }
+					: course
+			))
+			
+			// 공개 코스 목록에서 해당 코스의 공유수 증가
+			setPublicCourses(prev => prev.map(course => 
+				course.id === courseId 
+					? { ...course, shareCount: (course.shareCount || 0) + 1 }
+					: course
+			))
+			
+		} catch (error) {
+			console.error('Failed to share course:', error)
+			throw error // 에러를 다시 던져서 TravelCourseCard에서 처리하도록 함
+		}
+	}
 
 	// 저장한 코스 삭제 핸들러
 	const handleUnsaveCourse = async (courseId: number) => {
@@ -662,12 +708,14 @@ export default function KCoursePage() {
 					savedCourses={savedCourses}
 					loading={myCoursesLoading}
 					onUnsaveCourse={handleUnsaveCourse}
+					onShareCourse={handleShareCourse}
 				/>
 			) : (
 				<TravelCourseGrid 
 					onCreate={goPlanner} 
 					courses={publicCourses}
 					loading={publicCoursesLoading}
+					onShareCourse={handleShareCourse}
 				/>
 			)}
 		</div>

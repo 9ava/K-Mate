@@ -220,6 +220,80 @@ export class CoursesController {
 	}
 
 	/**
+	 * 월별 Best 코스 조회
+	 * - 공유 + 저장 횟수 기준 인기 코스 (전체 기간)
+	 */
+	@ApiOperation({
+		summary: '월별 Best 코스 조회',
+		description: '전체 기간의 인기 코스들을 공유와 저장 횟수 기준으로 조회합니다.',
+	})
+	@ApiQuery({
+		name: 'year',
+		required: false,
+		type: Number,
+		description: '조회할 연도 (기본값: 현재 연도)',
+		example: 2024,
+	})
+	@ApiQuery({
+		name: 'month',
+		required: false,
+		type: Number,
+		description: '조회할 월 (기본값: 현재 월)',
+		example: 9,
+	})
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '조회할 코스 수 (기본값: 9)',
+		example: 9,
+	})
+	@ApiResponse({
+		status: 200,
+		description: '월별 Best 코스 조회 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: {
+					type: 'array',
+					items: { $ref: '#/components/schemas/Course' },
+				},
+				meta: {
+					type: 'object',
+					properties: {
+						year: { type: 'number', example: 2024 },
+						month: { type: 'number', example: 9 },
+						limit: { type: 'number', example: 9 },
+					},
+				},
+			},
+		},
+	})
+	@Get('monthly-best')
+	async getMonthlyBestCourses(
+		@Query('year') year?: number,
+		@Query('month') month?: number,
+		@Query('limit') limit?: number
+	) {
+		const courses = await this.coursesService.getMonthlyBestCourses(
+			year ? Number(year) : undefined,
+			month ? Number(month) : undefined,
+			limit ? Number(limit) : 9
+		)
+		
+		return { 
+			success: true, 
+			data: courses,
+			meta: {
+				year: year ?? new Date().getFullYear(),
+				month: month ?? new Date().getMonth() + 1,
+				limit: limit ?? 9,
+			}
+		}
+	}
+
+	/**
 	 * 특정 코스 상세 조회
 	 * - 공개 코스는 누구나 조회 가능
 	 * - 비공개 코스는 작성자만 조회 가능
@@ -496,79 +570,5 @@ export class CoursesController {
 	async shareCourse(@Param('id') id: string) {
 		await this.coursesService.shareCourse(id)
 		return { success: true, message: '코스가 공유되었습니다.' }
-	}
-
-	/**
-	 * 월별 Best 코스 조회
-	 * - 공유 + 저장 횟수 기준 인기 코스 (전체 기간)
-	 */
-	@ApiOperation({
-		summary: '월별 Best 코스 조회',
-		description: '전체 기간의 인기 코스들을 공유와 저장 횟수 기준으로 조회합니다.',
-	})
-	@ApiQuery({
-		name: 'year',
-		required: false,
-		type: Number,
-		description: '조회할 연도 (기본값: 현재 연도)',
-		example: 2024,
-	})
-	@ApiQuery({
-		name: 'month',
-		required: false,
-		type: Number,
-		description: '조회할 월 (기본값: 현재 월)',
-		example: 9,
-	})
-	@ApiQuery({
-		name: 'limit',
-		required: false,
-		type: Number,
-		description: '조회할 코스 수 (기본값: 9)',
-		example: 9,
-	})
-	@ApiResponse({
-		status: 200,
-		description: '월별 Best 코스 조회 성공',
-		schema: {
-			type: 'object',
-			properties: {
-				success: { type: 'boolean', example: true },
-				data: {
-					type: 'array',
-					items: { $ref: '#/components/schemas/Course' },
-				},
-				meta: {
-					type: 'object',
-					properties: {
-						year: { type: 'number', example: 2024 },
-						month: { type: 'number', example: 9 },
-						limit: { type: 'number', example: 9 },
-					},
-				},
-			},
-		},
-	})
-	@Get('monthly-best')
-	async getMonthlyBestCourses(
-		@Query('year') year?: number,
-		@Query('month') month?: number,
-		@Query('limit') limit?: number
-	) {
-		const courses = await this.coursesService.getMonthlyBestCourses(
-			year ? Number(year) : undefined,
-			month ? Number(month) : undefined,
-			limit ? Number(limit) : 9
-		)
-		
-		return { 
-			success: true, 
-			data: courses,
-			meta: {
-				year: year ?? new Date().getFullYear(),
-				month: month ?? new Date().getMonth() + 1,
-				limit: limit ?? 9,
-			}
-		}
 	}
 }
