@@ -231,8 +231,9 @@ export default function TrendDetailPage() {
 				}
 			}
 
-			// 서버에 title, content, imageUrl 반영
-			await updatePost(article.id, { title, content, imageUrl: finalImageUrl })
+			// 서버에 title, content, imageUrl 반영 (빈 문자열이면 null로 설정)
+			const serverImageUrl = finalImageUrl === '' ? null : finalImageUrl
+			await updatePost(article.id, { title, content, imageUrl: serverImageUrl })
 
 			// 프론트 확장 필드 저장
 			const extras = {
@@ -474,6 +475,17 @@ export default function TrendDetailPage() {
 													<p className="text-sm text-gray-600">기존 이미지</p>
 													<p className="text-xs text-gray-500">새 이미지를 선택하면 교체됩니다</p>
 												</div>
+												<button
+													type="button"
+													onClick={() => {
+														if (confirm('이미지를 제거하시겠습니까?')) {
+															setEditDraft(prev => ({ ...prev, image: '' }))
+														}
+													}}
+													className="px-2 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50"
+												>
+													이미지 제거
+												</button>
 											</div>
 										</div>
 									)}
