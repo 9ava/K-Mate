@@ -7,7 +7,7 @@ import type {
 	GetCourseResponse,
 } from '../types/course'
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
 
 /**
  * 여행 코스 API 클라이언트
@@ -230,6 +230,55 @@ export async function toggleCourseAdvertisement(courseId: string, isAdvertisemen
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')
 		throw new Error(errorText || `Failed to toggle course advertisement: ${response.status}`)
+	}
+
+	return response.json()
+}
+
+/**
+ * 코스 공유 (공유 횟수 증가)
+ * @param courseId 공유할 코스 ID
+ * @returns 공유 성공 메시지
+ */
+export async function shareCourse(courseId: string): Promise<{ success: boolean; message: string }> {
+	const response = await fetch(`${API_BASE}/courses/${courseId}/share`, {
+		method: 'POST',
+		credentials: 'include',
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to share course: ${response.status}`)
+	}
+
+	return response.json()
+}
+
+/**
+ * 월별 Best 코스 조회
+ * @param year 조회할 연도 (기본값: 현재 연도)
+ * @param month 조회할 월 (기본값: 현재 월)
+ * @param limit 조회할 코스 수 (기본값: 9)
+ * @returns 월별 인기 코스 목록
+ */
+export async function getMonthlyBestCourses(
+	year?: number,
+	month?: number,
+	limit: number = 9
+): Promise<GetCoursesResponse & { meta: { year: number; month: number; limit: number } }> {
+	const params = new URLSearchParams()
+	if (year) params.append('year', year.toString())
+	if (month) params.append('month', month.toString())
+	if (limit) params.append('limit', limit.toString())
+
+	const response = await fetch(`${API_BASE}/courses/monthly-best?${params.toString()}`, {
+		method: 'GET',
+		// 공개 데이터이므로 인증 불필요
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to fetch monthly best courses: ${response.status}`)
 	}
 
 	return response.json()

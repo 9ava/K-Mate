@@ -31,7 +31,7 @@ import {
 	UserAddPlaceDto,
 	ListQueryDto,
 	SetTypeDto,
-	ToggleAdvertisementDto,
+	TogglePlaceAdvertisementDto,
 } from './places.dto'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
@@ -244,7 +244,7 @@ export class PlacesController {
 	@Put(':id/advertisement')
 	async toggleAdvertisement(
 		@Param('id') id: number,
-		@Body() dto: ToggleAdvertisementDto
+		@Body() dto: TogglePlaceAdvertisementDto
 	) {
 		const place = await this.places.toggleAdvertisement(id, dto.isAdvertisement)
 		return { success: true, data: place }

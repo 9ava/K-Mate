@@ -11,7 +11,7 @@ import {
 } from '@nestjs/swagger'
 import { CoursesService } from './courses.service'
 import { CreateCourseDto } from './create-course.dto'
-import { ToggleAdvertisementDto } from './toggle-advertisement.dto'
+import { ToggleCourseAdvertisementDto } from './toggle-advertisement.dto'
 import { Course } from './course.entity'
 import { RolesGuard } from '../../common/guards/roles.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
@@ -433,7 +433,7 @@ export class CoursesController {
 		example: '123',
 	})
 	@ApiBody({
-		type: ToggleAdvertisementDto,
+		type: ToggleCourseAdvertisementDto,
 		description: '광고 상태 설정',
 	})
 	@ApiResponse({
@@ -459,8 +459,116 @@ export class CoursesController {
 	@UseGuards(AuthGuard('jwt-cookie'), RolesGuard)
 	@Roles('admin')
 	@Put(':id/advertisement')
-	async toggleAdvertisement(@Param('id') id: string, @Body() dto: ToggleAdvertisementDto) {
+	async toggleAdvertisement(@Param('id') id: string, @Body() dto: ToggleCourseAdvertisementDto) {
 		const course = await this.coursesService.toggleAdvertisement(id, dto.isAdvertisement)
 		return { success: true, data: course }
+	}
+
+	/**
+	 * 코스 공유
+	 * - 공유 횟수 증가
+	 */
+	@ApiOperation({
+		summary: '코스 공유',
+		description: '코스를 공유하고 공유 횟수를 증가시킵니다.',
+	})
+	@ApiParam({
+		name: 'id',
+		description: '공유할 코스 ID',
+		example: '123',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '코스 공유 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				message: { type: 'string', example: '코스가 공유되었습니다.' },
+			},
+		},
+	})
+	@ApiResponse({
+		status: 404,
+		description: '코스를 찾을 수 없음',
+	})
+	@Post(':id/share')
+	async shareCourse(@Param('id') id: string) {
+		await this.coursesService.shareCourse(id)
+		return { success: true, message: '코스가 공유되었습니다.' }
+	}
+
+	/**
+	 * 월별 Best 코스 조회
+	 * - 공유 + 저장 횟수 기준 인기 코스 (전체 기간)
+	 */
+	@ApiOperation({
+		summary: '월별 Best 코스 조회',
+		description: '전체 기간의 인기 코스들을 공유와 저장 횟수 기준으로 조회합니다.',
+	})
+	@ApiQuery({
+		name: 'year',
+		required: false,
+		type: Number,
+		description: '조회할 연도 (기본값: 현재 연도)',
+		example: 2024,
+	})
+	@ApiQuery({
+		name: 'month',
+		required: false,
+		type: Number,
+		description: '조회할 월 (기본값: 현재 월)',
+		example: 9,
+	})
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '조회할 코스 수 (기본값: 9)',
+		example: 9,
+	})
+	@ApiResponse({
+		status: 200,
+		description: '월별 Best 코스 조회 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: {
+					type: 'array',
+					items: { $ref: '#/components/schemas/Course' },
+				},
+				meta: {
+					type: 'object',
+					properties: {
+						year: { type: 'number', example: 2024 },
+						month: { type: 'number', example: 9 },
+						limit: { type: 'number', example: 9 },
+					},
+				},
+			},
+		},
+	})
+	@Get('monthly-best')
+	async getMonthlyBestCourses(
+		@Query('year') year?: number,
+		@Query('month') month?: number,
+		@Query('limit') limit?: number
+	) {
+		const courses = await this.coursesService.getMonthlyBestCourses(
+			year ? Number(year) : undefined,
+			month ? Number(month) : undefined,
+			limit ? Number(limit) : 9
+		)
+		
+		return { 
+			success: true, 
+			data: courses,
+			meta: {
+				year: year ?? new Date().getFullYear(),
+				month: month ?? new Date().getMonth() + 1,
+				limit: limit ?? 9,
+			}
+		}
 	}
 }

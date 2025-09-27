@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getMyCourses, getPublicCourses, unsaveCourse } from '../api/courses'
+import { getMyCourses, getPublicCourses, getMonthlyBestCourses, unsaveCourse, shareCourse } from '../api/courses'
 import { getPlaceDetail } from '../api/places'
 import type { Course } from '../types/course'
 import { useAuth } from '../features/auth/useAuth'
@@ -62,6 +62,8 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 		image,
 		category,
 		isAdvertisement: course.isAdvertisement || false,
+		shareCount: course.shareCount || 0,
+		saveCount: course.saveCount || 0,
 	}
 
 	// 캐시에 저장
@@ -79,6 +81,8 @@ type TravelCourse = {
 	image: string
 	category: 'cultural' | 'cafe' | 'food'
 	isAdvertisement?: boolean
+	shareCount?: number
+	saveCount?: number
 }
 
 /* --- HeroBanner --- */
@@ -281,6 +285,27 @@ function TravelCourseCard({
 		}
 	}
 
+	const handleShare = async (e: React.MouseEvent) => {
+		e.stopPropagation() // 카드 클릭 이벤트 방지
+		try {
+			await shareCourse(course.id.toString())
+			// 공유 성공 시 Navigator API 사용해서 URL 공유
+			if (navigator.share) {
+				await navigator.share({
+					title: course.title,
+					text: `${course.title} - ${course.location}에서 함께 여행해요!`,
+					url: `${window.location.origin}/kcourse/${course.id}`,
+				})
+			} else {
+				// Web Share API 미지원 시 클립보드에 복사
+				await navigator.clipboard.writeText(`${window.location.origin}/kcourse/${course.id}`)
+				alert('링크가 클립보드에 복사되었습니다!')
+			}
+		} catch (error) {
+			console.error('Failed to share course:', error)
+		}
+	}
+
 	return (
 		<div 
 			className="overflow-hidden transition-all duration-300 border border-gray-200 rounded-lg cursor-pointer group hover:shadow-lg"
@@ -365,6 +390,28 @@ function TravelCourseCard({
 				<div className="flex items-center justify-between pt-2 text-xs text-gray-500">
 					<span>{course.author}</span>
 					<span>{course.date}</span>
+				</div>
+				
+				{/* 통계 및 공유 버튼 */}
+				<div className="flex items-center justify-between pt-2 border-t border-gray-100">
+					<div className="flex items-center space-x-3 text-xs text-gray-500">
+						{course.shareCount !== undefined && (
+							<span title="공유 횟수">🔗 {course.shareCount}</span>
+						)}
+						{course.saveCount !== undefined && (
+							<span title="저장 횟수">⭐ {course.saveCount}</span>
+						)}
+					</div>
+					<button
+						onClick={handleShare}
+						className="flex items-center px-2 py-1 text-xs text-blue-600 transition-colors rounded bg-blue-50 hover:bg-blue-100"
+						title="코스 공유하기"
+					>
+						<svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+						</svg>
+						공유
+					</button>
 				</div>
 			</div>
 		</div>
@@ -560,23 +607,33 @@ export default function KCoursePage() {
 		}
 	}
 
-	// 공개 코스 데이터 로드
+	// 공개 코스 데이터 로드 (월별 Best 사용)
 	const loadPublicCourses = async () => {
 		try {
 			setPublicCoursesLoading(true)
-			const response = await getPublicCourses(1, 12) // 첫 페이지에서 12개 가져오기
-			const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
-			
-			// 백엔드에서 이미 정렬된 상태로 오지만, 프론트엔드에서도 한번 더 정렬
-			const sortedCourses = convertedCourses.sort((a, b) => {
-				if (a.isAdvertisement && !b.isAdvertisement) return -1
-				if (!a.isAdvertisement && b.isAdvertisement) return 1
-				return 0 // 기존 순서 유지
-			})
-			
-			setPublicCourses(sortedCourses)
+			// 임시로 getPublicCourses 사용 (monthly-best API 문제 해결까지)
+			try {
+				const response = await getMonthlyBestCourses(undefined, undefined, 12)
+				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
+				
+				// 백엔드에서 이미 정렬된 상태로 오지만, 프론트엔드에서도 한번 더 정렬
+				const sortedCourses = convertedCourses.sort((a, b) => {
+					if (a.isAdvertisement && !b.isAdvertisement) return -1
+					if (!a.isAdvertisement && b.isAdvertisement) return 1
+					return 0 // 기존 순서 유지
+				})
+				
+				setPublicCourses(sortedCourses)
+			} catch (monthlyBestError) {
+				console.warn('Monthly best API failed, falling back to public courses:', monthlyBestError)
+				// Fallback: 일반 공개 코스 API 사용
+				const response = await getPublicCourses(1, 12)
+				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
+				setPublicCourses(convertedCourses)
+			}
 		} catch (error) {
-			console.error('Failed to load public courses:', error)
+			console.error('Failed to load courses:', error)
+			// 실패 시 빈 배열로 설정하여 기본 데이터가 표시되도록 함
 			setPublicCourses([])
 		} finally {
 			setPublicCoursesLoading(false)

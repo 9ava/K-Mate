@@ -151,8 +151,8 @@ export class SetTypeDto {
 	type!: 'travel' | 'food' | 'cafe'
 }
 
-/** 관리자: 광고 상태 토글 */
-export class ToggleAdvertisementDto {
+/** 관리자: 장소 광고 상태 토글 */
+export class TogglePlaceAdvertisementDto {
 	@ApiProperty({ description: 'Advertisement status' })
 	@IsBoolean()
 	isAdvertisement!: boolean

@@ -93,12 +93,12 @@ export default function AdminCoursePage() {
 		<div className="min-h-[calc(100vh-3.5rem)] bg-gray-50">
 			<div className="px-4 py-8 mx-auto max-w-7xl">
 				{/* 헤더 */}
-				<div className="mb-8">
-					<div className="flex items-center justify-between">
-						<div>
-							<h1 className="mb-2 text-3xl font-bold text-gray-900">K-Course 관리</h1>
-							<p className="text-gray-600">여행 코스를 관리하고 광고를 설정할 수 있습니다.</p>
-						</div>
+				<div className="relative mb-8">
+					<div className="text-center">
+						<h1 className="mb-2 text-3xl font-bold text-gray-900">K-Course 관리</h1>
+						<p className="text-gray-600">여행 코스를 관리하고 광고를 설정할 수 있습니다.</p>
+					</div>
+					<div className="absolute top-0 right-0">
 						<Link
 							to="/admin"
 							className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
@@ -110,17 +110,24 @@ export default function AdminCoursePage() {
 
 				{/* 검색 및 필터 */}
 				<div className="mb-6">
-					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-						<div className="flex-1 max-w-md">
+					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-center">
+						<div className="flex items-center gap-2 max-w-md mx-auto sm:mx-0">
 							<input
 								type="text"
 								placeholder="코스 제목 또는 작성자로 검색..."
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+								onKeyPress={(e) => e.key === 'Enter' && loadCourses()}
+								className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
 							/>
+							<button
+								onClick={loadCourses}
+								className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-r-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+							>
+								검색
+							</button>
 						</div>
-						<div className="flex items-center gap-4">
+						<div className="flex items-center gap-4 text-center sm:text-left">
 							<span className="text-sm text-gray-500">
 								전체 {courses.length}개의 코스
 							</span>
