@@ -97,4 +97,11 @@ export class Course {
 	})
 	@UpdateDateColumn({ type: 'datetime' })
 	updated_at!: Date
+
+	@ApiProperty({
+		description: '광고 여부',
+		example: false,
+	})
+	@Column({ name: 'is_advertisement', type: 'boolean', default: false })
+	isAdvertisement!: boolean
 }

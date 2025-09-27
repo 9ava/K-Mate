@@ -210,3 +210,27 @@ export async function getSavedCourses(): Promise<GetCoursesResponse> {
 
 	return response.json()
 }
+
+/**
+ * 코스 광고 상태 토글 (관리자 전용)
+ * @param courseId 광고 상태를 변경할 코스 ID
+ * @param isAdvertisement 광고 설정 여부
+ * @returns 변경된 코스 정보
+ */
+export async function toggleCourseAdvertisement(courseId: string, isAdvertisement: boolean): Promise<GetCourseResponse> {
+	const response = await fetch(`${API_BASE}/courses/${courseId}/advertisement`, {
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		credentials: 'include',
+		body: JSON.stringify({ isAdvertisement }),
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(errorText || `Failed to toggle course advertisement: ${response.status}`)
+	}
+
+	return response.json()
+}

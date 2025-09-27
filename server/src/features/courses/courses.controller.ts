@@ -11,7 +11,10 @@ import {
 } from '@nestjs/swagger'
 import { CoursesService } from './courses.service'
 import { CreateCourseDto } from './create-course.dto'
+import { ToggleAdvertisementDto } from './toggle-advertisement.dto'
 import { Course } from './course.entity'
+import { RolesGuard } from '../../common/guards/roles.guard'
+import { Roles } from '../../common/decorators/roles.decorator'
 
 /**
  * 여행 코스 관리 컨트롤러
@@ -414,5 +417,50 @@ export class CoursesController {
 	async unsaveCourse(@Param('id') id: string, @Req() req: any) {
 		await this.coursesService.unsaveCourse(id, String(req.user.id))
 		return { success: true, message: '코스 저장이 취소되었습니다.' }
+	}
+
+	/**
+	 * 코스 광고 상태 토글
+	 * - 관리자만 가능
+	 */
+	@ApiOperation({
+		summary: '코스 광고 상태 토글',
+		description: '관리자가 코스의 광고 상태를 변경합니다.',
+	})
+	@ApiParam({
+		name: 'id',
+		description: '광고 상태를 변경할 코스 ID',
+		example: '123',
+	})
+	@ApiBody({
+		type: ToggleAdvertisementDto,
+		description: '광고 상태 설정',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '광고 상태 변경 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: { $ref: '#/components/schemas/Course' },
+			},
+		},
+	})
+	@ApiResponse({
+		status: 403,
+		description: '관리자 권한 필요',
+	})
+	@ApiResponse({
+		status: 404,
+		description: '코스를 찾을 수 없음',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'), RolesGuard)
+	@Roles('admin')
+	@Put(':id/advertisement')
+	async toggleAdvertisement(@Param('id') id: string, @Body() dto: ToggleAdvertisementDto) {
+		const course = await this.coursesService.toggleAdvertisement(id, dto.isAdvertisement)
+		return { success: true, data: course }
 	}
 }

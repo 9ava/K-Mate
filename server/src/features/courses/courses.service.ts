@@ -107,7 +107,7 @@ export class CoursesService {
 	/**
 	 * 공개 코스 목록 조회 (페이지네이션)
 	 * - visibility='public'인 코스만 반환
-	 * - 최신 생성일 순으로 정렬
+	 * - 광고가 먼저, 그 다음 최신 생성일 순으로 정렬
 	 * 
 	 * @param page 페이지 번호 (1부터 시작)
 	 * @param limit 페이지당 항목 수
@@ -117,7 +117,10 @@ export class CoursesService {
 		const [courses, total] = await this.courseRepo.findAndCount({
 			where: { visibility: 'public' },
 			relations: ['author', 'stops'],
-			order: { created_at: 'DESC' },
+			order: { 
+				isAdvertisement: 'DESC',  // 광고를 먼저 정렬
+				created_at: 'DESC'        // 그 다음 최신순
+			},
 			skip: (page - 1) * limit,
 			take: limit,
 		})
@@ -279,5 +282,24 @@ export class CoursesService {
 		})
 
 		return savedCourses.map(sc => sc.course)
+	}
+
+	/**
+	 * 코스 광고 상태 토글
+	 * - 관리자만 수행 가능
+	 * 
+	 * @param id 코스 ID
+	 * @param isAdvertisement 광고 설정 여부
+	 */
+	async toggleAdvertisement(id: string, isAdvertisement: boolean) {
+		const course = await this.courseRepo.findOne({ where: { id } })
+		if (!course) {
+			throw new NotFoundException('코스를 찾을 수 없습니다')
+		}
+
+		course.isAdvertisement = isAdvertisement
+		await this.courseRepo.save(course)
+
+		return course
 	}
 }

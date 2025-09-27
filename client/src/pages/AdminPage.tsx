@@ -41,8 +41,8 @@ export default function AdminPage() {
 					<p className="text-gray-600">시스템 관리 및 설정을 관리할 수 있습니다.</p>
 				</div>
 
-				<div className="grid max-w-4xl grid-cols-1 gap-6 mx-auto md:grid-cols-2">
-					{/* K-Map 관리 (Left Top) */}
+				<div className="grid max-w-6xl grid-cols-1 gap-6 mx-auto md:grid-cols-2 lg:grid-cols-3">
+					{/* K-Map 관리 */}
 					<div className="p-6 text-center bg-white rounded-lg shadow">
 						<div className="flex justify-center mb-4">
 							<div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-lg">
@@ -62,7 +62,26 @@ export default function AdminPage() {
 						</Link>
 					</div>
 
-					{/* 콘텐츠 관리 (Right Top) */}
+					{/* K-Course 관리 */}
+					<div className="p-6 text-center bg-white rounded-lg shadow">
+						<div className="flex justify-center mb-4">
+							<div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
+								<svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+								</svg>
+							</div>
+						</div>
+						<h3 className="mb-3 text-lg font-semibold text-gray-900">K-Course 관리</h3>
+						<p className="mb-4 text-gray-600">여행 코스를 관리하고 광고를 설정합니다.</p>
+						<Link
+							to="/admin/courses"
+							className="block w-full px-4 py-2 text-center text-white transition-colors bg-orange-600 rounded-md hover:bg-orange-700"
+						>
+							코스 관리하기
+						</Link>
+					</div>
+
+					{/* 콘텐츠 관리 */}
 					<div className="p-6 text-center bg-white rounded-lg shadow">
 						<div className="flex justify-center mb-4">
 							<div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
@@ -81,7 +100,7 @@ export default function AdminPage() {
 						</Link>
 					</div>
 
-					{/* 사용자 관리 (Left Bottom) */}
+					{/* 사용자 관리 */}
 					<div className="p-6 text-center bg-white rounded-lg shadow">
 						<div className="flex justify-center mb-4">
 							<div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
@@ -100,7 +119,7 @@ export default function AdminPage() {
 						</Link>
 					</div>
 
-					{/* 시스템 통계 (Right Bottom) */}
+					{/* 시스템 통계 */}
 					<div className="p-6 text-center bg-white rounded-lg shadow">
 						<div className="flex justify-center mb-4">
 							<div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">

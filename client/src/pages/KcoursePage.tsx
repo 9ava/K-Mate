@@ -61,6 +61,7 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 		author: course.author?.name || t('kcourse.labels.author'),
 		image,
 		category,
+		isAdvertisement: course.isAdvertisement || false,
 	}
 
 	// 캐시에 저장
@@ -77,6 +78,7 @@ type TravelCourse = {
 	author: string
 	image: string
 	category: 'cultural' | 'cafe' | 'food'
+	isAdvertisement?: boolean
 }
 
 /* --- HeroBanner --- */
@@ -291,9 +293,18 @@ function TravelCourseCard({
 					className="object-cover w-full h-48 transition-transform duration-300 group-hover:scale-105"
 				/>
 
+				{/* 광고 배지 */}
+				{course.isAdvertisement && (
+					<div className="absolute top-3 left-3">
+						<span className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-full">
+							광고 ⓘ
+						</span>
+					</div>
+				)}
+
 				{/* 소유 여부 표시 */}
 				{isOwned !== undefined && (
-					<div className="absolute top-3 left-3">
+					<div className={`absolute top-3 ${course.isAdvertisement ? 'right-3' : 'left-3'}`}>
 						<span className={`px-2 py-1 text-xs font-medium rounded-full ${
 							isOwned 
 								? 'bg-blue-100 text-blue-800' 
@@ -513,12 +524,31 @@ export default function KCoursePage() {
 			if (typeof response.data === 'object' && 'myCourses' in response.data) {
 				const myConvertedCourses = await Promise.all(response.data.myCourses.map(course => courseToTravelCourse(course, t)))
 				const savedConvertedCourses = await Promise.all(response.data.savedCourses.map(course => courseToTravelCourse(course, t)))
-				setMyCourses(myConvertedCourses)
-				setSavedCourses(savedConvertedCourses)
+				
+				// 광고 먼저, 그 다음 최신순 정렬
+				const sortedMyCourses = myConvertedCourses.sort((a, b) => {
+					if (a.isAdvertisement && !b.isAdvertisement) return -1
+					if (!a.isAdvertisement && b.isAdvertisement) return 1
+					return 0 // 기존 순서 유지 (이미 최신순)
+				})
+				
+				const sortedSavedCourses = savedConvertedCourses.sort((a, b) => {
+					if (a.isAdvertisement && !b.isAdvertisement) return -1
+					if (!a.isAdvertisement && b.isAdvertisement) return 1
+					return 0 // 기존 순서 유지 (이미 최신순)
+				})
+				
+				setMyCourses(sortedMyCourses)
+				setSavedCourses(sortedSavedCourses)
 			} else {
 				// 기존 배열 형식인 경우 (호환성)
 				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
-				setMyCourses(convertedCourses)
+				const sortedCourses = convertedCourses.sort((a, b) => {
+					if (a.isAdvertisement && !b.isAdvertisement) return -1
+					if (!a.isAdvertisement && b.isAdvertisement) return 1
+					return 0
+				})
+				setMyCourses(sortedCourses)
 				setSavedCourses([])
 			}
 		} catch (error) {
@@ -536,7 +566,15 @@ export default function KCoursePage() {
 			setPublicCoursesLoading(true)
 			const response = await getPublicCourses(1, 12) // 첫 페이지에서 12개 가져오기
 			const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
-			setPublicCourses(convertedCourses)
+			
+			// 백엔드에서 이미 정렬된 상태로 오지만, 프론트엔드에서도 한번 더 정렬
+			const sortedCourses = convertedCourses.sort((a, b) => {
+				if (a.isAdvertisement && !b.isAdvertisement) return -1
+				if (!a.isAdvertisement && b.isAdvertisement) return 1
+				return 0 // 기존 순서 유지
+			})
+			
+			setPublicCourses(sortedCourses)
 		} catch (error) {
 			console.error('Failed to load public courses:', error)
 			setPublicCourses([])

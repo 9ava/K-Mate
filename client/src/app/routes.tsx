@@ -11,6 +11,7 @@ import KBuzzPage from '../pages/KBuzzPage'
 import CommunityDetailPage from '../pages/KBuzz/CommunityDetailPage'
 import TrendDetailPage from '../pages/KBuzz/TrendDetailPage'
 import AdminPage from '../pages/AdminPage'
+import AdminCoursePage from '../pages/AdminCoursePage'
 import ConnectPage from '../pages/ConnectPage'
 import KMapManagePage from '../pages/admin/KMapManagePage'
 import AddMarkerPage from '../pages/admin/AddMarkerPage'
@@ -45,6 +46,7 @@ const AppRouter = () => {
 					<Route path="/buzz/post/:id" element={<CommunityDetailPage />} />
 					<Route path="/buzz/trend/:id" element={<TrendDetailPage />} />
 					<Route path="/admin" element={<AdminPage />} />
+					<Route path="/admin/courses" element={<AdminCoursePage />} />
 					<Route path="/admin/connect" element={<ConnectPage />} />
 					<Route path="/admin/map" element={<KMapManagePage />} />
 					<Route path="/admin/map/add" element={<AddMarkerPage />} />
