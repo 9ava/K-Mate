@@ -1,6 +1,6 @@
 // src/features/places/places.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsString, IsNotEmpty, IsOptional, IsIn, IsUrl, IsEnum, IsInt, Min } from 'class-validator'
+import { IsString, IsNotEmpty, IsOptional, IsIn, IsUrl, IsEnum, IsInt, Min, IsBoolean } from 'class-validator'
 import { Type, Transform } from 'class-transformer'
 
 /** Nearby places query DTO */
@@ -69,6 +69,11 @@ export class AdminAddPlaceDto {
 	@IsUrl()
 	@IsOptional()
 	imageUrl?: string
+
+	@ApiPropertyOptional({ description: 'Is advertisement place' })
+	@IsBoolean()
+	@IsOptional()
+	isAdvertisement?: boolean
 }
 
 // ... (other DTOs)
@@ -132,6 +137,11 @@ export class UserAddPlaceDto {
 	@Transform(({ value }) => value === '' ? undefined : value)
 	@IsUrl({}, { message: 'imageUrl must be a valid URL' })
 	imageUrl?: string
+
+	@ApiPropertyOptional({ description: 'Is advertisement place' })
+	@IsBoolean()
+	@IsOptional()
+	isAdvertisement?: boolean
 }
 
 /** 관리자: 카테고리 수동 지정 */
@@ -139,4 +149,11 @@ export class SetTypeDto {
 	@ApiProperty({ enum: ['travel', 'food', 'cafe'] })
 	@IsEnum(['travel', 'food', 'cafe'] as const)
 	type!: 'travel' | 'food' | 'cafe'
+}
+
+/** 관리자: 장소 광고 상태 토글 */
+export class TogglePlaceAdvertisementDto {
+	@ApiProperty({ description: 'Advertisement status' })
+	@IsBoolean()
+	isAdvertisement!: boolean
 }

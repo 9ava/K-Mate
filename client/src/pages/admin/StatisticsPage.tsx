@@ -399,7 +399,39 @@ export default function StatisticsPage() {
 				</div>
 
 				{/* Bottom Row */}
-				<div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+				<div className="grid grid-cols-1 gap-8 xl:grid-cols-3 lg:grid-cols-2">
+					{/* Popular Courses */}
+					<div className="p-6 bg-white rounded-lg shadow">
+						<h3 className="mb-4 text-lg font-semibold text-gray-900">월별 인기 코스 TOP 5</h3>
+						<div className="space-y-4">
+							{[
+								{ id: 1, title: '서울 궁궐 투어', author: '김관광', shares: 45, saves: 38, total: 83 },
+								{ id: 2, title: '홍대 카페 투어', author: '이카페', shares: 32, saves: 41, total: 73 },
+								{ id: 3, title: '명동 맛집 투어', author: '박맛집', shares: 28, saves: 35, total: 63 },
+								{ id: 4, title: '한강 피크닉 코스', author: '최자연', shares: 24, saves: 29, total: 53 },
+								{ id: 5, title: '경복궁 문화탐방', author: '정문화', shares: 19, saves: 26, total: 45 },
+							].map((course, index) => (
+								<div key={course.id} className="flex items-center space-x-4">
+									<div className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm font-bold text-white rounded-full bg-gradient-to-r from-orange-500 to-red-500">
+										{index + 1}
+									</div>
+									<div className="flex-1 min-w-0">
+										<div className="text-sm font-medium text-gray-900 truncate">{course.title}</div>
+										<div className="text-xs text-gray-500">by {course.author}</div>
+									</div>
+									<div className="flex space-x-2 text-xs text-gray-500">
+										<span title="공유">🔗 {course.shares}</span>
+										<span title="저장">⭐ {course.saves}</span>
+										<span className="font-medium text-orange-600">총 {course.total}</span>
+									</div>
+								</div>
+							))}
+						</div>
+						<div className="pt-4 mt-4 text-xs text-gray-500 border-t border-gray-200">
+							💡 공유 횟수 + 저장 횟수로 인기도를 측정합니다
+						</div>
+					</div>
+
 					{/* Top Posts */}
 					<div className="p-6 bg-white rounded-lg shadow">
 						<h3 className="mb-4 text-lg font-semibold text-gray-900">인기 게시물 TOP 5</h3>

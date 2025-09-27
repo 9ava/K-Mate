@@ -4,7 +4,7 @@ import { useMapStore } from '../../features/map/map.store'
 
 export default function KMapManagePage() {
 	const navigate = useNavigate()
-	const { markers, loading, error, isApiMode, loadMarkers, toggleMarkerStatus, deleteMarker } = useMapStore()
+	const { markers, loading, error, isApiMode, loadMarkers, toggleMarkerStatus, toggleAdvertisement, deleteMarker } = useMapStore()
 
 	// Load markers on component mount
 	useEffect(() => {
@@ -41,6 +41,10 @@ export default function KMapManagePage() {
 
 	const handleToggleStatus = async (id: number) => {
 		await toggleMarkerStatus(id)
+	}
+
+	const handleToggleAdvertisement = async (id: number) => {
+		await toggleAdvertisement(id)
 	}
 
 	const handleDeleteMarker = async (id: number) => {
@@ -177,6 +181,9 @@ export default function KMapManagePage() {
 										위치
 									</th>
 									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
+										광고
+									</th>
+									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										상태
 									</th>
 									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
@@ -227,6 +234,17 @@ export default function KMapManagePage() {
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-center">
 											<span
+												className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+													marker.isAdvertisement 
+														? 'bg-yellow-100 text-yellow-800' 
+														: 'bg-gray-100 text-gray-500'
+												}`}
+											>
+												{marker.isAdvertisement ? '광고' : '일반'}
+											</span>
+										</td>
+										<td className="px-6 py-4 whitespace-nowrap text-center">
+											<span
 												className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(
 													marker.status
 												)}`}
@@ -245,6 +263,18 @@ export default function KMapManagePage() {
 													className="px-3 py-1 text-xs text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 cursor-pointer"
 												>
 													수정
+												</button>
+
+												{/* Advertisement toggle button - always available */}
+												<button
+													onClick={() => handleToggleAdvertisement(marker.id)}
+													className={`px-3 py-1 rounded-md text-xs ${
+														marker.isAdvertisement
+															? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+															: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+													}`}
+												>
+													{marker.isAdvertisement ? '광고해제' : '광고등록'}
 												</button>
 
 												{/* Delete button - always available */}

@@ -29,6 +29,9 @@ export interface Course {
 	stops: CourseStop[]
 	created_at: string
 	updated_at: string
+	isAdvertisement: boolean
+	shareCount: number
+	saveCount: number
 }
 
 // API 요청/응답 타입들

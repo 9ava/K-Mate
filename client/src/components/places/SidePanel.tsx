@@ -53,11 +53,18 @@ export default function SidePanel({ place, onClose, onBookmarkChange, isBookmark
 			aria-label="장소 상세"
 		>
 			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-				<h2 className="m-0 text-lg font-bold">{place.name}</h2>
+				<div className="flex items-center flex-1 min-w-0 gap-2">
+					<h2 className="m-0 text-lg font-bold truncate">{place.name}</h2>
+					{place.isAdvertisement && (
+						<span className="px-2 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded-full shrink-0">
+							광고 ⓘ
+						</span>
+					)}
+				</div>
 				<button
 					onClick={onClose}
 					aria-label="닫기"
-					className="text-xl text-gray-500 hover:text-gray-700"
+					className="ml-2 text-xl text-gray-500 hover:text-gray-700 shrink-0"
 				>
 					✕
 				</button>

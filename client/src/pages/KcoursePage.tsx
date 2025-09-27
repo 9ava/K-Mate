@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getMyCourses, getPublicCourses, unsaveCourse } from '../api/courses'
+import { getMyCourses, getPublicCourses, getMonthlyBestCourses, unsaveCourse, shareCourse } from '../api/courses'
 import { getPlaceDetail } from '../api/places'
 import type { Course } from '../types/course'
 import { useAuth } from '../features/auth/useAuth'
@@ -61,6 +61,9 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 		author: course.author?.name || t('kcourse.labels.author'),
 		image,
 		category,
+		isAdvertisement: course.isAdvertisement || false,
+		shareCount: course.shareCount || 0,
+		saveCount: course.saveCount || 0,
 	}
 
 	// 캐시에 저장
@@ -77,6 +80,9 @@ type TravelCourse = {
 	author: string
 	image: string
 	category: 'cultural' | 'cafe' | 'food'
+	isAdvertisement?: boolean
+	shareCount?: number
+	saveCount?: number
 }
 
 /* --- HeroBanner --- */
@@ -141,13 +147,15 @@ function MyTravelCourse({
 	myCourses, 
 	savedCourses, 
 	loading,
-	onUnsaveCourse
+	onUnsaveCourse,
+	onShareCourse
 }: { 
 	onCreate: () => void
 	myCourses: TravelCourse[]
 	savedCourses: TravelCourse[]
 	loading: boolean
 	onUnsaveCourse: (courseId: number) => Promise<void>
+	onShareCourse?: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
 	
@@ -225,7 +233,7 @@ function MyTravelCourse({
 						</div>
 						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 							{myCourses.map((course) => (
-								<TravelCourseCard key={`my-${course.id}`} course={course} isOwned={true} />
+								<TravelCourseCard key={`my-${course.id}`} course={course} isOwned={true} onShare={onShareCourse} />
 							))}
 						</div>
 					</div>
@@ -245,6 +253,7 @@ function MyTravelCourse({
 									course={course} 
 									isOwned={false} 
 									onUnsave={onUnsaveCourse}
+									onShare={onShareCourse}
 								/>
 							))}
 						</div>
@@ -259,11 +268,13 @@ function MyTravelCourse({
 function TravelCourseCard({ 
 	course, 
 	isOwned, 
-	onUnsave 
+	onUnsave,
+	onShare
 }: { 
 	course: TravelCourse
 	isOwned?: boolean
 	onUnsave?: (courseId: number) => Promise<void>
+	onShare?: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
@@ -279,6 +290,34 @@ function TravelCourseCard({
 		}
 	}
 
+	const handleShare = async (e: React.MouseEvent) => {
+		e.stopPropagation() // 카드 클릭 이벤트 방지
+		try {
+			// 부모 컴포넌트의 onShare 콜백 호출 (상태 업데이트)
+			if (onShare) {
+				await onShare(course.id)
+			} else {
+				// 기본 공유 로직 (onShare가 없을 때)
+				await shareCourse(course.id.toString())
+			}
+			
+			// 공유 성공 시 Navigator API 사용해서 URL 공유
+			if (navigator.share) {
+				await navigator.share({
+					title: course.title,
+					text: `${course.title} - ${course.location}에서 함께 여행해요!`,
+					url: `${window.location.origin}/kcourse/${course.id}`,
+				})
+			} else {
+				// Web Share API 미지원 시 클립보드에 복사
+				await navigator.clipboard.writeText(`${window.location.origin}/kcourse/${course.id}`)
+				alert('링크가 클립보드에 복사되었습니다!')
+			}
+		} catch (error) {
+			console.error('Failed to share course:', error)
+		}
+	}
+
 	return (
 		<div 
 			className="overflow-hidden transition-all duration-300 border border-gray-200 rounded-lg cursor-pointer group hover:shadow-lg"
@@ -291,9 +330,18 @@ function TravelCourseCard({
 					className="object-cover w-full h-48 transition-transform duration-300 group-hover:scale-105"
 				/>
 
+				{/* 광고 배지 */}
+				{course.isAdvertisement && (
+					<div className="absolute top-3 left-3">
+						<span className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-full">
+							광고 ⓘ
+						</span>
+					</div>
+				)}
+
 				{/* 소유 여부 표시 */}
 				{isOwned !== undefined && (
-					<div className="absolute top-3 left-3">
+					<div className={`absolute top-3 ${course.isAdvertisement ? 'right-3' : 'left-3'}`}>
 						<span className={`px-2 py-1 text-xs font-medium rounded-full ${
 							isOwned 
 								? 'bg-blue-100 text-blue-800' 
@@ -355,6 +403,28 @@ function TravelCourseCard({
 					<span>{course.author}</span>
 					<span>{course.date}</span>
 				</div>
+				
+				{/* 통계 및 공유 버튼 */}
+				<div className="flex items-center justify-between pt-2 border-t border-gray-100">
+					<div className="flex items-center space-x-3 text-xs text-gray-500">
+						{course.shareCount !== undefined && (
+							<span title="공유 횟수">🔗 {course.shareCount}</span>
+						)}
+						{course.saveCount !== undefined && (
+							<span title="저장 횟수">⭐ {course.saveCount}</span>
+						)}
+					</div>
+					<button
+						onClick={handleShare}
+						className="flex items-center px-2 py-1 text-xs text-blue-600 transition-colors rounded bg-blue-50 hover:bg-blue-100"
+						title="코스 공유하기"
+					>
+						<svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+						</svg>
+						공유
+					</button>
+				</div>
 			</div>
 		</div>
 	)
@@ -404,11 +474,13 @@ const getDefaultTravelCourses = (t: any): TravelCourse[] => [
 function TravelCourseGrid({ 
 	onCreate, 
 	courses, 
-	loading 
+	loading,
+	onShareCourse
 }: { 
 	onCreate: () => void
 	courses: TravelCourse[]
 	loading: boolean
+	onShareCourse?: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
 	
@@ -447,7 +519,7 @@ function TravelCourseGrid({
 
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 					{displayCourses.map((course: TravelCourse) => (
-						<TravelCourseCard key={course.id} course={course} />
+						<TravelCourseCard key={course.id} course={course} onShare={onShareCourse} />
 					))}
 				</div>
 			</div>
@@ -479,6 +551,38 @@ export default function KCoursePage() {
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
 	const goPlanner = () => navigate('/planner')
+
+	// 코스 공유 핸들러 (실시간 업데이트)
+	const handleShareCourse = async (courseId: number) => {
+		try {
+			await shareCourse(courseId.toString())
+			
+			// 내 코스 목록에서 해당 코스의 공유수 증가
+			setMyCourses(prev => prev.map(course => 
+				course.id === courseId 
+					? { ...course, shareCount: (course.shareCount || 0) + 1 }
+					: course
+			))
+			
+			// 저장된 코스 목록에서 해당 코스의 공유수 증가
+			setSavedCourses(prev => prev.map(course => 
+				course.id === courseId 
+					? { ...course, shareCount: (course.shareCount || 0) + 1 }
+					: course
+			))
+			
+			// 공개 코스 목록에서 해당 코스의 공유수 증가
+			setPublicCourses(prev => prev.map(course => 
+				course.id === courseId 
+					? { ...course, shareCount: (course.shareCount || 0) + 1 }
+					: course
+			))
+			
+		} catch (error) {
+			console.error('Failed to share course:', error)
+			throw error // 에러를 다시 던져서 TravelCourseCard에서 처리하도록 함
+		}
+	}
 
 	// 저장한 코스 삭제 핸들러
 	const handleUnsaveCourse = async (courseId: number) => {
@@ -513,12 +617,31 @@ export default function KCoursePage() {
 			if (typeof response.data === 'object' && 'myCourses' in response.data) {
 				const myConvertedCourses = await Promise.all(response.data.myCourses.map(course => courseToTravelCourse(course, t)))
 				const savedConvertedCourses = await Promise.all(response.data.savedCourses.map(course => courseToTravelCourse(course, t)))
-				setMyCourses(myConvertedCourses)
-				setSavedCourses(savedConvertedCourses)
+				
+				// 광고 먼저, 그 다음 최신순 정렬
+				const sortedMyCourses = myConvertedCourses.sort((a, b) => {
+					if (a.isAdvertisement && !b.isAdvertisement) return -1
+					if (!a.isAdvertisement && b.isAdvertisement) return 1
+					return 0 // 기존 순서 유지 (이미 최신순)
+				})
+				
+				const sortedSavedCourses = savedConvertedCourses.sort((a, b) => {
+					if (a.isAdvertisement && !b.isAdvertisement) return -1
+					if (!a.isAdvertisement && b.isAdvertisement) return 1
+					return 0 // 기존 순서 유지 (이미 최신순)
+				})
+				
+				setMyCourses(sortedMyCourses)
+				setSavedCourses(sortedSavedCourses)
 			} else {
 				// 기존 배열 형식인 경우 (호환성)
 				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
-				setMyCourses(convertedCourses)
+				const sortedCourses = convertedCourses.sort((a, b) => {
+					if (a.isAdvertisement && !b.isAdvertisement) return -1
+					if (!a.isAdvertisement && b.isAdvertisement) return 1
+					return 0
+				})
+				setMyCourses(sortedCourses)
 				setSavedCourses([])
 			}
 		} catch (error) {
@@ -530,15 +653,33 @@ export default function KCoursePage() {
 		}
 	}
 
-	// 공개 코스 데이터 로드
+	// 공개 코스 데이터 로드 (월별 Best 사용)
 	const loadPublicCourses = async () => {
 		try {
 			setPublicCoursesLoading(true)
-			const response = await getPublicCourses(1, 12) // 첫 페이지에서 12개 가져오기
-			const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
-			setPublicCourses(convertedCourses)
+			// 임시로 getPublicCourses 사용 (monthly-best API 문제 해결까지)
+			try {
+				const response = await getMonthlyBestCourses(undefined, undefined, 12)
+				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
+				
+				// 백엔드에서 이미 정렬된 상태로 오지만, 프론트엔드에서도 한번 더 정렬
+				const sortedCourses = convertedCourses.sort((a, b) => {
+					if (a.isAdvertisement && !b.isAdvertisement) return -1
+					if (!a.isAdvertisement && b.isAdvertisement) return 1
+					return 0 // 기존 순서 유지
+				})
+				
+				setPublicCourses(sortedCourses)
+			} catch (monthlyBestError) {
+				console.warn('Monthly best API failed, falling back to public courses:', monthlyBestError)
+				// Fallback: 일반 공개 코스 API 사용
+				const response = await getPublicCourses(1, 12)
+				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
+				setPublicCourses(convertedCourses)
+			}
 		} catch (error) {
-			console.error('Failed to load public courses:', error)
+			console.error('Failed to load courses:', error)
+			// 실패 시 빈 배열로 설정하여 기본 데이터가 표시되도록 함
 			setPublicCourses([])
 		} finally {
 			setPublicCoursesLoading(false)
@@ -567,12 +708,14 @@ export default function KCoursePage() {
 					savedCourses={savedCourses}
 					loading={myCoursesLoading}
 					onUnsaveCourse={handleUnsaveCourse}
+					onShareCourse={handleShareCourse}
 				/>
 			) : (
 				<TravelCourseGrid 
 					onCreate={goPlanner} 
 					courses={publicCourses}
 					loading={publicCoursesLoading}
+					onShareCourse={handleShareCourse}
 				/>
 			)}
 		</div>

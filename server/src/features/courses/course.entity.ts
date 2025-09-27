@@ -97,4 +97,25 @@ export class Course {
 	})
 	@UpdateDateColumn({ type: 'datetime' })
 	updated_at!: Date
+
+	@ApiProperty({
+		description: '광고 여부',
+		example: false,
+	})
+	@Column({ name: 'is_advertisement', type: 'boolean', default: false })
+	isAdvertisement!: boolean
+
+	@ApiProperty({
+		description: '공유 횟수',
+		example: 0,
+	})
+	@Column({ name: 'share_count', type: 'int', default: 0 })
+	shareCount!: number
+
+	@ApiProperty({
+		description: '저장 횟수',
+		example: 0,
+	})
+	@Column({ name: 'save_count', type: 'int', default: 0 })
+	saveCount!: number
 }

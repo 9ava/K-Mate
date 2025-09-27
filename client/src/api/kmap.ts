@@ -26,6 +26,7 @@ export interface KMapMarker {
 	description?: string
 	imageUrl?: string
 	status: 'active' | 'inactive'
+	isAdvertisement?: boolean // 광고 여부 필드 추가
 	createdAt?: string
 	updatedAt?: string
 }
@@ -53,6 +54,7 @@ function placeToKMapMarker(place: Place): KMapMarker {
 		description: place.description || undefined,
 		imageUrl: photoUrl,
 		status: 'active', // Places are active by default
+		isAdvertisement: place.isAdvertisement || false, // 광고 여부
 		createdAt: place.createdAt,
 		updatedAt: place.updatedAt
 	}
@@ -130,9 +132,18 @@ export async function createKMapMarker(marker: Omit<KMapMarker, 'id' | 'createdA
 	}
 }
 
-// Update an existing K-Map marker (limited to category changes)
+// Update an existing K-Map marker (including advertisement status)
 export async function updateKMapMarker(id: number, updates: Partial<KMapMarker>): Promise<KMapMarker> {
-	// Find the place by ID first
+	// If updating advertisement status
+	if ('isAdvertisement' in updates) {
+		const { data } = await api.put(`/places/${id}/advertisement`, {
+			isAdvertisement: updates.isAdvertisement
+		})
+		const place = data?.data as Place
+		return placeToKMapMarker(place)
+	}
+
+	// Find the place by ID first for other updates
 	const { data: listData } = await api.get('/places', { params: { pageSize: 100 } })
 	const place = listData?.data?.items?.find((p: Place) => p.id === id)
 

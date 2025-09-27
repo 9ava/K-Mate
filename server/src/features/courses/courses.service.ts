@@ -107,7 +107,7 @@ export class CoursesService {
 	/**
 	 * 공개 코스 목록 조회 (페이지네이션)
 	 * - visibility='public'인 코스만 반환
-	 * - 최신 생성일 순으로 정렬
+	 * - 광고가 먼저, 그 다음 최신 생성일 순으로 정렬
 	 * 
 	 * @param page 페이지 번호 (1부터 시작)
 	 * @param limit 페이지당 항목 수
@@ -117,7 +117,10 @@ export class CoursesService {
 		const [courses, total] = await this.courseRepo.findAndCount({
 			where: { visibility: 'public' },
 			relations: ['author', 'stops'],
-			order: { created_at: 'DESC' },
+			order: { 
+				isAdvertisement: 'DESC',  // 광고를 먼저 정렬
+				created_at: 'DESC'        // 그 다음 최신순
+			},
 			skip: (page - 1) * limit,
 			take: limit,
 		})
@@ -243,6 +246,11 @@ export class CoursesService {
 			userId: Number(userId),
 		})
 		await this.savedCourseRepo.save(savedCourse)
+
+		// 5. 저장 횟수 증가
+		await this.courseRepo.update(courseId, { 
+			saveCount: () => 'save_count + 1' 
+		})
 	}
 
 	/**
@@ -261,6 +269,13 @@ export class CoursesService {
 		if (result.affected === 0) {
 			throw new NotFoundException('Saved course not found')
 		}
+
+		// 저장 횟수 감소 (0 이하로는 내려가지 않게)
+		await this.courseRepo.createQueryBuilder()
+			.update(Course)
+			.set({ saveCount: () => 'GREATEST(save_count - 1, 0)' })
+			.where('id = :id', { id: courseId })
+			.execute()
 	}
 
 	/**
@@ -279,5 +294,89 @@ export class CoursesService {
 		})
 
 		return savedCourses.map(sc => sc.course)
+	}
+
+	/**
+	 * 코스 광고 상태 토글
+	 * - 관리자만 수행 가능
+	 * 
+	 * @param id 코스 ID
+	 * @param isAdvertisement 광고 설정 여부
+	 */
+	async toggleAdvertisement(id: string, isAdvertisement: boolean) {
+		const course = await this.courseRepo.findOne({ where: { id } })
+		if (!course) {
+			throw new NotFoundException('코스를 찾을 수 없습니다')
+		}
+
+		course.isAdvertisement = isAdvertisement
+		await this.courseRepo.save(course)
+
+		return course
+	}
+
+	/**
+	 * 코스 공유
+	 * - 공유 횟수를 증가시킴
+	 * 
+	 * @param courseId 공유할 코스 ID
+	 */
+	async shareCourse(courseId: string) {
+		const course = await this.courseRepo.findOne({ where: { id: courseId } })
+		if (!course) {
+			throw new NotFoundException('코스를 찾을 수 없습니다')
+		}
+
+		// 공유 횟수 증가
+		await this.courseRepo.update(courseId, { 
+			shareCount: () => 'share_count + 1' 
+		})
+
+		return course
+	}
+
+	/**
+	 * 월별 Best 코스 조회
+	 * - 전체 기간 중 공유 + 저장 횟수 기준으로 인기 코스 조회
+	 * - 광고 코스가 먼저 표시됨
+	 * 
+	 * @param limit 조회할 개수 (기본값: 9)
+	 * @returns 인기 코스 목록 (월별 Best)
+	 */
+	async getMonthlyBestCourses(year?: number, month?: number, limit: number = 9) {
+		try {
+			// year, month 파라미터는 호환성을 위해 유지하지만 실제로는 사용하지 않음
+			
+			const courses = await this.courseRepo
+				.createQueryBuilder('course')
+				.leftJoinAndSelect('course.author', 'author')
+				.leftJoinAndSelect('course.stops', 'stops')
+				.where('course.visibility = :visibility', { visibility: 'public' })
+				.orderBy('course.is_advertisement', 'DESC')
+				.addOrderBy('(course.share_count + course.save_count)', 'DESC')
+				.addOrderBy('course.created_at', 'DESC')
+				.limit(limit)
+				.getMany()
+
+			return courses
+		} catch (error) {
+			console.error('getMonthlyBestCourses error:', error)
+			// 에러 발생 시 빈 배열 반환하는 대신 간단한 쿼리로 폴백
+			try {
+				const fallbackCourses = await this.courseRepo
+					.createQueryBuilder('course')
+					.leftJoinAndSelect('course.author', 'author')
+					.leftJoinAndSelect('course.stops', 'stops')
+					.where('course.visibility = :visibility', { visibility: 'public' })
+					.orderBy('course.created_at', 'DESC')
+					.limit(limit)
+					.getMany()
+				
+				return fallbackCourses
+			} catch (fallbackError) {
+				console.error('Fallback query also failed:', fallbackError)
+				throw new NotFoundException('코스를 찾을 수 없습니다')
+			}
+		}
 	}
 }
