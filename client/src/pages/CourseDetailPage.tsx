@@ -37,16 +37,19 @@ export default function CourseDetailPage() {
 	const [actionLoading, setActionLoading] = useState(false)
 
 	// 목록으로 돌아가기 핸들러
-	const handleBackToList = () => {
+	const handleBackToList = (needsRefresh: boolean = false) => {
 		const from = searchParams.get('from')
 		const tab = searchParams.get('tab')
 		
+		// refresh 파라미터를 추가하여 목록 새로고침을 트리거
+		const refreshParam = needsRefresh ? `?refresh=${Date.now()}` : ''
+		
 		if (from === 'mypage' && tab) {
 			// MyPage의 코스에서 온 경우 MyCoursesPage로 돌아가기
-			navigate(`/mypage/courses?tab=${tab}`)
+			navigate(`/mypage/courses?tab=${tab}${needsRefresh ? `&refresh=${Date.now()}` : ''}`)
 		} else {
 			// 기본적으로 KcoursePage로 돌아가기
-			navigate('/kcourse')
+			navigate(`/kcourse${refreshParam}`)
 		}
 	}
 
@@ -102,7 +105,9 @@ export default function CourseDetailPage() {
 
 			try {
 				setLoading(true)
+				console.log(`Loading course ${courseId}...`)
 				const response = await getCourse(courseId)
+				console.log(`Course ${courseId} loaded successfully:`, response.data)
 				setCourse(response.data)
 				const convertedStops = await convertCourseToStops(response.data)
 				setStops(convertedStops)
@@ -111,6 +116,7 @@ export default function CourseDetailPage() {
 				// 임시로 false로 설정
 				setIsSaved(false)
 			} catch (err: any) {
+				console.error(`Failed to load course ${courseId}:`, err)
 				setError(err.message || '코스를 불러오는데 실패했습니다.')
 			} finally {
 				setLoading(false)
@@ -152,6 +158,11 @@ export default function CourseDetailPage() {
 			setCourse(response.data)
 			setIsEditing(false)
 			alert('코스가 수정되었습니다.')
+			
+			// 2초 후 목록으로 돌아가기 (새로고침 트리거)
+			setTimeout(() => {
+				handleBackToList(true)
+			}, 2000)
 		} catch (error: any) {
 			alert(`수정 실패: ${error?.message ?? error}`)
 		} finally {
@@ -244,7 +255,7 @@ export default function CourseDetailPage() {
 				<div className="flex items-center justify-between mx-auto max-w-7xl">
 					<div className="flex items-center gap-4">
 						<button
-							onClick={handleBackToList}
+							onClick={() => handleBackToList()}
 							className="text-gray-500 hover:text-gray-700"
 						>
 							← 목록으로

@@ -55,10 +55,16 @@ export class AuthController {
 	async softMe(@Req() req: Request) {
 		try {
 			const token = req.cookies?.access_token
+			console.log('GET /auth/me - access_token:', token ? 'present' : 'missing')
+			console.log('All cookies:', req.cookies)
+			
 			if (!token) return null
+			
 			const p = await this.jwt.verifyAsync(token, { secret: process.env.JWT_SECRET! })
+			console.log('JWT payload:', p)
 			return { sub: p.sub, email: p.email, role: p.role ?? 'user' }
-		} catch {
+		} catch (error) {
+			console.log('JWT verification error:', error.message)
 			return null
 		}
 	}

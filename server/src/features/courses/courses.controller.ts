@@ -1,5 +1,6 @@
 import { Controller, Post, Body, UseGuards, Req, Get, Query, Param, Put, Delete } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
+import { JwtService } from '@nestjs/jwt'
 import {
 	ApiTags,
 	ApiOperation,
@@ -24,7 +25,10 @@ import { Roles } from '../../common/decorators/roles.decorator'
 @ApiTags('courses')
 @Controller('courses')
 export class CoursesController {
-	constructor(private readonly coursesService: CoursesService) {}
+	constructor(
+		private readonly coursesService: CoursesService,
+		private readonly jwt: JwtService
+	) {}
 
 	/**
 	 * 새로운 여행 코스 생성
@@ -328,9 +332,30 @@ export class CoursesController {
 	})
 	@Get(':id')
 	async getOne(@Param('id') id: string, @Req() req: any) {
-		const userId = req?.user?.id // 로그인 안 됐을 수도 있음
-		const course = await this.coursesService.findOne(id, userId ? String(userId) : undefined)
-		return { success: true, data: course }
+		try {
+			// JWT 쿠키에서 사용자 ID 추출
+			let userId: string | undefined = undefined
+			
+			try {
+				const token = req.cookies?.access_token
+				
+				if (token) {
+					const payload = await this.jwt.verifyAsync(token, { secret: process.env.JWT_SECRET! })
+					userId = payload.sub
+				}
+			} catch (jwtError) {
+				// JWT 검증 실패해도 public 코스는 접근 가능하므로 계속 진행
+			}
+			
+			const course = await this.coursesService.findOne(id, userId)
+			return { success: true, data: course }
+		} catch (error) {
+			console.error(`Error getting course ${id}:`, error)
+			if (error.message?.includes('Access denied') || error.status === 403) {
+				throw error // ForbiddenException을 그대로 전파
+			}
+			throw error
+		}
 	}
 
 	/**

@@ -64,6 +64,7 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 		isAdvertisement: course.isAdvertisement || false,
 		shareCount: course.shareCount || 0,
 		saveCount: course.saveCount || 0,
+		visibility: course.visibility,
 	}
 
 	// 캐시에 저장
@@ -83,6 +84,7 @@ type TravelCourse = {
 	isAdvertisement?: boolean
 	shareCount?: number
 	saveCount?: number
+	visibility?: 'public' | 'private'
 }
 
 /* --- HeroBanner --- */
@@ -330,53 +332,59 @@ function TravelCourseCard({
 					className="object-cover w-full h-48 transition-transform duration-300 group-hover:scale-105"
 				/>
 
-				{/* 광고 배지 */}
-				{course.isAdvertisement && (
-					<div className="absolute top-3 left-3">
-						<span className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-full">
-							광고 ⓘ
-						</span>
+				{/* 상단 배지 컨테이너 */}
+				<div className="absolute flex items-start justify-between top-3 left-3 right-3">
+					{/* 왼쪽 배지들 */}
+					<div className="flex flex-col gap-1">
+						{/* 광고 배지 */}
+						{course.isAdvertisement && (
+							<span className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-full">
+								광고 ⓘ
+							</span>
+						)}
+						
+						{/* Private 코스 배지 */}
+						{course.visibility === 'private' && (
+							<span className="flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-yellow-100 border border-yellow-300 rounded-full">
+								🔒 비공개
+							</span>
+						)}
 					</div>
-				)}
 
-				{/* 소유 여부 표시 */}
-				{isOwned !== undefined && (
-					<div className={`absolute top-3 ${course.isAdvertisement ? 'right-3' : 'left-3'}`}>
-						<span className={`px-2 py-1 text-xs font-medium rounded-full ${
-							isOwned 
-								? 'bg-blue-100 text-blue-800' 
-								: 'bg-green-100 text-green-800'
-						}`}>
-							{isOwned ? t('kcourse.labels.my_course') : t('kcourse.labels.saved')}
-						</span>
-					</div>
-				)}
+					{/* 오른쪽 배지들 */}
+					<div className="flex flex-col items-end gap-1">
+						{/* 소유 여부 표시 */}
+						{isOwned !== undefined && (
+							<span className={`px-2 py-1 text-xs font-medium rounded-full ${
+								isOwned 
+									? 'bg-blue-100 text-blue-800' 
+									: 'bg-green-100 text-green-800'
+							}`}>
+								{isOwned ? t('kcourse.labels.my_course') : t('kcourse.labels.saved')}
+							</span>
+						)}
 
-				{/* 저장된 코스 삭제 버튼 */}
-				{isOwned === false && onUnsave && (
-					<div className="absolute top-3 right-3">
-						<button
-							onClick={handleUnsave}
-							className="flex items-center justify-center w-8 h-8 text-white transition-all duration-200 bg-red-500 rounded-full shadow-md hover:bg-red-600 group"
-							title={t('kcourse.buttons.unsave_course')}
-						>
-							<svg 
-								className="w-4 h-4" 
-								fill="none" 
-								stroke="currentColor" 
-								viewBox="0 0 24 24"
+						{/* 저장된 코스 삭제 버튼 */}
+						{isOwned === false && onUnsave && (
+							<button
+								onClick={handleUnsave}
+								className="flex items-center justify-center w-8 h-8 text-white transition-all duration-200 bg-red-500 rounded-full shadow-md hover:bg-red-600 group"
+								title={t('kcourse.buttons.unsave_course')}
 							>
-								<path 
-									strokeLinecap="round" 
-									strokeLinejoin="round" 
-									strokeWidth={2} 
-									d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
-								/>
-							</svg>
-						</button>
+								<svg 
+									className="w-4 h-4 transition-transform group-hover:scale-110" 
+									fill="none" 
+									stroke="currentColor" 
+									viewBox="0 0 24 24"
+								>
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						)}
 					</div>
-				)}
+				</div>
 
+				{/* 카테고리 배지 */}
 				{course.category === 'cultural' && (
 					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
 						<div className="w-4 h-4 bg-blue-400 rounded-full" />
@@ -430,47 +438,6 @@ function TravelCourseCard({
 	)
 }
 
-/* --- TravelCourseGrid (월간 Best 또는 공개 코스) --- */
-// 임시 하드코딩 데이터 (공개 코스가 없을 때 사용)
-const getDefaultTravelCourses = (t: any): TravelCourse[] => [
-	{
-		id: 1,
-		title: '서울 궁궐 투어 코스',
-		location: '서울 종로구',
-		date: '2024. 2. 21.',
-		author: t('kcourse.labels.created_date'),
-		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1d0f0330-cfb2-4a40-82ce-37c02fb61768',
-		category: 'cultural',
-	},
-	{
-		id: 2,
-		title: '홍대 카페 투어',
-		location: '서울 마포구',
-		date: '2024. 2. 12.',
-		author: t('kcourse.labels.created_date'),
-		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=1c256b80-a500-4556-b7f9-08a94e389cbf',
-		category: 'cafe',
-	},
-	{
-		id: 3,
-		title: '명동 맛집 투어',
-		location: '서울 중구',
-		date: '2025. 6. 10.',
-		author: t('kcourse.labels.created_date'),
-		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=b8b85fc6-5719-473d-90d4-74efe761319a',
-		category: 'food',
-	},
-	{
-		id: 4,
-		title: '한강공원 피크닉 코스',
-		location: '서울 영등포구',
-		date: '2024. 1. 25.',
-		author: t('kcourse.labels.created_date'),
-		image: 'https://cdn.visitkorea.or.kr/img/call?cmd=VIEW&id=c25671f8-f713-4b60-96b4-caf3950a8bd4',
-		category: 'cultural',
-	},
-]
-
 function TravelCourseGrid({ 
 	onCreate, 
 	courses, 
@@ -496,8 +463,40 @@ function TravelCourseGrid({
 		)
 	}
 
-	// 공개 코스가 없으면 기본 데이터 사용
-	const displayCourses = courses.length > 0 ? courses : getDefaultTravelCourses(t)
+	// 공개 코스가 없을 때
+	if (courses.length === 0) {
+		return (
+			<section className="py-12 bg-white">
+				<div className="container px-4 mx-auto">
+					<div className="flex items-center justify-between mb-8">
+						<div className="flex items-center gap-2">
+							<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.monthly_best_9')}</h2>
+							<div className="flex items-center justify-center w-6 h-6 bg-gray-100 rounded-full">
+								<span className="text-xs text-gray-500">i</span>
+							</div>
+						</div>
+						<button
+							onClick={onCreate}
+							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+						>
+							{t('kcourse.buttons.create_course')} →
+						</button>
+					</div>
+
+					<div className="py-20 text-center">
+						<div className="text-lg text-gray-500">아직 공개된 코스가 없습니다</div>
+						<div className="mt-2 text-sm text-gray-500">첫 번째 코스를 만들어보세요!</div>
+						<button
+							onClick={onCreate}
+							className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+						>
+							코스 만들어보기
+						</button>
+					</div>
+				</div>
+			</section>
+		)
+	}
 
 	return (
 		<section className="py-12 bg-white">
@@ -518,7 +517,7 @@ function TravelCourseGrid({
 				</div>
 
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-					{displayCourses.map((course: TravelCourse) => (
+					{courses.map((course: TravelCourse) => (
 						<TravelCourseCard key={course.id} course={course} onShare={onShareCourse} />
 					))}
 				</div>
@@ -530,7 +529,7 @@ function TravelCourseGrid({
 
 export default function KCoursePage() {
 	const { t } = useTranslation()
-	const [searchParams] = useSearchParams()
+	const [searchParams, setSearchParams] = useSearchParams()
 	
 	// URL 파라미터에서 초기 탭 설정
 	const getInitialTab = (): Tab => {
@@ -547,10 +546,26 @@ export default function KCoursePage() {
 	const [publicCourses, setPublicCourses] = useState<TravelCourse[]>([])
 	const [myCoursesLoading, setMyCoursesLoading] = useState(false)
 	const [publicCoursesLoading, setPublicCoursesLoading] = useState(false)
+	const [lastRefreshParam, setLastRefreshParam] = useState<string | null>(null)
 	
 	const navigate = useNavigate()
 	const { isAuthed } = useAuth()
+	
 	const goPlanner = () => navigate('/planner')
+
+	// 캐시 무효화 함수
+	const clearCourseCache = () => {
+		courseCache.clear()
+	}
+
+	// 강제 새로고침 함수
+	const refreshAllData = async () => {
+		clearCourseCache()
+		await loadPublicCourses()
+		if (isAuthed && activeTab === 'my-course') {
+			await loadMyCourses()
+		}
+	}
 
 	// 코스 공유 핸들러 (실시간 업데이트)
 	const handleShareCourse = async (courseId: number) => {
@@ -594,7 +609,6 @@ export default function KCoursePage() {
 			await unsaveCourse(courseId.toString())
 			// 저장한 코스 목록에서 해당 코스 제거
 			setSavedCourses(prev => prev.filter(course => course.id !== courseId))
-			console.log(`Course ${courseId} unsaved successfully`)
 			
 			// 성공 메시지 (추후 토스트로 개선 가능)
 			alert(t('kcourse.messages.unsave_success'))
@@ -697,6 +711,34 @@ export default function KCoursePage() {
 			loadMyCourses()
 		}
 	}, [activeTab, isAuthed])
+
+	// URL 파라미터의 refresh 변경 감지
+	useEffect(() => {
+		const refreshParam = searchParams.get('refresh')
+		if (refreshParam && refreshParam !== lastRefreshParam) {
+			setLastRefreshParam(refreshParam)
+			refreshAllData()
+			// URL에서 refresh 파라미터 제거 (히스토리에 남지 않게)
+			const newParams = new URLSearchParams(searchParams)
+			newParams.delete('refresh')
+			setSearchParams(newParams, { replace: true })
+		}
+	}, [searchParams, lastRefreshParam])
+
+	// 페이지 가시성 변경 감지 (코스 수정 후 돌아왔을 때)
+	useEffect(() => {
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				// 페이지가 다시 보이게 될 때 데이터 새로고침
+				refreshAllData()
+			}
+		}
+
+		document.addEventListener('visibilitychange', handleVisibilityChange)
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange)
+		}
+	}, [isAuthed, activeTab])
 
 	return (
 		<div className="min-h-[calc(100vh-64px)] bg-white">
