@@ -1,13 +1,11 @@
 // src/pages/KBuzz/CommunityDetailPage.tsx
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { fetchPostDetail, likePost } from '../../api/kbuzz'
+import { fetchPostDetail, likePost, updatePost } from '../../api/kbuzz'
 import { fetchComments, createComment, deleteComment } from '../../api/comments'
 import { useAuthStore } from '../../features/auth/auth.store'
 import { toKstFromUtc, toKstFromUtcShort } from '../../lib/date'
-
-// ⬇️ 두 번째 코드(또는 프로젝트)에 있는 S3 연동 유틸을 사용하세요.
-// 경로/함수명이 다르면 여기 import만 맞춰주시면 됩니다.
+import { uploadToS3, generateCommunityImageKey, validateImageFile } from '../../api/s3'
 
 type Post = {
 	id: number
@@ -271,6 +269,11 @@ export default function CommunityDetailPage() {
 	const startEditPost = () => {
 		setPostTitleDraft(post.title)
 		setPostBodyDraft(post.body.join('\n\n'))
+		// Reset image upload states but keep existing image
+		setImageFile(null)
+		setImagePreview(null)
+		setUploading(false)
+		setUploadProgress(0)
 		setEditingPost(true)
 	}
 	const cancelEditPost = () => setEditingPost(false)
@@ -282,25 +285,20 @@ export default function CommunityDetailPage() {
 	const [uploading, setUploading] = useState(false)
 	const [uploadProgress, setUploadProgress] = useState(0)
 
-	const MAX_MB = 5
-	const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
-
 	function handlePickClick() {
 		fileInputRef.current?.click()
 	}
 	function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const f = e.target.files?.[0]
 		if (!f) return
-		if (!ALLOWED.includes(f.type)) {
-			alert('이미지는 JPG/PNG/WebP만 업로드할 수 있어요.')
+
+		const validation = validateImageFile(f, 5)
+		if (!validation.isValid) {
+			alert(validation.error)
 			e.target.value = ''
 			return
 		}
-		if (f.size > MAX_MB * 1024 * 1024) {
-			alert(`파일 용량은 최대 ${MAX_MB}MB까지 가능해요.`)
-			e.target.value = ''
-			return
-		}
+
 		setImageFile(f)
 		setImagePreview(URL.createObjectURL(f))
 	}
@@ -310,7 +308,7 @@ export default function CommunityDetailPage() {
 		if (fileInputRef.current) fileInputRef.current.value = ''
 	}
 
-	// ⬇️ Save 시에만 S3 업로드를 수행(미리보기 UI는 그대로)
+	// ⬇️ 자동으로 이미지 업로드 후 서버에 저장
 	const saveEditPost = async () => {
 		const title = postTitleDraft.trim()
 		const body = postBodyDraft.trim()
@@ -319,18 +317,15 @@ export default function CommunityDetailPage() {
 			return
 		}
 
-		// 1) 이미지가 선택된 경우에만 S3 업로드
+		// 1) 새 이미지 파일이 선택된 경우 자동으로 S3에 업로드
 		let nextImageUrl: string | null | undefined = post.imageUrl
 		if (imageFile) {
 			try {
 				setUploading(true)
 				setUploadProgress(0)
-				// presigned PUT URL 발급 (두 번째 코드에서 쓰시던 API 엔드포인트와 동일하게)
-				// const { url: presignedUrl } = await getPresignedPutUrl(imageFile.name, imageFile.type)
-				// S3 업로드
-				// await uploadToS3(presignedUrl, imageFile, (p: number) => setUploadProgress(p))
-				// public URL 계산(또는 백엔드가 publicUrl을 내려주면 그걸 사용)
-				// nextImageUrl = toPublicUrlFromPresigned(presignedUrl)
+				const key = generateCommunityImageKey(Number(currentUser.id), imageFile.name)
+				const uploadedUrl = await uploadToS3(imageFile, key)
+				nextImageUrl = uploadedUrl
 			} catch (e) {
 				console.error(e)
 				alert('이미지 업로드 중 오류가 발생했어요.')
@@ -342,22 +337,21 @@ export default function CommunityDetailPage() {
 			}
 		}
 
-		// 2) 로컬 UI 반영 (UI는 그대로 유지)
-		setPost((prev) => ({
-			...prev,
-			title,
-			body: body.split(/\n{2,}/),
-			imageUrl: nextImageUrl ?? prev.imageUrl ?? undefined,
-		}))
-		setEditingPost(false)
+		try {
+			// 2) 서버에 업데이트
+			await updatePost(post.id, { title, content: body, imageUrl: nextImageUrl })
 
-		// 3) (선택) 서버 PATCH 연동: 제목/본문/이미지 URL 저장
-		//    - 기존 프로젝트의 posts PATCH 엔드포인트가 있다면 여기에 연결하세요.
-		// try {
-		//   await updatePost(post.id, { title, content: body, imageUrl: nextImageUrl })
-		// } catch (e) {
-		//   // 실패 시 사용자 고지/롤백 처리 등
-		// }
+			// 3) 로컬 UI 반영
+			setPost((prev) => ({
+				...prev,
+				title,
+				body: body.split(/\n{2,}/),
+				imageUrl: nextImageUrl ?? prev.imageUrl ?? undefined,
+			}))
+			setEditingPost(false)
+		} catch (e: any) {
+			alert('게시글 수정 중 오류가 발생했어요.')
+		}
 	}
 
 	const onDeletePost = () => {
@@ -494,12 +488,37 @@ export default function CommunityDetailPage() {
 							rows={10}
 							className="w-full rounded border px-3 py-2 text-[15px] leading-7"
 						/>
-						{/* Image Upload (UI 그대로) */}
+						{/* Image Upload */}
 						<div className="mt-4">
 							<label className="block mb-1 text-sm font-medium">Image (optional)</label>
+
+							{/* 현재 이미지 표시 */}
+							{post.imageUrl && !imagePreview && (
+								<div className="mb-4 p-3 border rounded-lg bg-gray-50">
+									<p className="mb-2 text-sm font-medium text-gray-700">현재 이미지:</p>
+									<div className="flex items-start gap-3">
+										{/* eslint-disable-next-line @next/next/no-img-element */}
+										<img
+											src={post.imageUrl}
+											alt="현재 이미지"
+											className="object-cover w-16 h-16 border rounded"
+											onError={(e) => {
+												(e.target as HTMLImageElement).style.display = 'none'
+											}}
+										/>
+										<div className="flex-1">
+											<p className="text-sm text-gray-600">기존 이미지</p>
+											<p className="text-xs text-gray-500">새 이미지를 선택하면 교체됩니다</p>
+										</div>
+									</div>
+								</div>
+							)}
+
 							{!imagePreview ? (
 								<div className="px-4 py-6 text-center border border-dashed rounded-lg">
-									<p className="text-sm text-gray-500">첨부할 이미지를 선택해 주세요</p>
+									<p className="text-sm text-gray-500">
+										{post.imageUrl ? '새 이미지로 교체' : '첨부할 이미지를 선택해 주세요'}
+									</p>
 									<div className="flex justify-center gap-3 mt-3">
 										<button
 											type="button"
@@ -523,7 +542,7 @@ export default function CommunityDetailPage() {
 									{/* eslint-disable-next-line @next/next/no-img-element */}
 									<img
 										src={imagePreview}
-										alt="preview"
+										alt="선택된 이미지"
 										className="object-cover w-16 h-16 border rounded"
 									/>
 									<div className="flex-1">
@@ -533,7 +552,7 @@ export default function CommunityDetailPage() {
 										{imageFile && (
 											<div className="text-xs text-gray-500">
 												{(imageFile.size / 1024 / 1024).toFixed(2)} MB
-												{uploading ? ` · 업로드중 ${uploadProgress}%` : ''}
+												{uploading ? ` · 업로드중 ${uploadProgress}%` : ' · 저장 시 자동으로 업로드됩니다'}
 											</div>
 										)}
 									</div>
