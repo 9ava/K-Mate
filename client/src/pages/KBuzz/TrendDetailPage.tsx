@@ -98,6 +98,10 @@ export default function TrendDetailPage() {
 			aboutTitle: article.aboutTitle || '',
 			aboutDescription: article.aboutDescription || '',
 		})
+		// Reset upload states but keep existing image
+		setImageFile(null)
+		setImagePreview(null)
+		setUploading(false)
 		setEditModalOpen(true)
 	}
 	const closeEdit = () => {
@@ -132,26 +136,6 @@ export default function TrendDetailPage() {
 		setImagePreview(URL.createObjectURL(file))
 	}
 
-	// S3에 이미지 업로드
-	const uploadImageToS3 = async (): Promise<string | null> => {
-		if (!imageFile || !article) return null
-
-		try {
-			setUploading(true)
-			const key = generateTrendImageKey(article.id, imageFile.name)
-			const uploadedUrl = await uploadToS3(imageFile, key)
-
-			// 업로드 성공 시 이미지 URL을 editDraft에 업데이트
-			setEditDraft((prev) => ({ ...prev, image: uploadedUrl }))
-			return uploadedUrl
-		} catch (error) {
-			console.error('Image upload failed:', error)
-			alert('이미지 업로드에 실패했습니다.')
-			return null
-		} finally {
-			setUploading(false)
-		}
-	}
 
 	// 이미지 선택 초기화
 	const clearImageSelection = () => {
@@ -219,7 +203,7 @@ export default function TrendDetailPage() {
 	}
 	const toggleScrap = () => setIsScraped((v) => !v)
 
-	// ✅ 저장: 서버에는 title / content만 반영, 이미지·ABOUT은 로컬에 저장
+	// ✅ 저장: 자동으로 이미지 업로드 후 서버에 반영
 	const onSubmitEdit = async (e: React.FormEvent) => {
 		e.preventDefault()
 		if (!article) return
@@ -228,12 +212,31 @@ export default function TrendDetailPage() {
 		if (!title) return
 
 		try {
-			// 서버 반영
-			await updatePost(article.id, { title, content })
+			let finalImageUrl = editDraft.image.trim()
+
+			// 새 이미지 파일이 선택된 경우 자동으로 S3에 업로드
+			if (imageFile) {
+				setUploading(true)
+				try {
+					const key = generateTrendImageKey(article.id, imageFile.name)
+					const uploadedUrl = await uploadToS3(imageFile, key)
+					finalImageUrl = uploadedUrl
+				} catch (error) {
+					console.error('Image upload failed:', error)
+					alert('이미지 업로드에 실패했습니다.')
+					setUploading(false)
+					return
+				} finally {
+					setUploading(false)
+				}
+			}
+
+			// 서버에 title, content, imageUrl 반영
+			await updatePost(article.id, { title, content, imageUrl: finalImageUrl })
 
 			// 프론트 확장 필드 저장
 			const extras = {
-				image: editDraft.image.trim(),
+				image: finalImageUrl,
 				aboutTitle: editDraft.aboutTitle.trim(),
 				aboutDescription: editDraft.aboutDescription.trim(),
 			}
@@ -246,7 +249,7 @@ export default function TrendDetailPage() {
 							...prev,
 							title,
 							content,
-							image: extras.image || prev.image,
+							image: finalImageUrl || prev.image,
 							aboutTitle: extras.aboutTitle || prev.aboutTitle,
 							aboutDescription: extras.aboutDescription || prev.aboutDescription,
 					  }
@@ -304,7 +307,7 @@ export default function TrendDetailPage() {
 					</div>
 				</section>
 
-				{/* 히어로 이미지 + 우측 정보 카드 */}
+				{/* 히어로 이미지 */}
 				<section className="relative mb-16">
 					<div className="overflow-hidden border rounded-2xl">
 						<img
@@ -330,7 +333,7 @@ export default function TrendDetailPage() {
 					</aside>
 				</section>
 
-				{/* 본문 */}
+				{/* 본문 텍스트 */}
 				<section className="mb-10 md:mb-12">
 					<div className="max-w-4xl mx-auto">
 						<div className="text-lg leading-relaxed text-gray-700 whitespace-pre-wrap md:text-xl">
@@ -454,11 +457,34 @@ export default function TrendDetailPage() {
 										/>
 									</div>
 
+									{/* 현재 이미지 표시 */}
+									{editDraft.image && !imagePreview && (
+										<div className="mb-4 p-3 border rounded-lg bg-gray-50">
+											<p className="mb-2 text-sm font-medium text-gray-700">현재 이미지:</p>
+											<div className="flex items-start gap-3">
+												<img
+													src={editDraft.image}
+													alt="현재 이미지"
+													className="object-cover w-20 h-20 border rounded"
+													onError={(e) => {
+														(e.target as HTMLImageElement).style.display = 'none'
+													}}
+												/>
+												<div className="flex-1">
+													<p className="text-sm text-gray-600">기존 이미지</p>
+													<p className="text-xs text-gray-500">새 이미지를 선택하면 교체됩니다</p>
+												</div>
+											</div>
+										</div>
+									)}
+
 									{/* 파일 업로드 섹션 */}
 									<div className="p-4 border-2 border-gray-300 border-dashed rounded-lg">
 										{!imagePreview ? (
 											<div className="text-center">
-												<p className="mb-2 text-sm text-gray-500">새 이미지를 S3에 업로드</p>
+												<p className="mb-2 text-sm text-gray-500">
+													{editDraft.image ? '새 이미지로 교체' : '새 이미지를 S3에 업로드'}
+												</p>
 												<label className="inline-block px-4 py-2 text-gray-700 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200">
 													파일 선택
 													<input
@@ -495,40 +521,8 @@ export default function TrendDetailPage() {
 													</button>
 												</div>
 
-												<div className="flex gap-2">
-													<button
-														type="button"
-														onClick={uploadImageToS3}
-														disabled={uploading}
-														className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-													>
-														{uploading ? (
-															<>
-																<svg
-																	className="w-4 h-4 animate-spin"
-																	fill="none"
-																	viewBox="0 0 24 24"
-																>
-																	<circle
-																		className="opacity-25"
-																		cx="12"
-																		cy="12"
-																		r="10"
-																		stroke="currentColor"
-																		strokeWidth="4"
-																	></circle>
-																	<path
-																		className="opacity-75"
-																		fill="currentColor"
-																		d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-																	></path>
-																</svg>
-																업로드 중...
-															</>
-														) : (
-															'S3에 업로드'
-														)}
-													</button>
+												<div className="text-sm text-green-600">
+													새 이미지가 선택되었습니다. 저장 시 자동으로 업로드됩니다.
 												</div>
 											</div>
 										)}

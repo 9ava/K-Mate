@@ -53,7 +53,8 @@ export async function uploadToS3(file: File, key: string): Promise<string> {
 	})
 
 	if (!response.ok) {
-		throw new Error(`S3 upload failed: ${response.statusText}`)
+		const errorText = await response.text().catch(() => 'Unknown error')
+		throw new Error(`S3 upload failed: ${response.status} ${response.statusText} - ${errorText}`)
 	}
 
 	// 읽기는 CloudFront 경유 (버킷은 비공개 + OAC)
