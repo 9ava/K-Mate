@@ -361,25 +361,11 @@ export default function KmapPage() {
 						'cafe'
 					)
 
-					// Use API to get markers by place type
-					const adminMarkers = await getMarkersByPlaceType(type || 'food')
-					const items: Place[] = adminMarkers.map((marker) => ({
-						id: marker.id!,
-						googlePlaceId: marker.place_id || `admin_${marker.id}`,
-						type: (type || 'food') as PlaceType,
-						name: marker.name,
-						address: marker.address,
-						lat: marker.latitude,
-						lng: marker.longitude,
-						phone: null,
-						website: null,
-						googleMapsUrl: `https://maps.google.com/maps?q=${marker.latitude},${marker.longitude}`,
-						openingHoursJson: null,
-						photosJson: marker.imageUrl ? [{ url: marker.imageUrl }] : null,
-						sourceTypesJson: null,
-						typeSource: undefined,
-						description: marker.description || null,
-					}))
+					// 전체 장소 API에서 타입별로 필터링해서 가져오기 (관리자 마커 + 코스 장소 모두 포함)
+					const response = await listPlaces({ type: type, pageSize: 100 })
+					
+					// Place 타입으로 변환
+					const items: Place[] = response.items
 
 					setPlaces(items)
 					setLoadingState('markers')
@@ -433,13 +419,13 @@ export default function KmapPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [mode, type, getMarkersByPlaceType])
 
-	// 반경 또는 사용자 위치 변경 시 마커 재렌더링
-	useEffect(() => {
-		if (places.length > 0 && mapObjRef.current) {
-			renderMarkers(places)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [nearbyRadius, userLocation])
+	// 반경 또는 사용자 위치 변경 시 마커 재렌더링 - 비활성화
+	// useEffect(() => {
+	// 	if (places.length > 0 && mapObjRef.current) {
+	// 		renderMarkers(places)
+	// 	}
+	// 	// eslint-disable-next-line react-hooks/exhaustive-deps
+	// }, [nearbyRadius, userLocation])
 
 	const clearMarkers = () => {
 		// 기존 클러스터러 제거
@@ -516,10 +502,8 @@ export default function KmapPage() {
 		const map = mapObjRef.current!
 		clearMarkers()
 
-		// 타입별 장소 조회시만 사용자 위치 기준 필터링 적용
-		// 북마크나 전체 리스트는 필터링하지 않음
-		const shouldFilter = mode === 'type' && type !== '' && userLocation
-		const filteredPlaces = shouldFilter ? filterNearbyPlaces(items, userLocation) : items
+		// 위치 기반 필터링을 비활성화 - 모든 마커를 표시
+		const filteredPlaces = items
 
 		if (filteredPlaces.length === 0) {
 			return
@@ -579,8 +563,38 @@ export default function KmapPage() {
 		const map = mapObjRef.current
 		if (!map) return
 
+		// 지도를 해당 위치로 이동 및 줌 레벨 조정 (마커가 확실히 보이도록)
 		map.panTo({ lat: p.lat, lng: p.lng })
-		map.setZoom(Math.max(map.getZoom() ?? 12, 14))
+		const currentZoom = map.getZoom() ?? 12
+		// 충분히 확대해서 마커가 명확히 보이도록 함
+		map.setZoom(Math.max(currentZoom, 16))
+
+		// 해당 장소의 마커를 찾아서 강조 표시
+		const targetMarker = markersRef.current.find((marker) => {
+			const position = marker.position
+			if (!position) return false
+			const markerLat = typeof position.lat === 'function' ? position.lat() : position.lat
+			const markerLng = typeof position.lng === 'function' ? position.lng() : position.lng
+			return Math.abs(markerLat - p.lat) < 0.0001 && Math.abs(markerLng - p.lng) < 0.0001
+		})
+
+		// 마커 강조 효과 (잠시 크게 만들었다가 원래대로)
+		if (targetMarker && targetMarker.content) {
+			const originalTransform = (targetMarker.content as HTMLElement).style.transform
+			const originalZIndex = (targetMarker.content as HTMLElement).style.zIndex
+			
+			// 강조 효과
+			;(targetMarker.content as HTMLElement).style.transform = 'scale(1.5)'
+			;(targetMarker.content as HTMLElement).style.zIndex = '10000'
+			
+			// 1초 후 원래대로
+			setTimeout(() => {
+				if (targetMarker.content) {
+					;(targetMarker.content as HTMLElement).style.transform = originalTransform
+					;(targetMarker.content as HTMLElement).style.zIndex = originalZIndex
+				}
+			}, 1000)
+		}
 
 		try {
 			setLoading(true)
