@@ -17,6 +17,7 @@ export type Place = {
 	sourceTypesJson?: string[] | null
 	typeSource?: 'auto' | 'admin'
 	description: string | null
+	isAdvertisement?: boolean // 광고 여부 필드 추가
 	lastSyncedAt?: string | null // ISO
 	createdAt?: string
 	updatedAt?: string

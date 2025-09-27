@@ -33,6 +33,7 @@ type Actions = {
 	updateMarker: (id: number, updates: Partial<KMapMarker>) => Promise<void>
 	deleteMarker: (id: number) => Promise<void>
 	toggleMarkerStatus: (id: number) => Promise<void>
+	toggleAdvertisement: (id: number) => Promise<void> // 광고 토글 함수 추가
 
 	// Getters
 	getMarkersByCategory: (category: string) => MapMarker[]
@@ -57,6 +58,7 @@ export const useMapStore = create<State & Actions>()(
 						description: '조선왕조의 법궁으로 한국의 대표적인 궁궐',
 						imageUrl: 'https://picsum.photos/400/300?1',
 						status: 'active',
+						isAdvertisement: false, // 광고 필드 추가
 						createdAt: '2024-01-15',
 					},
 					{
@@ -70,6 +72,7 @@ export const useMapStore = create<State & Actions>()(
 						description: '유명한 만두 전문점',
 						imageUrl: 'https://picsum.photos/400/300?2',
 						status: 'active',
+						isAdvertisement: false,
 						createdAt: '2024-01-14',
 					},
 					{
@@ -83,6 +86,7 @@ export const useMapStore = create<State & Actions>()(
 						description: '명동 중심가의 대표적인 카페',
 						imageUrl: 'https://picsum.photos/400/300?3',
 						status: 'active',
+						isAdvertisement: false,
 						createdAt: '2024-01-13',
 					},
 					{
@@ -96,6 +100,7 @@ export const useMapStore = create<State & Actions>()(
 						description: '강남의 대표적인 쇼핑 거리',
 						imageUrl: 'https://picsum.photos/400/300?4',
 						status: 'active',
+						isAdvertisement: true, // 테스트용으로 광고 설정
 						createdAt: '2024-01-12',
 					},
 					{
@@ -266,6 +271,39 @@ export const useMapStore = create<State & Actions>()(
 						}
 					} catch (error) {
 						set({ error: error instanceof Error ? error.message : 'Failed to toggle marker status', loading: false })
+					}
+				},
+
+				toggleAdvertisement: async (id) => {
+					try {
+						set({ loading: true, error: null })
+						
+						// 현재 광고 상태 확인
+						const currentMarker = get().markers.find(m => m.id === id)
+						if (!currentMarker) {
+							throw new Error('Marker not found')
+						}
+
+						// API 호출로 광고 상태 토글
+						const updatedKMapMarker = await updateKMapMarker(id, { 
+							isAdvertisement: !currentMarker.isAdvertisement 
+						})
+
+						// KMapMarker를 MapMarker로 변환
+						const updatedMarker: MapMarker = {
+							...updatedKMapMarker,
+							id: updatedKMapMarker.id!
+						}
+
+						// 성공 시 로컬 상태 업데이트
+						set((state) => ({
+							markers: state.markers.map(marker =>
+								marker.id === id ? updatedMarker : marker
+							),
+							loading: false
+						}))
+					} catch (error) {
+						set({ error: error instanceof Error ? error.message : 'Failed to toggle advertisement status', loading: false })
 					}
 				},
 

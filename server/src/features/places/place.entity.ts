@@ -62,6 +62,10 @@ export class Place {
 	@Column({ type: 'decimal', precision: 9, scale: 6, transformer: decimalToNumber })
 	lng!: number
 
+	@ApiProperty({ description: '광고 여부' })
+	@Column({ name: 'is_advertisement', type: 'boolean', default: false })
+	isAdvertisement!: boolean
+
 	@ApiPropertyOptional({ description: '국제 전화번호' })
 	@Column({ type: 'varchar', length: 50, nullable: true })
 	phone!: string | null

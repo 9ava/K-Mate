@@ -437,4 +437,15 @@ export class PlacesService {
 		// Remove the place
 		await this.placeRepo.remove(place)
 	}
+
+	/** 관리자: 광고 상태 토글 */
+	async toggleAdvertisement(id: number, isAdvertisement: boolean): Promise<Place> {
+		const place = await this.placeRepo.findOne({ where: { id } })
+		if (!place) {
+			throw new NotFoundException('Place not found')
+		}
+
+		place.isAdvertisement = isAdvertisement
+		return await this.placeRepo.save(place)
+	}
 }

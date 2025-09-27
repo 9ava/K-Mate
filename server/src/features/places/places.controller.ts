@@ -31,6 +31,7 @@ import {
 	UserAddPlaceDto,
 	ListQueryDto,
 	SetTypeDto,
+	ToggleAdvertisementDto,
 } from './places.dto'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
@@ -230,6 +231,23 @@ export class PlacesController {
 	async adminDeletePlace(@Param('id') id: number) {
 		await this.places.deletePlace(id)
 		return { success: true }
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────
+	// 관리자: 광고 상태 토글
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '관리자: 광고 상태 토글' })
+	@ApiCookieAuth('access_token')
+	@ApiParam({ name: 'id', description: 'Place ID' })
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin')
+	@Put(':id/advertisement')
+	async toggleAdvertisement(
+		@Param('id') id: number,
+		@Body() dto: ToggleAdvertisementDto
+	) {
+		const place = await this.places.toggleAdvertisement(id, dto.isAdvertisement)
+		return { success: true, data: place }
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────
