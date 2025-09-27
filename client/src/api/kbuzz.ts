@@ -95,7 +95,7 @@ export async function updatePost(
 		content?: string
 		category?: Exclude<PostCategory, null>
 		status?: PostStatus
-		imageUrl?: string
+		imageUrl?: string | null
 	}
 ) {
 	const { data } = await api.put(`/posts/${id}`, input)

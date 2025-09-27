@@ -1,7 +1,7 @@
 // src/pages/KBuzz/CommunityDetailPage.tsx
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { fetchPostDetail, likePost, updatePost } from '../../api/kbuzz'
+import { fetchPostDetail, likePost, updatePost, deletePost } from '../../api/kbuzz'
 import { fetchComments, createComment, deleteComment } from '../../api/comments'
 import { useAuthStore } from '../../features/auth/auth.store'
 import { toKstFromUtc, toKstFromUtcShort } from '../../lib/date'
@@ -338,15 +338,16 @@ export default function CommunityDetailPage() {
 		}
 
 		try {
-			// 2) 서버에 업데이트
-			await updatePost(post.id, { title, content: body, imageUrl: nextImageUrl })
+			// 2) 서버에 업데이트 (이미지가 제거된 경우 null로 설정)
+			const finalImageUrl = post.imageUrl === undefined ? null : nextImageUrl
+			await updatePost(post.id, { title, content: body, imageUrl: finalImageUrl })
 
 			// 3) 로컬 UI 반영
 			setPost((prev) => ({
 				...prev,
 				title,
 				body: body.split(/\n{2,}/),
-				imageUrl: nextImageUrl ?? prev.imageUrl ?? undefined,
+				imageUrl: finalImageUrl ?? undefined,
 			}))
 			setEditingPost(false)
 		} catch (e: any) {
@@ -354,10 +355,18 @@ export default function CommunityDetailPage() {
 		}
 	}
 
-	const onDeletePost = () => {
+	const onDeletePost = async () => {
 		if (!confirm('이 게시글을 삭제할까요?')) return
-		// TODO: 서버 DELETE 연동 필요 시 연결
-		navigate('/buzz')
+		if (!user) {
+			loginWithGoogle()
+			return
+		}
+		try {
+			await deletePost(post.id)
+			navigate('/buzz')
+		} catch (e: any) {
+			alert('게시글 삭제 중 오류가 발생했어요.')
+		}
 	}
 
 	return (
@@ -453,9 +462,19 @@ export default function CommunityDetailPage() {
 
 				<hr className="my-5 border-gray-200" />
 
-				{/* Body & Image */}
+				{/* Image & Body */}
 				{!editingPost ? (
 					<>
+						{post.imageUrl && (
+							<div className="mb-5">
+								{/* eslint-disable-next-line @next/next/no-img-element */}
+								<img
+									src={post.imageUrl}
+									alt="post"
+									className="object-cover w-full border rounded-lg"
+								/>
+							</div>
+						)}
 						<article className="space-y-5 text-[15px] leading-7 text-gray-800 ">
 							{post.body.length > 0 ? (
 								post.body.map((p, i) => (
@@ -469,16 +488,6 @@ export default function CommunityDetailPage() {
 								</p>
 							)}
 						</article>
-						{post.imageUrl && (
-							<div className="mt-5">
-								{/* eslint-disable-next-line @next/next/no-img-element */}
-								<img
-									src={post.imageUrl}
-									alt="post"
-									className="object-cover w-full border rounded-lg"
-								/>
-							</div>
-						)}
 					</>
 				) : (
 					<div>
@@ -510,6 +519,17 @@ export default function CommunityDetailPage() {
 											<p className="text-sm text-gray-600">기존 이미지</p>
 											<p className="text-xs text-gray-500">새 이미지를 선택하면 교체됩니다</p>
 										</div>
+										<button
+											type="button"
+											onClick={() => {
+												if (confirm('이미지를 제거하시겠습니까?')) {
+													setPost(prev => ({ ...prev, imageUrl: undefined }))
+												}
+											}}
+											className="px-2 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50"
+										>
+											이미지 제거
+										</button>
 									</div>
 								</div>
 							)}

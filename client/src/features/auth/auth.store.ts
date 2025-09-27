@@ -76,12 +76,17 @@ export const useAuthStore = create<State & Actions>()(
 				},
 
 				loginWithGoogle() {
+					// Store current page for post-login redirect
+					const currentUrl = window.location.pathname + window.location.search
+					sessionStorage.setItem('post_login_redirect', currentUrl)
 					// 서버가 콜백/쿠키를 처리하고 /auth/callback 으로 리다이렉트함
 					const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 					window.location.href = `${base}/auth/google?prompt=select_account consent`
 				},
 
 				switchAccount() {
+					// Store current page for post-login redirect
+					sessionStorage.setItem('post_login_redirect', window.location.pathname + window.location.search)
 					// Force account selection by adding prompt parameter
 					const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 					window.location.href = `${base}/auth/google?prompt=select_account consent`
