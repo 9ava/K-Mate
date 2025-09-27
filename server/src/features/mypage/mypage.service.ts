@@ -316,13 +316,13 @@ export class MypageService {
 			}
 		} catch (error) {
 			// 테이블이 없거나 다른 오류가 발생한 경우 빈 결과 반환
-			console.warn('코스 목록 조회 실패:', {
-				error: error.message,
-				stack: error.stack,
-				userId,
-				page,
-				limit
-			})
+			// console.warn('코스 목록 조회 실패:', {
+			// 	error: error.message,
+			// 	stack: error.stack,
+			// 	userId,
+			// 	page,
+			// 	limit
+			// })
 			return {
 				courses: [],
 				total: 0,
@@ -378,13 +378,13 @@ export class MypageService {
 			}
 		} catch (error) {
 			// 테이블이 없거나 다른 오류가 발생한 경우 빈 결과 반환
-			console.warn('저장한 코스 목록 조회 실패:', {
-				error: error.message,
-				stack: error.stack,
-				userId,
-				page,
-				limit
-			})
+			// console.warn('저장한 코스 목록 조회 실패:', {
+			// 	error: error.message,
+			// 	stack: error.stack,
+			// 	userId,
+			// 	page,
+			// 	limit
+			// })
 			return {
 				savedCourses: [],
 				total: 0,

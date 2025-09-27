@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import Backend from 'i18next-http-backend'
 
-const VERSION = import.meta.env.VITE_I18N_VERSION || '1'
+const VERSION = import.meta.env.VITE_I18N_VERSION || '3'
 
 i18n
 	.use(Backend)
@@ -17,7 +17,7 @@ i18n
 		ns: ['common'],
 		defaultNS: 'common',
 		debug: false,
-		interpolation: { escapeValue: true },
+		interpolation: { escapeValue: false },
 		backend: {
 			loadPath: '/locales/{{lng}}/{{ns}}.json?v=' + VERSION,
 		},

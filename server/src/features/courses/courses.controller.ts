@@ -1,5 +1,6 @@
 import { Controller, Post, Body, UseGuards, Req, Get, Query, Param, Put, Delete } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
+import { JwtService } from '@nestjs/jwt'
 import {
 	ApiTags,
 	ApiOperation,
@@ -12,6 +13,7 @@ import {
 import { CoursesService } from './courses.service'
 import { CreateCourseDto } from './create-course.dto'
 import { ToggleCourseAdvertisementDto } from './toggle-advertisement.dto'
+import { ToggleCourseVisibilityDto } from './toggle-visibility.dto'
 import { Course } from './course.entity'
 import { RolesGuard } from '../../common/guards/roles.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
@@ -24,7 +26,10 @@ import { Roles } from '../../common/decorators/roles.decorator'
 @ApiTags('courses')
 @Controller('courses')
 export class CoursesController {
-	constructor(private readonly coursesService: CoursesService) {}
+	constructor(
+		private readonly coursesService: CoursesService,
+		private readonly jwt: JwtService
+	) {}
 
 	/**
 	 * 새로운 여행 코스 생성
@@ -328,9 +333,30 @@ export class CoursesController {
 	})
 	@Get(':id')
 	async getOne(@Param('id') id: string, @Req() req: any) {
-		const userId = req?.user?.id // 로그인 안 됐을 수도 있음
-		const course = await this.coursesService.findOne(id, userId ? String(userId) : undefined)
-		return { success: true, data: course }
+		try {
+			// JWT 쿠키에서 사용자 ID 추출
+			let userId: string | undefined = undefined
+			
+			try {
+				const token = req.cookies?.access_token
+				
+				if (token) {
+					const payload = await this.jwt.verifyAsync(token, { secret: process.env.JWT_SECRET! })
+					userId = payload.sub
+				}
+			} catch (jwtError) {
+				// JWT 검증 실패해도 public 코스는 접근 가능하므로 계속 진행
+			}
+			
+			const course = await this.coursesService.findOne(id, userId)
+			return { success: true, data: course }
+		} catch (error) {
+			console.error(`Error getting course ${id}:`, error)
+			if (error.message?.includes('Access denied') || error.status === 403) {
+				throw error // ForbiddenException을 그대로 전파
+			}
+			throw error
+		}
 	}
 
 	/**
@@ -536,6 +562,115 @@ export class CoursesController {
 	async toggleAdvertisement(@Param('id') id: string, @Body() dto: ToggleCourseAdvertisementDto) {
 		const course = await this.coursesService.toggleAdvertisement(id, dto.isAdvertisement)
 		return { success: true, data: course }
+	}
+
+	/**
+	 * 코스 공개/비공개 상태 토글
+	 * - 관리자만 가능
+	 */
+	@ApiOperation({
+		summary: '코스 공개/비공개 상태 토글',
+		description: '관리자가 코스의 공개/비공개 상태를 변경합니다.',
+	})
+	@ApiParam({
+		name: 'id',
+		description: '공개 상태를 변경할 코스 ID',
+		example: '123',
+	})
+	@ApiBody({
+		type: ToggleCourseVisibilityDto,
+		description: '공개 상태 설정',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '공개 상태 변경 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: { $ref: '#/components/schemas/Course' },
+			},
+		},
+	})
+	@ApiResponse({
+		status: 403,
+		description: '관리자 권한 필요',
+	})
+	@ApiResponse({
+		status: 404,
+		description: '코스를 찾을 수 없음',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'), RolesGuard)
+	@Roles('admin')
+	@Put(':id/visibility')
+	async toggleVisibility(@Param('id') id: string, @Body() dto: ToggleCourseVisibilityDto) {
+		const course = await this.coursesService.toggleVisibility(id, dto.visibility)
+		return { success: true, data: course }
+	}
+
+	/**
+	 * 관리자용 모든 코스 목록 조회
+	 * - 공개/비공개 모든 코스 조회 가능
+	 * - 페이지네이션 지원
+	 * - 관리자만 접근 가능
+	 */
+	@ApiOperation({
+		summary: '관리자용 모든 코스 목록 조회',
+		description: '관리자가 모든 코스(공개/비공개)를 조회합니다.',
+	})
+	@ApiQuery({
+		name: 'page',
+		required: false,
+		type: Number,
+		description: '페이지 번호 (기본값: 1)',
+		example: 1,
+	})
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본값: 10)',
+		example: 10,
+	})
+	@ApiResponse({
+		status: 200,
+		description: '관리자용 모든 코스 목록 조회 성공',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				data: {
+					type: 'array',
+					items: { $ref: '#/components/schemas/Course' },
+				},
+				pagination: {
+					type: 'object',
+					properties: {
+						page: { type: 'number', example: 1 },
+						limit: { type: 'number', example: 10 },
+						total: { type: 'number', example: 50 },
+						totalPages: { type: 'number', example: 5 },
+					},
+				},
+			},
+		},
+	})
+	@ApiResponse({
+		status: 403,
+		description: '관리자 권한 필요',
+	})
+	@ApiBearerAuth('JWT-Cookie')
+	@UseGuards(AuthGuard('jwt-cookie'), RolesGuard)
+	@Roles('admin')
+	@Get('admin/all')
+	async getAllCoursesForAdmin(@Query('page') page = 1, @Query('limit') limit = 10) {
+		const result = await this.coursesService.getAllCoursesForAdmin(Number(page), Number(limit))
+		return {
+			success: true,
+			data: result.courses,
+			pagination: result.pagination,
+		}
 	}
 
 	/**

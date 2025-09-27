@@ -26,6 +26,8 @@ export default function CoursePanel({
 	saving,
 	initialTitle,
 	initialVisibility,
+	selectedCategory,
+	onCategoryChange,
 }: {
 	stops: Stop[]
 	setStops: (s: Stop[]) => void
@@ -33,6 +35,8 @@ export default function CoursePanel({
 	saving?: boolean
 	initialTitle?: string
 	initialVisibility?: 'public' | 'private'
+	selectedCategory?: 'all' | 'cultural' | 'cafe' | 'food'
+	onCategoryChange?: (category: 'all' | 'cultural' | 'cafe' | 'food') => void
 }) {
 	const { t } = useTranslation()
 	const sensors = useSensors(useSensor(PointerSensor))
@@ -91,6 +95,55 @@ export default function CoursePanel({
 						</button>
 					</div>
 				</div>
+
+				{/* 카테고리 선택 */}
+				{onCategoryChange && (
+					<div className="space-y-2">
+						<label className="text-sm text-gray-600">{t('planner.course.category') || '카테고리'}</label>
+						<div className="grid grid-cols-2 gap-2">
+							<button
+								type="button"
+								onClick={() => onCategoryChange('all')}
+								className={`px-3 py-2 rounded border text-sm flex items-center gap-2 ${
+									selectedCategory === 'all' ? 'bg-purple-500 text-white border-purple-500' : 'bg-white'
+								}`}
+							>
+								<div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+								{t('kcourse.categories.all')}
+							</button>
+							<button
+								type="button"
+								onClick={() => onCategoryChange('cultural')}
+								className={`px-3 py-2 rounded border text-sm flex items-center gap-2 ${
+									selectedCategory === 'cultural' ? 'bg-blue-400 text-white border-blue-400' : 'bg-white'
+								}`}
+							>
+								<div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+								{t('kcourse.categories.cultural')}
+							</button>
+							<button
+								type="button"
+								onClick={() => onCategoryChange('cafe')}
+								className={`px-3 py-2 rounded border text-sm flex items-center gap-2 ${
+									selectedCategory === 'cafe' ? 'bg-amber-400 text-white border-amber-400' : 'bg-white'
+								}`}
+							>
+								<div className="w-3 h-3 rounded-full bg-amber-400"></div>
+								{t('kcourse.categories.cafe')}
+							</button>
+							<button
+								type="button"
+								onClick={() => onCategoryChange('food')}
+								className={`px-3 py-2 rounded border text-sm flex items-center gap-2 ${
+									selectedCategory === 'food' ? 'bg-red-400 text-white border-red-400' : 'bg-white'
+								}`}
+							>
+								<div className="w-3 h-3 bg-red-400 rounded-full"></div>
+								{t('kcourse.categories.food')}
+							</button>
+						</div>
+					</div>
+				)}
 			</div>
 
 			{/* 리스트 (정렬 가능) */}

@@ -81,6 +81,12 @@
 			"unknown_location": "알 수 없는 위치",
 			"author": "작성자"
 		},
+		"categories": {
+			"all": "전체",
+			"cultural": "문화",
+			"cafe": "카페",
+			"food": "음식"
+		},
 		"messages": {
 			"loading": "로딩중...",
 			"no_courses": "아직 만든 여행코스가 없습니다.",
@@ -103,6 +109,7 @@
 			"visibility_label": "공개 범위",
 			"public": "공개",
 			"private": "비공개",
+			"category": "카테고리",
 			"places_count": "담긴 장소",
 			"places_unit": "개",
 			"reset": "초기화",

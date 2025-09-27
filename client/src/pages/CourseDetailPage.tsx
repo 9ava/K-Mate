@@ -1,6 +1,7 @@
 // src/pages/CourseDetailPage.tsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { getCourse, updateCourse, deleteCourse, saveCourse, unsaveCourse } from '../api/courses'
 import { getPlaceDetail } from '../api/places'
 import { useAuth } from '../features/auth/useAuth'
@@ -26,6 +27,7 @@ export default function CourseDetailPage() {
 	const navigate = useNavigate()
 	const [searchParams] = useSearchParams()
 	const { user } = useAuth()
+	const { t } = useTranslation()
 	
 	const [course, setCourse] = useState<Course | null>(null)
 	const [loading, setLoading] = useState(true)
@@ -35,18 +37,38 @@ export default function CourseDetailPage() {
 	const [isSaved, setIsSaved] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [actionLoading, setActionLoading] = useState(false)
+	const [selectedCategory, setSelectedCategory] = useState<'all' | 'cultural' | 'cafe' | 'food'>('all')
 
 	// 목록으로 돌아가기 핸들러
-	const handleBackToList = () => {
+	const handleBackToList = (needsRefresh: boolean = false) => {
+		// returnTo 파라미터가 있으면 우선 사용
+		const returnTo = searchParams.get('returnTo')
+		if (returnTo) {
+			const decodedUrl = decodeURIComponent(returnTo)
+			if (needsRefresh) {
+				// URL에 refresh 파라미터 추가
+				const url = new URL(decodedUrl, window.location.origin)
+				url.searchParams.set('refresh', Date.now().toString())
+				navigate(url.pathname + url.search)
+			} else {
+				navigate(decodedUrl)
+			}
+			return
+		}
+		
+		// 기존 로직 유지 (하위 호환성)
 		const from = searchParams.get('from')
 		const tab = searchParams.get('tab')
 		
+		// refresh 파라미터를 추가하여 목록 새로고침을 트리거
+		const refreshParam = needsRefresh ? `?refresh=${Date.now()}` : ''
+		
 		if (from === 'mypage' && tab) {
 			// MyPage의 코스에서 온 경우 MyCoursesPage로 돌아가기
-			navigate(`/mypage/courses?tab=${tab}`)
+			navigate(`/mypage/courses?tab=${tab}${needsRefresh ? `&refresh=${Date.now()}` : ''}`)
 		} else {
 			// 기본적으로 KcoursePage로 돌아가기
-			navigate('/kcourse')
+			navigate(`/kcourse${refreshParam}`)
 		}
 	}
 
@@ -104,6 +126,7 @@ export default function CourseDetailPage() {
 				setLoading(true)
 				const response = await getCourse(courseId)
 				setCourse(response.data)
+				setSelectedCategory(response.data.category || 'all')
 				const convertedStops = await convertCourseToStops(response.data)
 				setStops(convertedStops)
 				
@@ -111,6 +134,7 @@ export default function CourseDetailPage() {
 				// 임시로 false로 설정
 				setIsSaved(false)
 			} catch (err: any) {
+				console.error(`Failed to load course ${courseId}:`, err)
 				setError(err.message || '코스를 불러오는데 실패했습니다.')
 			} finally {
 				setLoading(false)
@@ -139,6 +163,7 @@ export default function CourseDetailPage() {
 			const courseData: CreateCourseRequest = {
 				title: payload.title.trim(),
 				visibility: payload.visibility,
+				category: selectedCategory,
 				stops: stops.map((s, idx) => ({
 					order: idx + 1,
 					name: s.name,
@@ -152,6 +177,11 @@ export default function CourseDetailPage() {
 			setCourse(response.data)
 			setIsEditing(false)
 			alert('코스가 수정되었습니다.')
+			
+			// 2초 후 목록으로 돌아가기 (새로고침 트리거)
+			setTimeout(() => {
+				handleBackToList(true)
+			}, 2000)
 		} catch (error: any) {
 			alert(`수정 실패: ${error?.message ?? error}`)
 		} finally {
@@ -244,13 +274,27 @@ export default function CourseDetailPage() {
 				<div className="flex items-center justify-between mx-auto max-w-7xl">
 					<div className="flex items-center gap-4">
 						<button
-							onClick={handleBackToList}
+							onClick={() => handleBackToList()}
 							className="text-gray-500 hover:text-gray-700"
 						>
 							← 목록으로
 						</button>
 						<div>
-							<h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
+							<div className="flex items-center gap-2">
+								<h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
+								{/* 카테고리 배지 */}
+								{course.category && (
+									<span className={`px-2 py-1 text-xs font-medium rounded-full ${
+										course.category === 'all' ? 'bg-purple-100 text-purple-800' :
+										course.category === 'cultural' ? 'bg-blue-100 text-blue-800' :
+										course.category === 'cafe' ? 'bg-amber-100 text-amber-800' :
+										course.category === 'food' ? 'bg-red-100 text-red-800' : 
+										'bg-gray-100 text-gray-800'
+									}`}>
+										{t(`kcourse.categories.${course.category}`)}
+									</span>
+								)}
+							</div>
 							<div className="text-sm text-gray-500">
 								{course.author?.name || '작성자'} · {new Date(course.created_at).toLocaleDateString('ko-KR')} 
 								· {course.visibility === 'public' ? '공개' : '비공개'}
@@ -336,6 +380,8 @@ export default function CourseDetailPage() {
 							saving={saving}
 							initialTitle={course?.title}
 							initialVisibility={course?.visibility}
+							selectedCategory={selectedCategory}
+							onCategoryChange={setSelectedCategory}
 						/>
 					</aside>
 				</div>

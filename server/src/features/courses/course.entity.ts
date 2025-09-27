@@ -14,6 +14,7 @@ import { User } from '../users/user.entity'
 import { CourseStop } from './course-stop.entity'
 
 export type CourseVisibility = 'public' | 'private'
+export type CourseCategory = 'all' | 'cultural' | 'cafe' | 'food'
 
 /**
  * 여행 코스 엔티티
@@ -44,6 +45,14 @@ export class Course {
 	})
 	@Column({ type: 'enum', enum: ['public', 'private'], default: 'public' })
 	visibility!: CourseVisibility
+
+	@ApiProperty({
+		description: '코스 카테고리',
+		example: 'all',
+		enum: ['all', 'cultural', 'cafe', 'food'],
+	})
+	@Column({ type: 'enum', enum: ['all', 'cultural', 'cafe', 'food'], default: 'all' })
+	category!: CourseCategory
 
 	/** ✅ authorId 컬럼을 명시적으로 둬서 id만으로도 세팅/조회 쉬움 */
 	@ApiProperty({
