@@ -27,6 +27,11 @@
 - **포함 데이터**: 게시글, 댓글, 상호작용 샘플
 - **실행 순서**: 4번째
 
+### 5. `005_create_courses_schema.sql`
+- **목적**: 코스 관련 테이블 생성
+- **포함 테이블**: `courses`, `course_stops`, `saved_courses`
+- **실행 순서**: 5번째
+
 ## 🚀 마이그레이션 실행 방법
 
 ### 방법 1: MySQL CLI 사용
@@ -43,12 +48,13 @@ source database/migrations/001_create_initial_schema.sql;
 source database/migrations/002_create_triggers.sql;
 source database/migrations/003_create_views.sql;
 source database/migrations/004_insert_sample_data.sql;
+source database/migrations/005_create_courses_schema.sql;
 ```
 
 ### 방법 2: MySQL Workbench 사용
 1. MySQL Workbench에서 `kmate` 데이터베이스에 연결
 2. 각 마이그레이션 파일을 순서대로 열어서 실행
-3. 실행 순서: 001 → 002 → 003 → 004
+3. 실행 순서: 001 → 002 → 003 → 004 → 005
 
 ### 방법 3: 명령줄에서 직접 실행
 ```bash
@@ -57,11 +63,12 @@ mysql -u root -p kmate < database/migrations/001_create_initial_schema.sql
 mysql -u root -p kmate < database/migrations/002_create_triggers.sql
 mysql -u root -p kmate < database/migrations/003_create_views.sql
 mysql -u root -p kmate < database/migrations/004_insert_sample_data.sql
+mysql -u root -p kmate < database/migrations/005_create_courses_schema.sql
 ```
 
 ## ⚠️ 주의사항
 
-1. **실행 순서**: 반드시 001 → 002 → 003 → 004 순서로 실행
+1. **실행 순서**: 반드시 001 → 002 → 003 → 004 → 005 순서로 실행
 2. **데이터베이스**: `kmate` 데이터베이스가 미리 생성되어 있어야 함
 3. **권한**: MySQL 사용자가 테이블 생성, 트리거 생성 권한을 가져야 함
 4. **백업**: 기존 데이터가 있다면 마이그레이션 전에 백업 권장
@@ -85,6 +92,11 @@ SELECT COUNT(*) FROM users;
 SELECT COUNT(*) FROM posts;
 SELECT COUNT(*) FROM comments;
 SELECT COUNT(*) FROM interactions;
+
+-- 코스 관련 테이블 확인
+SELECT COUNT(*) FROM courses;
+SELECT COUNT(*) FROM course_stops;
+SELECT COUNT(*) FROM saved_courses;
 ```
 
 ## 🛠️ 문제 해결

@@ -12,6 +12,7 @@ import { InteractionsModule } from './features/interactions/interactions.module'
 import { CommentsModule } from './features/comments/comments.module'
 import { CoursesModule } from './features/courses/courses.module'
 import { AdminModule } from './features/admin/admin.module'
+import { MypageModule } from './features/mypage/mypage.module'
 import { S3Module } from './s3/s3.module'
 
 
@@ -41,9 +42,8 @@ import { S3Module } from './s3/s3.module'
 		CommentsModule,
 		CoursesModule,
 		AdminModule,
+		MypageModule,         // 마이페이지 기능
 		S3Module,
-		// UsersModule,  ... (추가 시 여기에 import)
-
 	],
 	controllers: [AppController],
 	providers: [AppService],

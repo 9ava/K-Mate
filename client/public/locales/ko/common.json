@@ -1,13 +1,32 @@
 {
+	"common": {
+		"retry": "다시 시도",
+		"loading": "로딩중...",
+		"error": "오류",
+		"success": "성공",
+		"cancel": "취소",
+		"confirm": "확인",
+		"language": "언어"
+	},
 	"nav": {
 		"kmap": "K-맵",
 		"kcourse": "K-코스",
 		"kbuzz": "K-버즈",
-		"admin": "관리자"
+		"admin": "관리자",
+		"mypage": "마이페이지"
 	},
 	"auth": {
 		"continue_google": "구글로 계속하기",
-		"signout": "로그아웃"
+		"login": "로그인",
+		"signout": "로그아웃",
+		"welcome_title": "K-Mate에 오신 것을 환영합니다",
+		"welcome_subtitle": "한국의 모든 여행 정보를 한눈에",
+		"login_title": "로그인하고 시작하기",
+		"login_subtitle": "Google 계정으로 간편하게 시작하세요",
+		"error_oauth_failed": "로그인에 실패했습니다. 다시 시도해주세요.",
+		"terms_notice": "로그인하시면 서비스 이용약관 및 개인정보 처리방침에 동의하는 것으로 간주됩니다.",
+		"terms_link": "서비스 이용약관",
+		"privacy_link": "개인정보 처리방침"
 	},
 	"kmap": {
 		"titles": {
@@ -24,6 +43,20 @@
 			"stop_tracking": "위치 추적 중지"
 		},
 		"nearby_radius": "주변 반경"
+	},
+	"features": {
+		"kmap": {
+			"title": "K-Map",
+			"description": "맞춤형 지도"
+		},
+		"kcourse": {
+			"title": "K-Course",
+			"description": "여행 계획"
+		},
+		"kbuzz": {
+			"title": "K-Buzz", 
+			"description": "여행 소통"
+		}
 	},
 	"kcourse": {
 		"tabs": {
@@ -82,6 +115,106 @@
 			"add_at_least_one_place": "최소 1개 이상의 장소를 담아주세요.",
 			"course_saved": "코스가 저장되었습니다!",
 			"save_failed": "저장 실패"
+		}
+	},
+	"error": {
+		"network": {
+			"title": "네트워크 연결 오류",
+			"message": "인터넷 연결을 확인해주세요."
+		},
+		"notFound": {
+			"title": "데이터를 찾을 수 없습니다",
+			"message": "요청하신 정보가 존재하지 않습니다."
+		},
+		"unauthorized": {
+			"title": "접근 권한이 없습니다",
+			"message": "로그인이 필요한 서비스입니다."
+		},
+		"server": {
+			"title": "서버 오류",
+			"message": "잠시 후 다시 시도해주세요."
+		},
+		"validation": {
+			"title": "입력 오류",
+			"message": "입력하신 정보를 다시 확인해주세요."
+		}
+	},
+	"mypage": {
+		"titles": {
+			"mypage": "마이페이지",
+			"my_activities": "나의 활동",
+			"my_courses": "내 여행 코스", 
+			"bookmarks": "북마크한 장소",
+			"posts": "내가 쓴 글",
+			"comments": "내가 쓴 댓글",
+			"scraps": "스크랩한 글",
+			"saved_courses": "저장한 코스",
+			"created_courses": "내가 만든 코스"
+		},
+		"descriptions": {
+			"bookmarks": "내가 저장한 장소 목록입니다.",
+			"courses": "내가 만들고 저장한 여행 코스입니다.",
+			"posts": "내가 작성한 게시글 목록입니다.",
+			"comments": "내가 작성한 댓글 목록입니다.",
+			"scraps": "내가 스크랩한 글 목록입니다."
+		},
+		"labels": {
+			"total_places": "전체 장소",
+			"travel": "관광지",
+			"food": "음식점",
+			"cafe": "카페",
+			"created_courses": "내가 만든 코스",
+			"saved_courses": "저장한 코스",
+			"public": "공개",
+			"private": "비공개",
+			"bookmark": "북마크",
+			"saved": "저장됨",
+			"loading": "불러오는 중...",
+			"no_data": "데이터가 없습니다",
+			"view_mode": "보기 모드",
+			"grid_view": "격자 보기",
+			"list_view": "목록 보기"
+		},
+		"messages": {
+			"loading_stats": "활동 통계를 불러오는 중...",
+			"loading_courses": "코스를 불러오는 중...",
+			"loading_bookmarks": "북마크를 불러오는 중...",
+			"loading_posts": "게시글을 불러오는 중...",
+			"loading_comments": "댓글을 불러오는 중...",
+			"loading_scraps": "스크랩을 불러오는 중...",
+			"failed_load_stats": "활동 통계를 불러오는데 실패했습니다.",
+			"failed_load_courses": "코스를 불러오는데 실패했습니다.",
+			"failed_load_bookmarks": "북마크를 불러오는데 실패했습니다.",
+			"failed_load_posts": "게시글을 불러오는데 실패했습니다.",
+			"failed_load_comments": "댓글을 불러오는데 실패했습니다.",
+			"failed_load_scraps": "스크랩을 불러오는데 실패했습니다.",
+			"no_created_courses": "만든 코스가 없습니다",
+			"no_saved_courses": "저장한 코스가 없습니다",
+			"no_bookmarks": "북마크한 장소가 없습니다",
+			"no_posts": "작성한 게시글이 없습니다",
+			"no_comments": "작성한 댓글이 없습니다",
+			"no_scraps": "스크랩한 글이 없습니다",
+			"create_course_message": "나만의 여행 코스를 만들어보세요!",
+			"save_course_message": "마음에 드는 코스를 저장해보세요!",
+			"bookmark_message": "K-Map에서 마음에 드는 장소를 북마크해보세요!",
+			"post_message": "K-Buzz에서 첫 번째 글을 작성해보세요!",
+			"comment_message": "다른 사람의 글에 댓글을 남겨보세요!",
+			"scrap_message": "마음에 드는 글을 스크랩해보세요!"
+		},
+		"buttons": {
+			"create_course": "코스 만들기",
+			"browse_courses": "코스 둘러보기",
+			"find_places": "장소 찾아보기",
+			"write_post": "글 작성하기",
+			"browse_posts": "글 둘러보기",
+			"previous": "이전",
+			"next": "다음",
+			"back_to_mypage": "마이페이지로 돌아가기"
+		},
+		"badges": {
+			"kmap": "K-Map",
+			"kcourse": "K-Course",
+			"kbuzz": "K-Buzz"
 		}
 	}
 }

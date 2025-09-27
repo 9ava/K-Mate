@@ -1,13 +1,32 @@
 {
+	"common": {
+		"retry": "Retry",
+		"loading": "Loading...",
+		"error": "Error",
+		"success": "Success",
+		"cancel": "Cancel",
+		"confirm": "Confirm",
+		"language": "Language"
+	},
 	"nav": {
 		"kmap": "K-Map",
 		"kcourse": "K-Course",
 		"kbuzz": "K-Buzz",
-		"admin": "Admin"
+		"admin": "Admin",
+		"mypage": "My Page"
 	},
 	"auth": {
 		"continue_google": "Continue with Google",
-		"signout": "Sign out"
+		"login": "Login",
+		"signout": "Sign out",
+		"welcome_title": "Welcome to K-Mate",
+		"welcome_subtitle": "All Korean travel information at a glance",
+		"login_title": "Login and Get Started",
+		"login_subtitle": "Get started easily with your Google account",
+		"error_oauth_failed": "Login failed. Please try again.",
+		"terms_notice": "By logging in, you agree to our Terms of Service and Privacy Policy.",
+		"terms_link": "Terms of Service",
+		"privacy_link": "Privacy Policy"
 	},
 	"kmap": {
 		"titles": {
@@ -24,6 +43,20 @@
 			"stop_tracking": "Stop Tracking"
 		},
 		"nearby_radius": "Nearby Radius"
+	},
+	"features": {
+		"kmap": {
+			"title": "K-Map",
+			"description": "Personalized Maps"
+		},
+		"kcourse": {
+			"title": "K-Course",
+			"description": "Travel Planning"
+		},
+		"kbuzz": {
+			"title": "K-Buzz",
+			"description": "Travel Community"
+		}
 	},
 	"kcourse": {
 		"tabs": {
@@ -82,6 +115,106 @@
 			"add_at_least_one_place": "Please add at least one place.",
 			"course_saved": "Course saved successfully!",
 			"save_failed": "Failed to save"
+		}
+	},
+	"error": {
+		"network": {
+			"title": "Network Connection Error",
+			"message": "Please check your internet connection."
+		},
+		"notFound": {
+			"title": "Data Not Found",
+			"message": "The requested information does not exist."
+		},
+		"unauthorized": {
+			"title": "Access Denied",
+			"message": "Login is required for this service."
+		},
+		"server": {
+			"title": "Server Error",
+			"message": "Please try again in a moment."
+		},
+		"validation": {
+			"title": "Input Error",
+			"message": "Please check the information you entered."
+		}
+	},
+	"mypage": {
+		"titles": {
+			"mypage": "My Page",
+			"my_activities": "My Activities",
+			"my_courses": "My Travel Courses",
+			"bookmarks": "Bookmarked Places",
+			"posts": "My Posts",
+			"comments": "My Comments",
+			"scraps": "My Scraps",
+			"saved_courses": "Saved Courses",
+			"created_courses": "Created Courses"
+		},
+		"descriptions": {
+			"bookmarks": "List of places I've bookmarked.",
+			"courses": "Travel courses I've created and saved.",
+			"posts": "List of posts I've written.",
+			"comments": "List of comments I've written.",
+			"scraps": "List of posts I've scrapped."
+		},
+		"labels": {
+			"total_places": "Total Places",
+			"travel": "Travel",
+			"food": "Food",
+			"cafe": "Cafe",
+			"created_courses": "Created Courses",
+			"saved_courses": "Saved Courses",
+			"public": "Public",
+			"private": "Private",
+			"bookmark": "Bookmark",
+			"saved": "Saved",
+			"loading": "Loading...",
+			"no_data": "No data",
+			"view_mode": "View Mode",
+			"grid_view": "Grid View",
+			"list_view": "List View"
+		},
+		"messages": {
+			"loading_stats": "Loading activity stats...",
+			"loading_courses": "Loading courses...",
+			"loading_bookmarks": "Loading bookmarks...",
+			"loading_posts": "Loading posts...",
+			"loading_comments": "Loading comments...",
+			"loading_scraps": "Loading scraps...",
+			"failed_load_stats": "Failed to load activity stats.",
+			"failed_load_courses": "Failed to load courses.",
+			"failed_load_bookmarks": "Failed to load bookmarks.",
+			"failed_load_posts": "Failed to load posts.",
+			"failed_load_comments": "Failed to load comments.",
+			"failed_load_scraps": "Failed to load scraps.",
+			"no_created_courses": "No courses created",
+			"no_saved_courses": "No courses saved",
+			"no_bookmarks": "No bookmarked places",
+			"no_posts": "No posts written",
+			"no_comments": "No comments written",
+			"no_scraps": "No scrapped posts",
+			"create_course_message": "Create your own travel course!",
+			"save_course_message": "Save courses you like!",
+			"bookmark_message": "Bookmark places you like on K-Map!",
+			"post_message": "Write your first post on K-Buzz!",
+			"comment_message": "Leave comments on other people's posts!",
+			"scrap_message": "Scrap posts you like!"
+		},
+		"buttons": {
+			"create_course": "Create Course",
+			"browse_courses": "Browse Courses",
+			"find_places": "Find Places",
+			"write_post": "Write Post",
+			"browse_posts": "Browse Posts",
+			"previous": "Previous",
+			"next": "Next",
+			"back_to_mypage": "Back to My Page"
+		},
+		"badges": {
+			"kmap": "K-Map",
+			"kcourse": "K-Course",
+			"kbuzz": "K-Buzz"
 		}
 	}
 }
