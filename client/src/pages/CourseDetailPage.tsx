@@ -38,6 +38,22 @@ export default function CourseDetailPage() {
 
 	// 목록으로 돌아가기 핸들러
 	const handleBackToList = (needsRefresh: boolean = false) => {
+		// returnTo 파라미터가 있으면 우선 사용
+		const returnTo = searchParams.get('returnTo')
+		if (returnTo) {
+			const decodedUrl = decodeURIComponent(returnTo)
+			if (needsRefresh) {
+				// URL에 refresh 파라미터 추가
+				const url = new URL(decodedUrl, window.location.origin)
+				url.searchParams.set('refresh', Date.now().toString())
+				navigate(url.pathname + url.search)
+			} else {
+				navigate(decodedUrl)
+			}
+			return
+		}
+		
+		// 기존 로직 유지 (하위 호환성)
 		const from = searchParams.get('from')
 		const tab = searchParams.get('tab')
 		

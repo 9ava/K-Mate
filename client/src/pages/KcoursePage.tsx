@@ -150,7 +150,8 @@ function MyTravelCourse({
 	savedCourses, 
 	loading,
 	onUnsaveCourse,
-	onShareCourse
+	onShareCourse,
+	currentTab
 }: { 
 	onCreate: () => void
 	myCourses: TravelCourse[]
@@ -158,6 +159,7 @@ function MyTravelCourse({
 	loading: boolean
 	onUnsaveCourse: (courseId: number) => Promise<void>
 	onShareCourse?: (courseId: number) => Promise<void>
+	currentTab?: Tab
 }) {
 	const { t } = useTranslation()
 	
@@ -235,7 +237,13 @@ function MyTravelCourse({
 						</div>
 						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 							{myCourses.map((course) => (
-								<TravelCourseCard key={`my-${course.id}`} course={course} isOwned={true} onShare={onShareCourse} />
+								<TravelCourseCard 
+									key={`my-${course.id}`} 
+									course={course} 
+									isOwned={true} 
+									onShare={onShareCourse}
+									currentTab={currentTab}
+								/>
 							))}
 						</div>
 					</div>
@@ -256,6 +264,7 @@ function MyTravelCourse({
 									isOwned={false} 
 									onUnsave={onUnsaveCourse}
 									onShare={onShareCourse}
+									currentTab={currentTab}
 								/>
 							))}
 						</div>
@@ -271,18 +280,22 @@ function TravelCourseCard({
 	course, 
 	isOwned, 
 	onUnsave,
-	onShare
+	onShare,
+	currentTab
 }: { 
 	course: TravelCourse
 	isOwned?: boolean
 	onUnsave?: (courseId: number) => Promise<void>
 	onShare?: (courseId: number) => Promise<void>
+	currentTab?: Tab
 }) {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 
 	const handleClick = () => {
-		navigate(`/kcourse/${course.id}`)
+		// 내 코스 탭에서 온 경우 돌아갈 때를 위해 탭 정보를 포함
+		const returnUrl = currentTab === 'my-course' ? '/kcourse?tab=my-course' : '/kcourse'
+		navigate(`/kcourse/${course.id}?returnTo=${encodeURIComponent(returnUrl)}`)
 	}
 
 	const handleUnsave = async (e: React.MouseEvent) => {
@@ -534,7 +547,7 @@ export default function KCoursePage() {
 	// URL 파라미터에서 초기 탭 설정
 	const getInitialTab = (): Tab => {
 		const tab = searchParams.get('tab')
-		if (tab === 'my' || tab === 'saved') {
+		if (tab === 'my-course' || tab === 'my' || tab === 'saved') {
 			return 'my-course'
 		}
 		return 'monthly-best'
@@ -552,6 +565,14 @@ export default function KCoursePage() {
 	const { isAuthed } = useAuth()
 	
 	const goPlanner = () => navigate('/planner')
+
+	// 탭 변경 핸들러 - URL 파라미터도 함께 업데이트
+	const handleTabChange = (newTab: Tab) => {
+		setActiveTab(newTab)
+		const newParams = new URLSearchParams(searchParams)
+		newParams.set('tab', newTab)
+		setSearchParams(newParams, { replace: true })
+	}
 
 	// 캐시 무효화 함수
 	const clearCourseCache = () => {
@@ -705,6 +726,14 @@ export default function KCoursePage() {
 		loadPublicCourses() // 공개 코스는 항상 로드
 	}, [])
 
+	// URL 파라미터 변경 감지하여 탭 상태 동기화
+	useEffect(() => {
+		const newTab = getInitialTab()
+		if (newTab !== activeTab) {
+			setActiveTab(newTab)
+		}
+	}, [searchParams])
+
 	// 내 코스 탭을 선택했을 때 데이터 로드
 	useEffect(() => {
 		if (activeTab === 'my-course' && isAuthed) {
@@ -742,7 +771,7 @@ export default function KCoursePage() {
 
 	return (
 		<div className="min-h-[calc(100vh-64px)] bg-white">
-			<HeroBanner activeTab={activeTab} onTabChange={setActiveTab} />
+			<HeroBanner activeTab={activeTab} onTabChange={handleTabChange} />
 			{activeTab === 'my-course' ? (
 				<MyTravelCourse 
 					onCreate={goPlanner} 
@@ -751,6 +780,7 @@ export default function KCoursePage() {
 					loading={myCoursesLoading}
 					onUnsaveCourse={handleUnsaveCourse}
 					onShareCourse={handleShareCourse}
+					currentTab={activeTab}
 				/>
 			) : (
 				<TravelCourseGrid 
