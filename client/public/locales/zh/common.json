@@ -81,6 +81,12 @@
 			"unknown_location": "未知位置",
 			"author": "作者"
 		},
+		"categories": {
+			"all": "全部",
+			"cultural": "文化",
+			"cafe": "咖啡",
+			"food": "美食"
+		},
 		"messages": {
 			"loading": "加载中...",
 			"no_courses": "还没有创建旅行路线。",
@@ -103,6 +109,7 @@
 			"visibility_label": "公开范围",
 			"public": "公开",
 			"private": "私有",
+			"category": "类别",
 			"places_count": "已添加地点",
 			"places_unit": "个",
 			"reset": "重置",

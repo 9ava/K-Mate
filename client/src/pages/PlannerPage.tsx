@@ -24,6 +24,7 @@ export default function PlannerPage() {
 	const { t } = useTranslation()
 	const [stops, setStops] = useState<Stop[]>([])
 	const [saving, setSaving] = useState(false)
+	const [selectedCategory, setSelectedCategory] = useState<'all' | 'cultural' | 'cafe' | 'food'>('all')
 	const navigate = useNavigate()
 
 	async function saveCourse(payload: { title: string; visibility: 'public' | 'private' }) {
@@ -40,6 +41,7 @@ export default function PlannerPage() {
 		const courseData: CreateCourseRequest = {
 			title: payload.title.trim(),
 			visibility: payload.visibility,
+			category: selectedCategory,
 			stops: stops.map((s, idx) => ({
 				order: idx + 1,
 				name: s.name,
@@ -91,7 +93,14 @@ export default function PlannerPage() {
 
 			{/* 우 패널 */}
 			<aside className="z-10 overflow-y-auto bg-white border-l">
-				<CoursePanel stops={stops} setStops={setStops} onSave={saveCourse} saving={saving} />
+				<CoursePanel 
+					stops={stops} 
+					setStops={setStops} 
+					onSave={saveCourse} 
+					saving={saving}
+					selectedCategory={selectedCategory}
+					onCategoryChange={setSelectedCategory}
+				/>
 			</aside>
 		</div>
 	)

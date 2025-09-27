@@ -99,7 +99,7 @@ export default function CoursePanel({
 				{/* 카테고리 선택 */}
 				{onCategoryChange && (
 					<div className="space-y-2">
-						<label className="text-sm text-gray-600">카테고리</label>
+						<label className="text-sm text-gray-600">{t('planner.course.category') || '카테고리'}</label>
 						<div className="grid grid-cols-2 gap-2">
 							<button
 								type="button"
@@ -109,7 +109,7 @@ export default function CoursePanel({
 								}`}
 							>
 								<div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-								전체
+								{t('kcourse.categories.all')}
 							</button>
 							<button
 								type="button"
@@ -119,7 +119,7 @@ export default function CoursePanel({
 								}`}
 							>
 								<div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-								문화
+								{t('kcourse.categories.cultural')}
 							</button>
 							<button
 								type="button"
@@ -128,8 +128,8 @@ export default function CoursePanel({
 									selectedCategory === 'cafe' ? 'bg-amber-400 text-white border-amber-400' : 'bg-white'
 								}`}
 							>
-								<div className="w-3 h-3 bg-amber-400 rounded-full"></div>
-								카페
+								<div className="w-3 h-3 rounded-full bg-amber-400"></div>
+								{t('kcourse.categories.cafe')}
 							</button>
 							<button
 								type="button"
@@ -139,7 +139,7 @@ export default function CoursePanel({
 								}`}
 							>
 								<div className="w-3 h-3 bg-red-400 rounded-full"></div>
-								음식
+								{t('kcourse.categories.food')}
 							</button>
 						</div>
 					</div>

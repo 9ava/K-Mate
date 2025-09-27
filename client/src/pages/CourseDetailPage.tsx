@@ -1,6 +1,7 @@
 // src/pages/CourseDetailPage.tsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { getCourse, updateCourse, deleteCourse, saveCourse, unsaveCourse } from '../api/courses'
 import { getPlaceDetail } from '../api/places'
 import { useAuth } from '../features/auth/useAuth'
@@ -26,6 +27,7 @@ export default function CourseDetailPage() {
 	const navigate = useNavigate()
 	const [searchParams] = useSearchParams()
 	const { user } = useAuth()
+	const { t } = useTranslation()
 	
 	const [course, setCourse] = useState<Course | null>(null)
 	const [loading, setLoading] = useState(true)
@@ -278,7 +280,21 @@ export default function CourseDetailPage() {
 							← 목록으로
 						</button>
 						<div>
-							<h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
+							<div className="flex items-center gap-2">
+								<h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
+								{/* 카테고리 배지 */}
+								{course.category && (
+									<span className={`px-2 py-1 text-xs font-medium rounded-full ${
+										course.category === 'all' ? 'bg-purple-100 text-purple-800' :
+										course.category === 'cultural' ? 'bg-blue-100 text-blue-800' :
+										course.category === 'cafe' ? 'bg-amber-100 text-amber-800' :
+										course.category === 'food' ? 'bg-red-100 text-red-800' : 
+										'bg-gray-100 text-gray-800'
+									}`}>
+										{t(`kcourse.categories.${course.category}`)}
+									</span>
+								)}
+							</div>
 							<div className="text-sm text-gray-500">
 								{course.author?.name || '작성자'} · {new Date(course.created_at).toLocaleDateString('ko-KR')} 
 								· {course.visibility === 'public' ? '공개' : '비공개'}

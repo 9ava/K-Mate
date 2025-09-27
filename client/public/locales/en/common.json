@@ -81,6 +81,12 @@
 			"unknown_location": "Unknown Location",
 			"author": "Author"
 		},
+		"categories": {
+			"all": "All",
+			"cultural": "Cultural",
+			"cafe": "Cafe",
+			"food": "Food"
+		},
 		"messages": {
 			"loading": "Loading...",
 			"no_courses": "No travel courses created yet.",
@@ -103,6 +109,7 @@
 			"visibility_label": "Visibility",
 			"public": "Public",
 			"private": "Private",
+			"category": "Category",
 			"places_count": "Places added",
 			"places_unit": "",
 			"reset": "Reset",

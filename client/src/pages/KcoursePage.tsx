@@ -385,22 +385,34 @@ function TravelCourseCard({
 
 				{/* 카테고리 배지 */}
 				{course.category === 'all' && (
-					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
+					<div 
+						className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80 cursor-help" 
+						title={t('kcourse.categories.all')}
+					>
 						<div className="w-4 h-4 bg-purple-500 rounded-full" />
 					</div>
 				)}
 				{course.category === 'cultural' && (
-					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
+					<div 
+						className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80 cursor-help" 
+						title={t('kcourse.categories.cultural')}
+					>
 						<div className="w-4 h-4 bg-blue-400 rounded-full" />
 					</div>
 				)}
 				{course.category === 'cafe' && (
-					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
+					<div 
+						className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80 cursor-help" 
+						title={t('kcourse.categories.cafe')}
+					>
 						<div className="w-4 h-4 rounded-full bg-amber-400" />
 					</div>
 				)}
 				{course.category === 'food' && (
-					<div className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80">
+					<div 
+						className="absolute flex items-center justify-center w-8 h-8 rounded-full bottom-3 right-3 bg-white/80 cursor-help" 
+						title={t('kcourse.categories.food')}
+					>
 						<div className="w-4 h-4 bg-red-400 rounded-full" />
 					</div>
 				)}
