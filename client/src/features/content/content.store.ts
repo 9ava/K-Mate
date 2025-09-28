@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 
+// Hardcoded image mapping for fallback
+const TREND_IMAGE_BY_ID: Record<number, string> = {
+	38: 'https://s3.amazonaws.com/shecodesio-production/uploads/files/000/076/597/original/gimbap.jpg?1681263447', // Kimbap
+	32: 'https://ik.imagekit.io/umhihello/Chuseok/Pages/Hanbok/hanbok-3.jpg?updatedAt=1740718178774', // Hanbok
+	31: 'https://softervolumes.com/wp-content/uploads/2021/12/Dorrell-Coffee-6z4-Seoul-2.jpg', // Cafe
+	30: 'https://blog.delivered.co.kr/wp-content/uploads/2025/01/featured-2025-drama.jpg', // Webtoons
+	3: 'https://ychef.files.bbci.co.uk/1280x720/p0lq9155.jpg', // K-Pop
+}
+
 export interface ContentItem {
 	id: number
 	type: 'post' | 'comment'
@@ -21,6 +30,7 @@ export interface TrendArticle {
 	content: string
 	aboutTitle?: string
 	aboutDescription?: string
+	order?: number
 }
 
 type State = {
@@ -34,9 +44,11 @@ type Actions = {
 	) => void
 	updateCommunityPost: (id: number, updates: Partial<ContentItem>) => void
 	deleteCommunityPost: (id: number) => void
+	loadTrendArticles: () => Promise<void>
 	addTrendArticle: (article: Omit<TrendArticle, 'id'>) => Promise<void>
 	updateTrendArticle: (id: number, updates: Partial<TrendArticle>) => Promise<void>
-	deleteTrendArticle: (id: number) => void
+	deleteTrendArticle: (id: number) => Promise<void>
+	reorderTrendArticles: (articles: TrendArticle[]) => void
 	updateContentStatus: (id: number, status: 'active' | 'hidden' | 'reported') => void
 	deleteContent: (id: number) => void
 }
@@ -164,6 +176,67 @@ export const useContentStore = create<State & Actions>()(
 					}))
 				},
 
+				// Load trend articles from backend
+				loadTrendArticles: async () => {
+					try {
+						const { fetchPosts } = await import('../../api/kbuzz')
+						const response = await fetchPosts({
+							postType: 'trend',
+							status: 'published',
+							page: 1,
+							limit: 100, // Get all trend articles
+						})
+
+						// Load saved order from localStorage
+						const savedOrderJson = localStorage.getItem('k-mate-trend-article-order')
+						const savedOrder: Record<number, number> = savedOrderJson ? JSON.parse(savedOrderJson) : {}
+
+						// Convert backend response to TrendArticle format
+						const articles: TrendArticle[] = response.items.map((post, index) => {
+							console.log('🖼️ Post image data:', {
+								id: post.id,
+								imageUrl: post.imageUrl,
+								title: post.title,
+								hasImage: !!post.imageUrl,
+								imageLength: post.imageUrl?.length || 0
+							})
+
+							// Priority: 1) Backend order, 2) localStorage order, 3) default index
+							const order = (post as any).order ?? savedOrder[post.id] ?? index
+
+							// Use admin-uploaded image first, then fallback to hardcoded map, then default
+							const finalImage = post.imageUrl ||
+											  TREND_IMAGE_BY_ID[post.id] ||
+											  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop'
+
+							console.log('🎨 Final image for post', post.id, ':', finalImage)
+
+							return {
+								id: post.id,
+								title: post.title,
+								author: post.author?.name || 'Admin',
+								image: finalImage,
+								content: post.content,
+								aboutTitle: 'About K-Trend',
+								aboutDescription: "Curated insights and guides for exploring Korea's latest trends — crafted by the K-Mate team.",
+								order: order,
+							}
+						})
+
+						// Sort by order field - this ensures proper ordering regardless of backend response order
+						articles.sort((a, b) => (a.order || 0) - (b.order || 0))
+
+						if (Object.keys(savedOrder).length > 0) {
+							console.log('📁 Applied localStorage order:', savedOrder)
+						}
+
+						set({ trendArticles: articles })
+					} catch (error) {
+						console.error('Failed to load trend articles:', error)
+						// Keep existing articles on error
+					}
+				},
+
 				// Trend articles actions
 				addTrendArticle: async (articleData) => {
 					try {
@@ -182,7 +255,7 @@ export const useContentStore = create<State & Actions>()(
 							id: createdPost.id,
 							title: createdPost.title,
 							author: createdPost.author?.name || 'Admin',
-							image: createdPost.imageUrl || articleData.image,
+							image: createdPost.imageUrl || articleData.image || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
 							content: createdPost.content,
 							aboutTitle: articleData.aboutTitle,
 							aboutDescription: articleData.aboutDescription,
@@ -193,15 +266,7 @@ export const useContentStore = create<State & Actions>()(
 						}))
 					} catch (error) {
 						console.error('Failed to create trend article:', error)
-						// Fallback to local storage if API fails
-						const newArticle: TrendArticle = {
-							...articleData,
-							id: Date.now(),
-						}
-
-						set((state) => ({
-							trendArticles: [...state.trendArticles, newArticle],
-						}))
+						throw error // Re-throw to show error to user
 					}
 				},
 
@@ -223,19 +288,58 @@ export const useContentStore = create<State & Actions>()(
 						}))
 					} catch (error) {
 						console.error('Failed to update trend article:', error)
-						// Fallback to local update if API fails
-						set((state) => ({
-							trendArticles: state.trendArticles.map((article) =>
-								article.id === id ? { ...article, ...updates } : article
-							),
-						}))
+						throw error // Re-throw to show error to user
 					}
 				},
 
-				deleteTrendArticle: (id) => {
-					set((state) => ({
-						trendArticles: state.trendArticles.filter((article) => article.id !== id),
+				deleteTrendArticle: async (id) => {
+					try {
+						// Call the backend API to delete trend article
+						const { deletePost } = await import('../../api/kbuzz')
+						await deletePost(id)
+
+						// Update local state
+						set((state) => ({
+							trendArticles: state.trendArticles.filter((article) => article.id !== id),
+						}))
+					} catch (error) {
+						console.error('Failed to delete trend article:', error)
+						throw error // Re-throw to show error to user
+					}
+				},
+
+				reorderTrendArticles: async (articles) => {
+					// Update order values
+					const reorderedArticles = articles.map((article, index) => ({
+						...article,
+						order: index,
 					}))
+
+					// Update local state immediately for better UX
+					set({ trendArticles: reorderedArticles })
+
+					// Try to save order to backend, but continue even if it fails
+					try {
+						const { updatePostsOrder } = await import('../../api/kbuzz')
+						const postsOrder = reorderedArticles.map((article, index) => ({
+							id: article.id,
+							order: index,
+						}))
+
+						await updatePostsOrder(postsOrder)
+						console.log('✅ Articles order saved to backend:', postsOrder)
+					} catch (error) {
+						console.warn('⚠️ Backend reorder API not available, using local storage:', (error as Error).message || error)
+
+						// Fallback: Save order to localStorage for persistence across sessions
+						const orderMap = reorderedArticles.reduce((acc, article) => {
+							acc[article.id] = article.order
+							return acc
+						}, {} as Record<number, number>)
+
+						localStorage.setItem('k-mate-trend-article-order', JSON.stringify(orderMap))
+						console.log('📁 Order saved to localStorage:', orderMap)
+					}
 				},
 
 				updateContentStatus: (id, status) => {

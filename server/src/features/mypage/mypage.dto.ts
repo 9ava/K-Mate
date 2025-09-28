@@ -24,6 +24,9 @@ export class UserActivityStatsDto {
 
 	@ApiProperty({ description: '저장한 코스 수' })
 	savedCourseCount!: number
+
+	@ApiProperty({ description: '작성한 코스 댓글 수' })
+	courseCommentCount!: number
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -328,6 +331,55 @@ export class SavedCourseItemDto {
 export class SavedCourseListResponseDto {
 	@ApiProperty({ description: '저장한 코스 목록', type: [SavedCourseItemDto] })
 	savedCourses!: SavedCourseItemDto[]
+
+	@ApiProperty({ description: '전체 개수' })
+	total!: number
+
+	@ApiProperty({ description: '현재 페이지' })
+	page!: number
+
+	@ApiProperty({ description: '페이지당 항목 수' })
+	limit!: number
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 내가 쓴 코스 댓글 목록 응답 DTO
+// ────────────────────────────────────────────────────────────────────────────
+export class MyCourseCommentItemDto {
+	@ApiProperty({ description: '댓글 ID' })
+	id!: number
+
+	@ApiProperty({ description: '댓글 내용' })
+	content!: string
+
+	@ApiProperty({ description: '코스 정보' })
+	course!: {
+		id: string
+		title: string
+		author: {
+			id: number
+			name: string
+			avatarUrl: string | null
+		}
+	}
+
+	@ApiProperty({ description: '작성자 정보' })
+	author!: {
+		id: number
+		name: string
+		avatarUrl: string | null
+	}
+
+	@ApiProperty({ description: '생성일' })
+	createdAt!: Date
+
+	@ApiProperty({ description: '수정일' })
+	updatedAt!: Date
+}
+
+export class MyCourseCommentListResponseDto {
+	@ApiProperty({ description: '코스 댓글 목록', type: [MyCourseCommentItemDto] })
+	comments!: MyCourseCommentItemDto[]
 
 	@ApiProperty({ description: '전체 개수' })
 	total!: number

@@ -46,3 +46,15 @@ export function buildPhotoUrl(
 	qs.set('name', photoName)
 	return `${base}/places/photo?${qs.toString()}`
 }
+
+// 관리자: 다국어 메뉴판 지원 상태 토글
+export async function toggleMultilingualMenu(id: number, hasMultilingualMenu: boolean): Promise<Place> {
+	const { data } = await api.put(`/places/${id}/multilingual-menu`, { hasMultilingualMenu })
+	return data?.data as Place
+}
+
+// 관리자: 광고 상태 토글
+export async function toggleAdvertisement(id: number, isAdvertisement: boolean): Promise<Place> {
+	const { data } = await api.put(`/places/${id}/advertisement`, { isAdvertisement })
+	return data?.data as Place
+}

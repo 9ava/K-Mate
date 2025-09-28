@@ -5,22 +5,15 @@ import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import LanguageSwitcher from '../common/LanguageSwitcher'
 
-function GoogleLoginButton() {
-	const { loginWithGoogle } = useAuth()
+function LoginButton() {
 	const { t } = useTranslation('common')
 	return (
-		<button
-			onClick={loginWithGoogle}
-			className="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700 bg-white border rounded-full shadow hover:bg-gray-50 sm:gap-2 sm:px-4 sm:py-2"
+		<Link
+			to="/login"
+			className="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700 bg-white border rounded-full shadow hover:bg-gray-50 sm:gap-2 sm:px-4 sm:py-2 cursor-pointer"
 		>
-			<img
-				src="https://developers.google.com/identity/images/g-logo.png"
-				alt="Google"
-				className="w-4 h-4 sm:w-5 sm:h-5"
-			/>
-			<span className="hidden sm:inline">{t('auth.continue_google')}</span>
-			<span className="sm:hidden">{t('auth.login', '로그인')}</span>
-		</button>
+			<span>{t('auth.login', '로그인')}</span>
+		</Link>
 	)
 }
 
@@ -129,7 +122,7 @@ export default function Header() {
 								</div>
 							</div>
 						) : (
-							<GoogleLoginButton />
+							<LoginButton />
 						)}
 
 						{/* 모바일 메뉴 버튼 */}

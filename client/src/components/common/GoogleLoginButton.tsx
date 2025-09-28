@@ -8,7 +8,7 @@ export default function GoogleLoginButton() {
 	return (
 		<button
 			onClick={loginWithGoogle}
-			className="w-full flex items-center justify-center gap-3 px-6 py-4 text-base font-semibold text-gray-700 bg-white border-2 border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 group"
+			className="w-full flex items-center justify-center gap-3 px-6 py-4 text-base font-semibold text-gray-700 bg-white border-2 border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 group cursor-pointer"
 		>
 			<div className="flex items-center justify-center w-6 h-6 bg-white rounded-full shadow-sm group-hover:shadow-md transition-shadow duration-200">
 				<img

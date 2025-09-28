@@ -113,4 +113,11 @@ export class Place {
 	@UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
 	updatedAt!: Date
 
+	@ApiProperty({
+		description: '다국어 메뉴판 지원 여부',
+		example: false,
+	})
+	@Column({ name: 'has_multilingual_menu', type: 'boolean', default: false })
+	hasMultilingualMenu!: boolean
+
 }

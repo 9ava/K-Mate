@@ -4,10 +4,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getMyCourses, getPublicCourses, getMonthlyBestCourses, unsaveCourse, shareCourse } from '../api/courses'
 import { getPlaceDetail } from '../api/places'
+import { fetchCourseComments } from '../api/comments'
 import type { Course } from '../types/course'
 import { useAuth } from '../features/auth/useAuth'
 
-type Tab = 'my-course' | 'monthly-best'
+type Tab = 'my-course' | 'all-courses'
 
 // 코스 변환 결과를 캐싱하는 Map
 const courseCache = new Map<string, TravelCourse>()
@@ -38,7 +39,17 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 			console.warn('Failed to get Google place details for course:', course.id, error)
 		}
 	}
-	
+
+	// 댓글 수 가져오기
+	let commentCount = 0
+	try {
+		const commentsResponse = await fetchCourseComments(course.id, 1, 1)
+		commentCount = commentsResponse.total || 0
+	} catch (error) {
+		console.warn('Failed to get comment count for course:', course.id, error)
+		commentCount = 0
+	}
+
 	const travelCourse: TravelCourse = {
 		id: parseInt(course.id),
 		title: course.title,
@@ -51,6 +62,7 @@ async function courseToTravelCourse(course: Course, t: any): Promise<TravelCours
 		shareCount: course.shareCount || 0,
 		saveCount: course.saveCount || 0,
 		visibility: course.visibility,
+		commentCount,
 	}
 
 	// 캐시에 저장
@@ -71,6 +83,7 @@ type TravelCourse = {
 	shareCount?: number
 	saveCount?: number
 	visibility?: 'public' | 'private'
+	commentCount?: number
 }
 
 /* --- HeroBanner --- */
@@ -84,7 +97,7 @@ function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (
 					<div className="flex p-1 bg-gray-100 rounded-lg shadow-sm">
 						<button
 							onClick={() => onTabChange('my-course')}
-							className={`px-6 py-3 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
+							className={`px-6 py-3 rounded-md font-medium transition-all duration-200 flex items-center gap-2 cursor-pointer ${
 								activeTab === 'my-course'
 									? 'bg-white text-gray-900 shadow-sm'
 									: 'text-gray-600 hover:text-gray-900'
@@ -106,21 +119,21 @@ function HeroBanner({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (
 						</button>
 
 						<button
-							onClick={() => onTabChange('monthly-best')}
-							className={`px-6 py-3 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
-								activeTab === 'monthly-best'
+							onClick={() => onTabChange('all-courses')}
+							className={`px-6 py-3 rounded-md font-medium transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+								activeTab === 'all-courses'
 									? 'bg-white text-gray-900 shadow-sm'
 									: 'text-gray-600 hover:text-gray-900'
 							}`}
 						>
 							<div
 								className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-									activeTab === 'monthly-best' ? 'bg-blue-500 text-white' : 'bg-gray-400 text-white'
+									activeTab === 'all-courses' ? 'bg-blue-500 text-white' : 'bg-gray-400 text-white'
 								}`}
 							>
-								Best
+								{t('kcourse.categories.all')}
 							</div>
-							<span className="text-lg">{t('kcourse.tabs.monthly_best')}</span>
+							<span className="text-lg">{t('kcourse.titles.all_courses')}</span>
 						</button>
 					</div>
 				</div>
@@ -157,7 +170,7 @@ function MyTravelCourse({
 						<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.my_travel_course')}</h2>
 						<button
 							onClick={onCreate}
-							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
 						>
 							{t('kcourse.buttons.create_course')} →
 						</button>
@@ -180,7 +193,7 @@ function MyTravelCourse({
 						<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.my_travel_course')}</h2>
 						<button
 							onClick={onCreate}
-							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
 						>
 							{t('kcourse.buttons.create_course')} →
 						</button>
@@ -191,7 +204,7 @@ function MyTravelCourse({
 						<div className="mt-2 text-sm text-gray-500">{t('kcourse.messages.create_course_message')}</div>
 						<button
 							onClick={onCreate}
-							className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+							className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
 						>
 							{t('kcourse.buttons.first_course')}
 						</button>
@@ -208,7 +221,7 @@ function MyTravelCourse({
 					<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.my_travel_course')}</h2>
 					<button
 						onClick={onCreate}
-						className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+						className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
 					>
 						{t('kcourse.buttons.create_course')} →
 					</button>
@@ -428,7 +441,7 @@ function TravelCourseCard({
 					<span>{course.date}</span>
 				</div>
 				
-				{/* 통계 및 공유 버튼 */}
+				{/* 통계 및 버튼들 */}
 				<div className="flex items-center justify-between pt-2 border-t border-gray-100">
 					<div className="flex items-center space-x-3 text-xs text-gray-500">
 						{course.shareCount !== undefined && (
@@ -438,35 +451,50 @@ function TravelCourseCard({
 							<span title="저장 횟수">⭐ {course.saveCount}</span>
 						)}
 					</div>
-					<button
-						onClick={handleShare}
-						className="flex items-center px-2 py-1 text-xs text-blue-600 transition-colors rounded bg-blue-50 hover:bg-blue-100"
-						title="코스 공유하기"
-					>
-						<svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-						</svg>
-						공유
-					</button>
+					<div className="flex items-center space-x-2">
+						<button
+							onClick={(e) => {
+								e.stopPropagation()
+								navigate(`/kcourse/${course.id}#comments`)
+							}}
+							className="flex items-center px-2 py-1 text-xs text-gray-600 transition-colors rounded bg-gray-50 hover:bg-gray-100 cursor-pointer"
+							title="댓글 보기"
+						>
+							<svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.418 8-9.93 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.418-8 9.93-8s9.93 3.582 9.93 8z" />
+							</svg>
+							댓글({course.commentCount || 0})
+						</button>
+						<button
+							onClick={handleShare}
+							className="flex items-center px-2 py-1 text-xs text-blue-600 transition-colors rounded bg-blue-50 hover:bg-blue-100 cursor-pointer"
+							title="코스 공유하기"
+						>
+							<svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+							</svg>
+							공유
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
 	)
 }
 
-function TravelCourseGrid({ 
-	onCreate, 
-	courses, 
+function TravelCourseGrid({
+	onCreate,
+	courses,
 	loading,
 	onShareCourse
-}: { 
+}: {
 	onCreate: () => void
 	courses: TravelCourse[]
 	loading: boolean
 	onShareCourse?: (courseId: number) => Promise<void>
 }) {
 	const { t } = useTranslation()
-	
+
 	if (loading) {
 		return (
 			<section className="py-12 bg-white">
@@ -493,7 +521,7 @@ function TravelCourseGrid({
 						</div>
 						<button
 							onClick={onCreate}
-							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
 						>
 							{t('kcourse.buttons.create_course')} →
 						</button>
@@ -504,7 +532,7 @@ function TravelCourseGrid({
 						<div className="mt-2 text-sm text-gray-500">첫 번째 코스를 만들어보세요!</div>
 						<button
 							onClick={onCreate}
-							className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
+							className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
 						>
 							코스 만들어보기
 						</button>
@@ -514,29 +542,73 @@ function TravelCourseGrid({
 		)
 	}
 
+	// 광고 코스와 일반 코스 분리
+	const advertisementCourses = courses.filter(course => course.isAdvertisement)
+	const nonAdvertisementCourses = courses.filter(course => !course.isAdvertisement)
+
+	// Monthly Top 3는 광고가 아닌 코스에서만 선택
+	const monthlyTop3Courses = nonAdvertisementCourses.slice(0, 3)
+
+	// Other Courses는 광고 코스를 먼저 표시하고, 그 다음 남은 일반 코스들
+	const remainingNonAdCourses = nonAdvertisementCourses.slice(3)
+	const otherCourses = [...advertisementCourses, ...remainingNonAdCourses]
+
 	return (
 		<section className="py-12 bg-white">
 			<div className="container px-4 mx-auto">
-				<div className="flex items-center justify-between mb-8">
-					<div className="flex items-center gap-2">
-						<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.monthly_best_9')}</h2>
-						<div className="flex items-center justify-center w-6 h-6 bg-gray-100 rounded-full">
-							<span className="text-xs text-gray-500">i</span>
+				{/* Monthly Top 3 섹션 */}
+				<div className="mb-16">
+					<div className="flex items-center justify-between mb-8">
+						<div className="flex items-center gap-2">
+							<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.monthly_top_3')}</h2>
+							<div className="flex items-center justify-center w-6 h-6 bg-yellow-100 rounded-full">
+								<span className="text-xs text-yellow-600">★</span>
+							</div>
 						</div>
+						<button
+							onClick={onCreate}
+							className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
+						>
+							{t('kcourse.buttons.create_course')} →
+						</button>
 					</div>
-					<button
-						onClick={onCreate}
-						className="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
-					>
-						{t('kcourse.buttons.create_course')} →
-					</button>
+
+					{monthlyTop3Courses.length > 0 ? (
+						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+							{monthlyTop3Courses.map((course: TravelCourse, index) => (
+								<div key={course.id} className="relative">
+									{/* 순위 배지 */}
+									<div className="absolute top-2 left-2 z-10 flex items-center justify-center w-8 h-8 bg-yellow-500 text-white font-bold text-sm rounded-full shadow-lg">
+										{index + 1}
+									</div>
+									<TravelCourseCard course={course} onShare={onShareCourse} />
+								</div>
+							))}
+						</div>
+					) : (
+						<div className="text-center py-8 text-gray-500">
+							아직 Monthly Top 3 코스가 없습니다
+						</div>
+					)}
 				</div>
 
-				<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-					{courses.map((course: TravelCourse) => (
-						<TravelCourseCard key={course.id} course={course} onShare={onShareCourse} />
-					))}
-				</div>
+				{/* Other Courses 섹션 */}
+				{otherCourses.length > 0 && (
+					<div>
+						<div className="flex items-center justify-between mb-8">
+							<div className="flex items-center gap-2">
+								<h2 className="text-3xl font-bold text-gray-900">{t('kcourse.titles.other_courses')}</h2>
+								<span className="text-sm text-gray-500">({otherCourses.length}개)</span>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+							{otherCourses.map((course: TravelCourse) => (
+								<TravelCourseCard key={course.id} course={course} onShare={onShareCourse} />
+							))}
+						</div>
+					</div>
+				)}
 			</div>
 		</section>
 	)
@@ -553,7 +625,7 @@ export default function KCoursePage() {
 		if (tab === 'my-course' || tab === 'my' || tab === 'saved') {
 			return 'my-course'
 		}
-		return 'monthly-best'
+		return 'all-courses'
 	}
 	
 	const [activeTab, setActiveTab] = useState<Tab>(getInitialTab())
@@ -565,9 +637,16 @@ export default function KCoursePage() {
 	const [lastRefreshParam, setLastRefreshParam] = useState<string | null>(null)
 	
 	const navigate = useNavigate()
-	const { isAuthed } = useAuth()
-	
-	const goPlanner = () => navigate('/planner')
+	const { isAuthed, loginWithGoogle } = useAuth()
+
+	const goPlanner = () => {
+		if (!isAuthed) {
+			alert('로그인을 해주세요.')
+			loginWithGoogle()
+			return
+		}
+		navigate('/planner')
+	}
 
 	// 탭 변경 핸들러 - URL 파라미터도 함께 업데이트
 	const handleTabChange = (newTab: Tab) => {
@@ -776,8 +855,8 @@ export default function KCoursePage() {
 		<div className="min-h-[calc(100vh-64px)] bg-white">
 			<HeroBanner activeTab={activeTab} onTabChange={handleTabChange} />
 			{activeTab === 'my-course' ? (
-				<MyTravelCourse 
-					onCreate={goPlanner} 
+				<MyTravelCourse
+					onCreate={goPlanner}
 					myCourses={myCourses}
 					savedCourses={savedCourses}
 					loading={myCoursesLoading}
@@ -786,8 +865,8 @@ export default function KCoursePage() {
 					currentTab={activeTab}
 				/>
 			) : (
-				<TravelCourseGrid 
-					onCreate={goPlanner} 
+				<TravelCourseGrid
+					onCreate={goPlanner}
 					courses={publicCourses}
 					loading={publicCoursesLoading}
 					onShareCourse={handleShareCourse}

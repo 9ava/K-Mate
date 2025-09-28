@@ -67,31 +67,7 @@ export default function KmapPage() {
 		}
 	}
 
-	// Haversine 공식으로 두 지점 간 거리 계산 (미터 단위)
-	const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-		const R = 6371e3 // 지구 반지름 (미터)
-		const φ1 = lat1 * Math.PI/180 // φ, λ in radians
-		const φ2 = lat2 * Math.PI/180
-		const Δφ = (lat2-lat1) * Math.PI/180
-		const Δλ = (lng2-lng1) * Math.PI/180
 
-		const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-				Math.cos(φ1) * Math.cos(φ2) *
-				Math.sin(Δλ/2) * Math.sin(Δλ/2)
-		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-
-		return R * c // 거리 (미터)
-	}
-
-	// 사용자 위치 기준으로 주변 장소들만 필터링
-	const filterNearbyPlaces = (places: Place[], userLoc: { lat: number; lng: number } | null): Place[] => {
-		if (!userLoc) return places // 위치 정보가 없으면 전체 반환
-		
-		return places.filter(place => {
-			const distance = calculateDistance(userLoc.lat, userLoc.lng, place.lat, place.lng)
-			return distance <= nearbyRadius
-		})
-	}
 
 	// 위치 권한 확인 및 현재 위치 가져오기
 	const requestLocationPermission = async (): Promise<boolean> => {
@@ -293,6 +269,36 @@ export default function KmapPage() {
 		})
 	}, [API_KEY, ENV_MAP_ID])
 
+	// 지도 위치 저장을 위한 sessionStorage 키
+	const MAP_POSITION_KEY = 'kmate-map-position'
+
+	// 지도 위치 저장
+	const saveMapPosition = (map: google.maps.Map) => {
+		const center = map.getCenter()
+		const zoom = map.getZoom()
+		if (center && zoom) {
+			const position = {
+				lat: center.lat(),
+				lng: center.lng(),
+				zoom: zoom
+			}
+			sessionStorage.setItem(MAP_POSITION_KEY, JSON.stringify(position))
+		}
+	}
+
+	// 저장된 지도 위치 복원
+	const getStoredMapPosition = () => {
+		try {
+			const stored = sessionStorage.getItem(MAP_POSITION_KEY)
+			if (stored) {
+				return JSON.parse(stored)
+			}
+		} catch (error) {
+			console.warn('Failed to restore map position:', error)
+		}
+		return null
+	}
+
 	// 지도 초기화 및 사용자 위치로 시작
 	useEffect(() => {
 		let cancelled = false
@@ -306,11 +312,12 @@ export default function KmapPage() {
 				mapsLibRef.current = (await loader.importLibrary('maps')) as google.maps.MapsLibrary
 			}
 			const { Map } = mapsLibRef.current
-			
-			// 기본 중심점 (서울) - 사용자 위치와 병렬로 처리
-			let mapCenter = { lat: 37.5665, lng: 126.978 }
-			let initialZoom = 12
-			
+
+			// 저장된 위치가 있으면 사용, 없으면 기본값 (서울)
+			const storedPosition = getStoredMapPosition()
+			const mapCenter = storedPosition ? { lat: storedPosition.lat, lng: storedPosition.lng } : { lat: 37.5665, lng: 126.978 }
+			const initialZoom = storedPosition ? storedPosition.zoom : 12
+
 			// 지도를 먼저 생성 (위치 권한 대기하지 않음)
 			const map = new Map(mapRef.current, {
 				center: mapCenter,
@@ -323,23 +330,30 @@ export default function KmapPage() {
 			mapObjRef.current = map
 			infoRef.current = new google.maps.InfoWindow()
 			setLoadingState('idle')
-			
-			// 사용자 위치는 비동기로 처리 (지도 로딩 블로킹하지 않음)
-			requestLocationPermission().then(async (hasPermission) => {
-				if (hasPermission && !cancelled) {
-					try {
-						const userPos = await getCurrentPosition()
-						map.panTo(userPos)
-						map.setZoom(16)
-						setUserLocation(userPos)
-						await updateUserLocationMarker(userPos)
-					} catch (error) {
-						console.warn('사용자 위치 가져오기 실패:', error)
-					}
-				}
-			}).catch(() => {
-				// 위치 권한 실패는 조용히 무시
+
+			// 지도 이동/줌 변경 시 위치 저장
+			map.addListener('idle', () => {
+				saveMapPosition(map)
 			})
+
+			// 저장된 위치가 없을 때만 사용자 위치로 이동
+			if (!storedPosition) {
+				requestLocationPermission().then(async (hasPermission) => {
+					if (hasPermission && !cancelled) {
+						try {
+							const userPos = await getCurrentPosition()
+							map.panTo(userPos)
+							map.setZoom(16)
+							setUserLocation(userPos)
+							await updateUserLocationMarker(userPos)
+						} catch (error) {
+							console.warn('사용자 위치 가져오기 실패:', error)
+						}
+					}
+				}).catch(() => {
+					// 위치 권한 실패는 조용히 무시
+				})
+			}
 		})()
 
 		return () => {
@@ -371,8 +385,7 @@ export default function KmapPage() {
 					setLoadingState('markers')
 					await renderMarkers(items)
 					
-					// 일반적인 동작: 전체 마커들이 보이도록 fitBounds
-					fitBounds(items)
+					// fitBounds 제거 - 지도 위치 유지
 					setSelected(null)
 				} else if (mode === 'bookmarks') {
 					// bookmarks 모드 - 로그인 상태 확인
@@ -407,7 +420,7 @@ export default function KmapPage() {
 						setPlaces(items)
 						setLoadingState('markers')
 						await renderMarkers(items)
-						fitBounds(items)
+						// fitBounds 제거 - 지도 위치 유지
 						setSelected(null)
 					}
 				}
@@ -441,7 +454,7 @@ export default function KmapPage() {
 	// 커스텀 마커 요소 생성 (성능 최적화됨)
 	const createCustomMarker = (place: Place): HTMLElement => {
 		try {
-			const markerEl = makePlaceMarkerEl(place.type, place.name)
+			const markerEl = makePlaceMarkerEl(place.type, place.name, place)
 			return markerEl
 		} catch (error) {
 			console.error('[K-Map] Error creating custom marker, using fallback:', error)
@@ -656,7 +669,7 @@ export default function KmapPage() {
 			setPlaces(response.items)
 			setTitleKey('all_places')
 			await renderMarkers(response.items)
-			fitBounds(response.items) // 모든 마커가 보이도록 지도 범위 조정
+			// fitBounds 제거 - 지도 위치 유지
 		} catch (error) {
 			console.error('전체 장소 로드 실패:', error)
 		} finally {
@@ -688,6 +701,7 @@ export default function KmapPage() {
 				}))
 				setPlaces(items)
 				await renderMarkers(items)
+				// fitBounds 제거 - 지도 위치 유지
 			} catch (error) {
 				console.error('북마크 새로고침 실패:', error)
 			}

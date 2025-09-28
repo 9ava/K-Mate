@@ -72,7 +72,10 @@
 			"my_travel_course": "나의 여행코스",
 			"monthly_best_9": "월간 Best 9",
 			"my_courses": "내가 만든 코스",
-			"saved_courses": "저장한 코스"
+			"saved_courses": "저장한 코스",
+			"all_courses": "전체 코스",
+			"monthly_top_3": "월간 Top 3",
+			"other_courses": "기타 코스"
 		},
 		"labels": {
 			"my_course": "내 코스",
@@ -150,10 +153,11 @@
 		"titles": {
 			"mypage": "마이페이지",
 			"my_activities": "나의 활동",
-			"my_courses": "내 여행 코스", 
+			"my_courses": "내 여행 코스",
 			"bookmarks": "북마크한 장소",
 			"posts": "내가 쓴 글",
 			"comments": "내가 쓴 댓글",
+			"course_comments": "K-코스 댓글",
 			"scraps": "스크랩한 글",
 			"saved_courses": "저장한 코스",
 			"created_courses": "내가 만든 코스"
@@ -222,6 +226,77 @@
 			"kmap": "K-Map",
 			"kcourse": "K-Course",
 			"kbuzz": "K-Buzz"
+		}
+	},
+	"comments": {
+		"title": "댓글",
+		"course_comments_title": "이 코스에 대한 댓글",
+		"placeholder": "댓글을 입력하세요...",
+		"submit": "댓글 작성",
+		"submitting": "작성 중...",
+		"login_required": "댓글을 작성하려면 로그인이 필요합니다.",
+		"loading": "댓글을 불러오는 중...",
+		"empty": "아직 댓글이 없습니다.",
+		"empty_hint": "첫 번째 댓글을 작성해보세요!",
+		"save": "저장",
+		"cancel": "취소",
+		"edit": "수정",
+		"delete": "삭제",
+		"load_more": "댓글 더 보기",
+		"create_failed": "댓글 작성에 실패했습니다.",
+		"update_failed": "댓글 수정에 실패했습니다.",
+		"delete_failed": "댓글 삭제에 실패했습니다.",
+		"delete_confirm": "댓글을 삭제하시겠습니까?"
+	},
+	"main": {
+		"hero": {
+			"title": "K-Mate와 함께",
+			"subtitle": "한국의 문화, 장소, 트렌드를 탐험하는 완벽한 동반자입니다.\n인터랙티브 지도, 코스, 커뮤니티를 통해 한국의 마음과 연결하세요.",
+			"start_exploring": "탐험 시작하기",
+			"browse_courses": "코스 둘러보기"
+		},
+		"features": {
+			"section_title": "한국을 전에 없던 방식으로 탐험하세요",
+			"section_subtitle": "한국 경험을 향상시키는 세 가지 강력한 도구",
+			"kmap": {
+				"title": "K-Map",
+				"description": "한국의 랜드마크, 레스토랑, 문화 명소, 숨겨진 보석들을 보여주는 인터랙티브 지도입니다. 현지인의 통찰과 추천으로 한국을 탐험하세요.",
+				"cta": "지도 탐험하기 →"
+			},
+			"kcourse": {
+				"title": "K-Course",
+				"description": "한국어, 문화, 역사, 전통을 다루는 종합적인 코스입니다. 인터랙티브 레슨과 퀴즈로 자신만의 속도로 학습하세요.",
+				"cta": "학습 시작하기 →"
+			},
+			"kbuzz": {
+				"title": "K-Buzz",
+				"description": "최신 한국 트렌드, 뉴스, 커뮤니티 토론을 업데이트받으세요. 한국 애호가들과 연결하고 경험을 공유하세요.",
+				"cta": "커뮤니티 참여하기 →"
+			}
+		},
+		"stats": {
+			"locations": "매핑된 장소",
+			"courses": "이용 가능한 코스",
+			"members": "커뮤니티 멤버",
+			"satisfaction": "사용자 만족도"
+		},
+		"cta": {
+			"title": "한국 여행을 시작할 준비가 되셨나요?",
+			"subtitle": "한국 문화의 아름다움과 풍요로움을 발견하는 수천 명의 사용자와 함께하세요",
+			"button": "오늘 시작하기"
+		},
+		"footer": {
+			"description": "한국 문화와 유산을 탐험하는 완벽한 동반자입니다.",
+			"features": "기능",
+			"company": "회사",
+			"about": "소개",
+			"contact": "연락처",
+			"privacy": "개인정보",
+			"connect": "연결",
+			"twitter": "트위터",
+			"instagram": "인스타그램",
+			"facebook": "페이스북",
+			"copyright": "© 2026 K-Mate. 모든 권리 보유."
 		}
 	}
 }

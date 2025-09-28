@@ -150,33 +150,48 @@ const MyPage = () => {
 		navigate('/mypage/comments')
 	}
 
-	// 위쪽 3개 - 장소/코스 관련
-	const topActivities = [
-		{ 
-			iconClass: 'fi-rr-bookmark', 
-			title: t('mypage.titles.bookmarks'), 
-			count: stats.bookmarkCount, 
+	const handleCourseCommentsClick = () => {
+		navigate('/mypage/course-comments')
+	}
+
+	// K-Map 관련 활동
+	const kmapActivities = [
+		{
+			iconClass: 'fi-rr-bookmark',
+			title: t('mypage.titles.bookmarks'),
+			count: stats.bookmarkCount,
 			category: 'K-Map' as const,
 			onClick: handleBookmarksClick
 		},
-		{ 
-			iconClass: 'fi-rr-map-marker', 
-			title: t('mypage.titles.saved_courses'), 
-			count: stats.savedCourseCount, 
+	]
+
+	// K-Course 관련 활동
+	const kcourseActivities = [
+		{
+			iconClass: 'fi-rr-map-marker',
+			title: t('mypage.titles.saved_courses'),
+			count: stats.savedCourseCount,
 			category: 'K-Course' as const,
 			onClick: handleSavedCoursesClick
 		},
-		{ 
-			iconClass: 'fi-rr-map-marker-plus', 
-			title: t('mypage.titles.created_courses'), 
-			count: stats.courseCount, 
+		{
+			iconClass: 'fi-rr-map-marker-plus',
+			title: t('mypage.titles.created_courses'),
+			count: stats.courseCount,
 			category: 'K-Course' as const,
 			onClick: handleMyCoursesClick
 		},
+		{
+			iconClass: 'fi-rr-comment-alt',
+			title: t('mypage.titles.course_comments'),
+			count: stats.courseCommentCount || 0,
+			category: 'K-Course' as const,
+			onClick: handleCourseCommentsClick
+		},
 	]
 
-	// 아래쪽 3개 - 글/댓글 관련
-	const bottomActivities = [
+	// K-Buzz 관련 활동
+	const kbuzzActivities = [
 		{ 
 			iconClass: 'fi-rr-document', 
 			title: t('mypage.titles.scraps'), 
@@ -206,10 +221,10 @@ const MyPage = () => {
 				<div className="px-6 py-8">
 					<h1 className="mb-16 text-2xl font-bold text-center text-gray-900">{t('mypage.titles.my_activities')}</h1>
 
-					{/* 위쪽 3개 - 장소/코스 관련 */}
+					{/* K-Map 활동 */}
 					<div className="mb-16">
-						<div className="grid grid-cols-3 gap-6">
-							{topActivities.map((activity, index) => (
+						<div className="grid grid-cols-1 gap-6">
+							{kmapActivities.map((activity, index) => (
 								<ActivityCard
 									key={index}
 									iconClass={activity.iconClass}
@@ -222,10 +237,26 @@ const MyPage = () => {
 						</div>
 					</div>
 
-					{/* 아래쪽 3개 - 글/댓글 관련 */}
+					{/* K-Course 활동 */}
+					<div className="mb-16">
+						<div className="grid grid-cols-3 gap-6">
+							{kcourseActivities.map((activity, index) => (
+								<ActivityCard
+									key={index}
+									iconClass={activity.iconClass}
+									title={activity.title}
+									count={activity.count}
+									category={activity.category}
+									onClick={activity.onClick}
+								/>
+							))}
+						</div>
+					</div>
+
+					{/* K-Buzz 활동 */}
 					<div>
 						<div className="grid grid-cols-3 gap-6">
-							{bottomActivities.map((activity, index) => (
+							{kbuzzActivities.map((activity, index) => (
 								<ActivityCard
 									key={index}
 									iconClass={activity.iconClass}

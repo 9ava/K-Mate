@@ -32,6 +32,7 @@ import {
 	ListQueryDto,
 	SetTypeDto,
 	TogglePlaceAdvertisementDto,
+	ToggleMultilingualMenuDto,
 } from './places.dto'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
@@ -247,6 +248,23 @@ export class PlacesController {
 		@Body() dto: TogglePlaceAdvertisementDto
 	) {
 		const place = await this.places.toggleAdvertisement(id, dto.isAdvertisement)
+		return { success: true, data: place }
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────
+	// 관리자: 다국어 메뉴판 지원 상태 토글
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '관리자: 다국어 메뉴판 지원 상태 토글' })
+	@ApiCookieAuth('access_token')
+	@ApiParam({ name: 'id', description: 'Place ID' })
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles('admin')
+	@Put(':id/multilingual-menu')
+	async toggleMultilingualMenu(
+		@Param('id') id: number,
+		@Body() dto: ToggleMultilingualMenuDto
+	) {
+		const place = await this.places.toggleMultilingualMenu(id, dto.hasMultilingualMenu)
 		return { success: true, data: place }
 	}
 

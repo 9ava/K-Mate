@@ -2,20 +2,25 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, FindManyOptions } from 'typeorm'
 import { Comment } from './comment.entity'
+import { CourseComment } from './course-comment.entity'
 import { Post } from '../posts/post.entity'
+import { Course } from '../courses/course.entity'
 import { User } from '../users/user.entity'
 import {
 	CreateCommentDto,
 	UpdateCommentDto,
 	GetCommentsQueryDto,
 	CommentResponseDto,
+	CourseCommentResponseDto,
 } from './comments.dto'
 
 @Injectable()
 export class CommentsService {
 	constructor(
 		@InjectRepository(Comment) private readonly commentRepo: Repository<Comment>,
+		@InjectRepository(CourseComment) private readonly courseCommentRepo: Repository<CourseComment>,
 		@InjectRepository(Post) private readonly postRepo: Repository<Post>,
+		@InjectRepository(Course) private readonly courseRepo: Repository<Course>,
 		@InjectRepository(User) private readonly userRepo: Repository<User>
 	) {}
 
@@ -148,11 +153,123 @@ export class CommentsService {
 		await this.commentRepo.delete(id)
 	}
 
+	// ────────────────────────────────────────────────────────────────────────────
+	// Course Comment Methods
+	// ────────────────────────────────────────────────────────────────────────────
+
+	// 코스 댓글 생성
+	async createCourseComment(
+		courseId: string,
+		userId: number,
+		dto: CreateCommentDto
+	): Promise<CourseCommentResponseDto> {
+		const course = await this.courseRepo.findOne({ where: { id: courseId } })
+		if (!course) throw new NotFoundException('코스를 찾을 수 없습니다.')
+
+		const user = await this.userRepo.findOne({ where: { id: userId } })
+		if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.')
+
+		const entity = this.courseCommentRepo.create({ course, user, content: dto.content })
+		const saved = await this.courseCommentRepo.save(entity)
+
+		// relations를 다시 로드해 응답 포맷에 필요한 필드 보장
+		const withRelations = await this.courseCommentRepo.findOne({
+			where: { id: saved.id },
+			relations: ['user', 'course'],
+		})
+		return this.formatCourseCommentResponse(withRelations!)
+	}
+
+	// 코스별 댓글 목록
+	async getCommentsByCourse(
+		courseId: string,
+		query: GetCommentsQueryDto
+	): Promise<{ comments: CourseCommentResponseDto[]; total: number }> {
+		const { page = 1, limit = 10 } = query
+		const skip = (page - 1) * limit
+
+		const course = await this.courseRepo.findOne({ where: { id: courseId } })
+		if (!course) throw new NotFoundException('코스를 찾을 수 없습니다.')
+
+		const findOptions: FindManyOptions<CourseComment> = {
+			where: { course: { id: courseId } },
+			relations: ['user', 'course'],
+			order: { createdAt: 'ASC' },
+			skip,
+			take: limit,
+		}
+
+		const [rows, total] = await this.courseCommentRepo.findAndCount(findOptions)
+		return {
+			comments: rows.map((c) => this.formatCourseCommentResponse(c)),
+			total,
+		}
+	}
+
+	// 코스 댓글 수정 (작성자 or admin)
+	async updateCourseComment(
+		id: number,
+		userId: number,
+		dto: UpdateCommentDto
+	): Promise<CourseCommentResponseDto> {
+		const comment = await this.courseCommentRepo.findOne({
+			where: { id },
+			relations: ['user', 'course'],
+		})
+		if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.')
+
+		const user = await this.userRepo.findOne({ where: { id: userId } })
+		if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.')
+		if (comment.user.id !== userId && user.role !== 'admin') {
+			throw new ForbiddenException('작성자 또는 관리자만 댓글을 수정할 수 있습니다.')
+		}
+
+		await this.courseCommentRepo.update(id, { content: dto.content })
+
+		const updated = await this.courseCommentRepo.findOne({
+			where: { id },
+			relations: ['user', 'course'],
+		})
+		return this.formatCourseCommentResponse(updated!)
+	}
+
+	// 코스 댓글 삭제 (작성자 or admin)
+	async deleteCourseComment(id: number, userId: number): Promise<void> {
+		const comment = await this.courseCommentRepo.findOne({
+			where: { id },
+			relations: ['user'],
+		})
+		if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.')
+
+		const user = await this.userRepo.findOne({ where: { id: userId } })
+		if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.')
+		if (comment.user.id !== userId && user.role !== 'admin') {
+			throw new ForbiddenException('작성자 또는 관리자만 댓글을 삭제할 수 있습니다.')
+		}
+
+		await this.courseCommentRepo.delete(id)
+	}
+
 	// 공통 응답 포맷터 (UTC ISO로 내려서 프론트에서 로컬 변환)
 	private formatCommentResponse(comment: Comment): CommentResponseDto {
 		return {
 			id: comment.id,
 			postId: comment.post.id,
+			user: {
+				id: comment.user.id,
+				name: comment.user.name,
+				avatarUrl: (comment.user as any).avatar_url ?? (comment.user as any).avatarUrl ?? null,
+			},
+			content: comment.content,
+			createdAt: comment.createdAt,
+		}
+	}
+
+	// 코스 댓글 응답 포맷터
+	private formatCourseCommentResponse(comment: CourseComment): CourseCommentResponseDto {
+		return {
+			id: comment.id,
+			courseId: comment.course.id,
 			user: {
 				id: comment.user.id,
 				name: comment.user.name,

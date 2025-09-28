@@ -9,6 +9,7 @@ import { Post } from '../posts/post.entity'
 import { Comment } from '../comments/comment.entity'
 import { Course } from '../courses/course.entity'
 import { SavedCourse } from '../courses/saved-course.entity'
+import { CourseComment } from '../comments/course-comment.entity'
 import {
 	UserActivityStatsDto,
 	PaginationQueryDto,
@@ -19,6 +20,7 @@ import {
 	UserProfileDto,
 	MyCourseListResponseDto,
 	SavedCourseListResponseDto,
+	MyCourseCommentListResponseDto,
 } from './mypage.dto'
 
 @Injectable()
@@ -30,7 +32,8 @@ export class MypageService {
 		@InjectRepository(Post) private readonly postRepo: Repository<Post>,
 		@InjectRepository(Comment) private readonly commentRepo: Repository<Comment>,
 		@InjectRepository(Course) private readonly courseRepo: Repository<Course>,
-		@InjectRepository(SavedCourse) private readonly savedCourseRepo: Repository<SavedCourse>
+		@InjectRepository(SavedCourse) private readonly savedCourseRepo: Repository<SavedCourse>,
+		@InjectRepository(CourseComment) private readonly courseCommentRepo: Repository<CourseComment>
 	) {}
 
 	/**
@@ -44,7 +47,7 @@ export class MypageService {
 		}
 
 		// 각 카테고리별 개수 조회 (안전한 병렬 처리)
-		const [bookmarkCount, scrapCount, postCount, commentCount, courseCount, savedCourseCount] = await Promise.allSettled([
+		const [bookmarkCount, scrapCount, postCount, commentCount, courseCount, savedCourseCount, courseCommentCount] = await Promise.allSettled([
 			// 북마크 수
 			this.bookmarkRepo.count({ where: { user: { id: userId } } }),
 			// 스크랩 수 (interactionType이 'scrap'인 것)
@@ -57,6 +60,8 @@ export class MypageService {
 			this.courseRepo.count({ where: { authorId: String(userId) } }).catch(() => 0),
 			// 저장한 코스 수 (테이블이 없을 경우 0 반환)
 			this.savedCourseRepo.count({ where: { userId } }).catch(() => 0),
+			// 작성한 코스 댓글 수 (테이블이 없을 경우 0 반환)
+			this.courseCommentRepo.count({ where: { user: { id: userId } } }).catch(() => 0),
 		])
 
 		// Promise.allSettled 결과 처리
@@ -70,6 +75,7 @@ export class MypageService {
 			commentCount: getCount(commentCount),
 			courseCount: getCount(courseCount),
 			savedCourseCount: getCount(savedCourseCount),
+			courseCommentCount: getCount(courseCommentCount),
 		}
 	}
 
@@ -387,6 +393,75 @@ export class MypageService {
 			// })
 			return {
 				savedCourses: [],
+				total: 0,
+				page,
+				limit,
+			}
+		}
+	}
+
+	/**
+	 * 내가 쓴 코스 댓글 목록 조회
+	 */
+	async getMyCourseComments(userId: number, query: PaginationQueryDto): Promise<MyCourseCommentListResponseDto> {
+		const { page = 1, limit = 10 } = query
+		const skip = (page - 1) * limit
+
+		// 사용자 존재 확인
+		const user = await this.userRepo.findOne({ where: { id: userId } })
+		if (!user) {
+			throw new NotFoundException('사용자를 찾을 수 없습니다.')
+		}
+
+		try {
+			// 내가 쓴 코스 댓글 목록 조회
+			const [comments, total] = await this.courseCommentRepo.findAndCount({
+				where: { user: { id: userId } },
+				relations: {
+					course: { author: true },
+					user: true
+				},
+				order: { createdAt: 'DESC' },
+				skip,
+				take: limit,
+			})
+
+			return {
+				comments: comments.map((comment) => ({
+					id: comment.id,
+					content: comment.content,
+					course: {
+						id: comment.course.id,
+						title: comment.course.title,
+						author: {
+							id: comment.course.author.id,
+							name: comment.course.author.name,
+							avatarUrl: comment.course.author.avatar_url,
+						},
+					},
+					author: {
+						id: comment.user.id,
+						name: comment.user.name,
+						avatarUrl: comment.user.avatar_url,
+					},
+					createdAt: comment.createdAt,
+					updatedAt: comment.createdAt, // CourseComment entity doesn't have updatedAt field
+				})),
+				total,
+				page,
+				limit,
+			}
+		} catch (error) {
+			// 테이블이 없거나 다른 오류가 발생한 경우 빈 결과 반환
+			// console.warn('코스 댓글 목록 조회 실패:', {
+			// 	error: error.message,
+			// 	stack: error.stack,
+			// 	userId,
+			// 	page,
+			// 	limit
+			// })
+			return {
+				comments: [],
 				total: 0,
 				page,
 				limit,

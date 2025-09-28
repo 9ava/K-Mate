@@ -35,7 +35,7 @@ const Sidebar: React.FC<Props> = ({ active = '', onSelectType, onShowBookmarks, 
 						title={item.label}
 						onClick={() => (item.type ? onSelectType?.(item.type) : item.action?.())}
 						className={[
-							'flex items-center justify-center w-10 h-10 rounded-lg transition-colors',
+							'flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer',
 							isActive
 								? 'bg-gray-700 text-white' // 회색 테마로 통일
 								: 'hover:bg-gray-100',
@@ -48,7 +48,7 @@ const Sidebar: React.FC<Props> = ({ active = '', onSelectType, onShowBookmarks, 
 
 			<div className="flex-1" />
 			<div className="space-y-2">
-				<button className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100">
+				<button className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 cursor-pointer">
 					<span className="text-sm font-bold">TIPS</span>
 				</button>
 			</div>

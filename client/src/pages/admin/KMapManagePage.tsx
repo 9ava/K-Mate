@@ -1,56 +1,81 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useMapStore } from '../../features/map/map.store'
+import { listPlaces, toggleMultilingualMenu, toggleAdvertisement } from '../../api/places'
+import type { Place, PlaceType } from '../../types/place'
 
 export default function KMapManagePage() {
 	const navigate = useNavigate()
-	const { markers, loading, error, isApiMode, loadMarkers, toggleMarkerStatus, toggleAdvertisement, deleteMarker } = useMapStore()
+	const [places, setPlaces] = useState<Place[]>([])
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 
-	// Load markers on component mount
-	useEffect(() => {
-		loadMarkers()
-	}, [])
-
-	const [selectedCategory, setSelectedCategory] = useState<string>('all')
-	const [selectedStatus, setSelectedStatus] = useState<string>('all')
+	const [selectedCategory, setSelectedCategory] = useState<PlaceType | 'all'>('all')
 	const [searchTerm, setSearchTerm] = useState('')
+	const [page, setPage] = useState(1)
+	const [totalPages, setTotalPages] = useState(1)
 
-	// Filter markers based on selected filters
-	const filteredMarkers = markers.filter((marker) => {
-		const matchesCategory = selectedCategory === 'all' || marker.category === selectedCategory
-		const matchesStatus = selectedStatus === 'all' || marker.status === selectedStatus
-		const matchesSearch =
-			marker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			marker.address.toLowerCase().includes(searchTerm.toLowerCase())
+	// Load places on component mount
+	useEffect(() => {
+		loadPlaces()
+	}, [selectedCategory, searchTerm, page])
 
-		return matchesCategory && matchesStatus && matchesSearch
-	})
-
-	const getStatusBadge = (status: string) => {
-		return status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+	const loadPlaces = async () => {
+		try {
+			setLoading(true)
+			setError(null)
+			const response = await listPlaces({
+				type: selectedCategory === 'all' ? undefined : selectedCategory,
+				q: searchTerm || undefined,
+				page,
+				pageSize: 20
+			})
+			setPlaces(response.items)
+			setTotalPages(response.totalPages || 1)
+		} catch (err) {
+			setError('장소 목록을 불러오는데 실패했습니다.')
+			console.error(err)
+		} finally {
+			setLoading(false)
+		}
 	}
 
-	const getCategoryColor = (category: string) => {
+	const getCategoryColor = (type: PlaceType | null) => {
 		const colors = {
-			'K-Travel': 'bg-blue-100 text-blue-800',
-			'K-Food': 'bg-orange-100 text-orange-800',
-			'K-Cafe': 'bg-green-100 text-green-800',
+			'travel': 'bg-blue-100 text-blue-800',
+			'food': 'bg-orange-100 text-orange-800',
+			'cafe': 'bg-green-100 text-green-800',
 		}
-		return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-800'
+		return type ? colors[type] || 'bg-gray-100 text-gray-800' : 'bg-gray-100 text-gray-800'
 	}
 
-	const handleToggleStatus = async (id: number) => {
-		await toggleMarkerStatus(id)
-	}
-
-	const handleToggleAdvertisement = async (id: number) => {
-		await toggleAdvertisement(id)
-	}
-
-	const handleDeleteMarker = async (id: number) => {
-		if (confirm('이 마커를 삭제하시겠습니까?')) {
-			await deleteMarker(id)
+	const handleToggleMultilingualMenu = async (place: Place) => {
+		try {
+			const updatedPlace = await toggleMultilingualMenu(place.id, !place.hasMultilingualMenu)
+			setPlaces(prev => prev.map(p => p.id === place.id ? updatedPlace : p))
+		} catch (err) {
+			setError('다국어 메뉴판 설정 변경에 실패했습니다.')
+			console.error(err)
 		}
+	}
+
+	const handleToggleAdvertisement = async (place: Place) => {
+		try {
+			const updatedPlace = await toggleAdvertisement(place.id, !place.isAdvertisement)
+			setPlaces(prev => prev.map(p => p.id === place.id ? updatedPlace : p))
+		} catch (err) {
+			setError('광고 설정 변경에 실패했습니다.')
+			console.error(err)
+		}
+	}
+
+	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setSearchTerm(e.target.value)
+		setPage(1) // Reset to first page when searching
+	}
+
+	const formatDate = (dateString?: string) => {
+		if (!dateString) return '-'
+		return new Date(dateString).toLocaleDateString('ko-KR')
 	}
 
 	return (
@@ -60,23 +85,7 @@ export default function KMapManagePage() {
 				<div className="relative mb-8">
 					<div className="text-center">
 						<h1 className="mb-2 text-3xl font-bold text-gray-900">K-Map 관리</h1>
-						<p className="text-gray-600">지도 마커와 위치 정보를 관리합니다</p>
-						{!isApiMode && (
-							<div className="flex items-center justify-center mt-2 text-sm text-amber-600">
-								<svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-									<path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-								</svg>
-								오프라인 모드 - 로컬 데이터 사용 중
-							</div>
-						)}
-						{isApiMode && (
-							<div className="flex items-center justify-center mt-2 text-sm text-green-600">
-								<svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-									<path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-								</svg>
-								온라인 모드 - MySQL 연동 중
-							</div>
-						)}
+						<p className="text-gray-600">지도 장소와 다국어 메뉴판 지원을 관리합니다</p>
 					</div>
 					<div className="absolute top-0 right-0 flex gap-3">
 						<button
@@ -99,14 +108,14 @@ export default function KMapManagePage() {
 
 				{/* Filters */}
 				<div className="p-6 mb-6 bg-white rounded-lg shadow">
-					<div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+					<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 						<div>
 							<label className="block mb-2 text-sm font-medium text-gray-700">검색</label>
 							<input
 								type="text"
 								placeholder="이름 또는 주소 검색..."
 								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
+								onChange={handleSearchChange}
 								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
 							/>
 						</div>
@@ -114,29 +123,17 @@ export default function KMapManagePage() {
 							<label className="block mb-2 text-sm font-medium text-gray-700">카테고리</label>
 							<select
 								value={selectedCategory}
-								onChange={(e) => setSelectedCategory(e.target.value)}
+								onChange={(e) => setSelectedCategory(e.target.value as PlaceType | 'all')}
 								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
 							>
 								<option value="all">전체</option>
-								<option value="K-Travel">K-Travel</option>
-								<option value="K-Food">K-Food</option>
-								<option value="K-Cafe">K-Cafe</option>
-							</select>
-						</div>
-						<div>
-							<label className="block mb-2 text-sm font-medium text-gray-700">상태</label>
-							<select
-								value={selectedStatus}
-								onChange={(e) => setSelectedStatus(e.target.value)}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-							>
-								<option value="all">전체</option>
-								<option value="active">활성</option>
-								<option value="inactive">비활성</option>
+								<option value="travel">Travel</option>
+								<option value="food">Food</option>
+								<option value="cafe">Cafe</option>
 							</select>
 						</div>
 						<div className="flex items-end">
-							<div className="text-sm text-gray-500">총 {filteredMarkers.length}개 마커</div>
+							<div className="text-sm text-gray-500">총 {places.length}개 장소</div>
 						</div>
 					</div>
 				</div>
@@ -172,7 +169,7 @@ export default function KMapManagePage() {
 							<thead className="bg-gray-50">
 								<tr>
 									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
-										마커 정보
+										장소 정보
 									</th>
 									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										카테고리
@@ -184,7 +181,7 @@ export default function KMapManagePage() {
 										광고
 									</th>
 									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
-										상태
+										다국어 메뉴판
 									</th>
 									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										생성일
@@ -195,25 +192,25 @@ export default function KMapManagePage() {
 								</tr>
 							</thead>
 							<tbody className="bg-white divide-y divide-gray-200">
-								{filteredMarkers.map((marker) => (
-									<tr key={marker.id} className="hover:bg-gray-50">
+								{places.map((place) => (
+									<tr key={place.id} className="hover:bg-gray-50">
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div className="flex items-center justify-center">
-												{marker.imageUrl && (
+												{place.photoUrl && (
 													<div className="flex-shrink-0 w-12 h-12">
 														<img
 															className="object-cover w-12 h-12 rounded-lg"
-															src={marker.imageUrl}
-															alt={marker.name}
+															src={place.photoUrl}
+															alt={place.name}
 														/>
 													</div>
 												)}
-												<div className={marker.imageUrl ? 'ml-4' : ''}>
-													<div className="text-sm font-medium text-gray-900">{marker.name}</div>
-													<div className="max-w-xs text-sm text-gray-500 truncate">{marker.address}</div>
-													{marker.description && (
+												<div className={place.photoUrl ? 'ml-4' : ''}>
+													<div className="text-sm font-medium text-gray-900">{place.name}</div>
+													<div className="max-w-xs text-sm text-gray-500 truncate">{place.address || '-'}</div>
+													{place.description && (
 														<div className="max-w-xs mt-1 text-xs text-gray-400 truncate">
-															{marker.description}
+															{place.description}
 														</div>
 													)}
 												</div>
@@ -221,89 +218,66 @@ export default function KMapManagePage() {
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-center">
 											<span
-												className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(
-													marker.category
-												)}`}
+												className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(place.type)}`}
 											>
-												{marker.category}
+												{place.type || '미분류'}
 											</span>
 										</td>
 										<td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap text-center">
-											<div>{marker.latitude.toFixed(4)}</div>
-											<div>{marker.longitude.toFixed(4)}</div>
+											<div>{place.lat.toFixed(4)}</div>
+											<div>{place.lng.toFixed(4)}</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-center">
 											<span
 												className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-													marker.isAdvertisement 
-														? 'bg-yellow-100 text-yellow-800' 
+													place.isAdvertisement
+														? 'bg-yellow-100 text-yellow-800'
 														: 'bg-gray-100 text-gray-500'
 												}`}
 											>
-												{marker.isAdvertisement ? '광고' : '일반'}
+												{place.isAdvertisement ? '광고' : '일반'}
 											</span>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-center">
 											<span
-												className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(
-													marker.status
-												)}`}
+												className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+													place.hasMultilingualMenu
+														? 'bg-purple-100 text-purple-800'
+														: 'bg-gray-100 text-gray-500'
+												}`}
 											>
-												{marker.status === 'active' ? '활성' : '비활성'}
+												{place.hasMultilingualMenu ? '지원' : '미지원'}
 											</span>
 										</td>
 										<td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap text-center">
-											{marker.createdAt}
+											{formatDate(place.createdAt)}
 										</td>
 										<td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
-											<div className="flex justify-center gap-2">
-												{/* Edit button - always available */}
+											<div className="flex justify-center gap-1 flex-wrap">
+												{/* Advertisement toggle button */}
 												<button
-													onClick={() => navigate(`/admin/map/edit/${marker.id}`)}
-													className="px-3 py-1 text-xs text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 cursor-pointer"
-												>
-													수정
-												</button>
-
-												{/* Advertisement toggle button - always available */}
-												<button
-													onClick={() => handleToggleAdvertisement(marker.id)}
-													className={`px-3 py-1 rounded-md text-xs ${
-														marker.isAdvertisement
+													onClick={() => handleToggleAdvertisement(place)}
+													className={`px-2 py-1 rounded-md text-xs ${
+														place.isAdvertisement
 															? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
 															: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
 													}`}
+													title="광고 상태 토글"
 												>
-													{marker.isAdvertisement ? '광고해제' : '광고등록'}
+													{place.isAdvertisement ? '광고해제' : '광고설정'}
 												</button>
-
-												{/* Delete button - always available */}
+												{/* Multilingual menu toggle button */}
 												<button
-													onClick={() => handleDeleteMarker(marker.id)}
-													className="px-3 py-1 text-xs text-red-700 bg-red-100 rounded-md hover:bg-red-200 cursor-pointer"
+													onClick={() => handleToggleMultilingualMenu(place)}
+													className={`px-2 py-1 rounded-md text-xs ${
+														place.hasMultilingualMenu
+															? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+															: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+													}`}
+													title="다국어 메뉴판 지원 토글"
 												>
-													삭제
+													{place.hasMultilingualMenu ? '메뉴해제' : '메뉴지원'}
 												</button>
-
-												{!isApiMode && (
-													<>
-														<button
-															onClick={() => handleToggleStatus(marker.id)}
-															className={`px-3 py-1 rounded-md text-xs ${
-																marker.status === 'active'
-																	? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-																	: 'bg-green-100 text-green-700 hover:bg-green-200'
-															}`}
-														>
-															{marker.status === 'active' ? '비활성화' : '활성화'}
-														</button>
-													</>
-												)}
-												{isApiMode && (
-													<div className="px-3 py-1 text-xs text-gray-500 bg-gray-100 rounded-md">
-														API 모드
-													</div>
-												)}
 											</div>
 										</td>
 									</tr>
@@ -313,7 +287,7 @@ export default function KMapManagePage() {
 					</div>
 				</div>
 
-				{filteredMarkers.length === 0 && (
+				{places.length === 0 && !loading && (
 					<div className="py-12 text-center">
 						<svg
 							className="w-12 h-12 mx-auto text-gray-400"
@@ -334,9 +308,9 @@ export default function KMapManagePage() {
 								d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
 							/>
 						</svg>
-						<h3 className="mt-2 text-sm font-medium text-gray-900">마커가 없습니다</h3>
+						<h3 className="mt-2 text-sm font-medium text-gray-900">장소가 없습니다</h3>
 						<p className="mt-1 text-sm text-gray-500">
-							검색 조건을 변경하거나 새 마커를 추가해보세요.
+							검색 조건을 변경하거나 새 장소를 추가해보세요.
 						</p>
 					</div>
 				)}

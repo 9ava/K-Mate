@@ -2,12 +2,30 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../features/auth/useAuth'
 import { useContentStore } from '../features/content/content.store'
 import { uploadToS3, generateTrendImageKey, validateImageFile } from '../api/s3'
+import {
+	DndContext,
+	closestCenter,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+} from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+	arrayMove,
+	SortableContext,
+	sortableKeyboardCoordinates,
+	horizontalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 export default function ConnectPage() {
 	const { refresh, ready, isAuthed } = useAuth()
-	const [activeTab, setActiveTab] = useState<'trend' | 'community'>('community')
+	const [activeTab, setActiveTab] = useState<'trend' | 'community'>('trend')
 	const [filter, setFilter] = useState<'all' | 'posts' | 'comments'>('all')
 	const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'hidden' | 'reported'>('all')
+	const [trendLoading, setTrendLoading] = useState(false)
 	const railRef = useRef<HTMLDivElement>(null)
 
 	// Edit modal state
@@ -52,13 +70,39 @@ export default function ConnectPage() {
 		addTrendArticle,
 		updateTrendArticle,
 		deleteTrendArticle,
+		loadTrendArticles,
+		reorderTrendArticles,
 	} = useContentStore()
+
+	// Drag and drop sensors
+	const sensors = useSensors(
+		useSensor(PointerSensor, {
+			activationConstraint: {
+				distance: 8,
+			},
+		}),
+		useSensor(KeyboardSensor, {
+			coordinateGetter: sortableKeyboardCoordinates,
+		})
+	)
 
 	// Get all content from store
 	const contents = allContent
 
 	useEffect(() => {
 		refresh()
+		// Load real trend articles from backend
+		const loadData = async () => {
+			setTrendLoading(true)
+			try {
+				await loadTrendArticles()
+			} catch (error) {
+				console.error('Failed to load trend articles:', error)
+			} finally {
+				setTrendLoading(false)
+			}
+		}
+		loadData()
 	}, [])
 
 	// ESC key handler for modals
@@ -191,9 +235,14 @@ export default function ConnectPage() {
 		}
 	}
 
-	const handleDeleteArticle = (article: any) => {
+	const handleDeleteArticle = async (article: any) => {
 		if (confirm(`"${article.title}" 아티클을 삭제하시겠습니까?`)) {
-			deleteTrendArticle(article.id)
+			try {
+				await deleteTrendArticle(article.id)
+			} catch (error) {
+				console.error('Delete article failed:', error)
+				alert('아티클 삭제에 실패했습니다.')
+			}
 		}
 	}
 
@@ -361,6 +410,130 @@ export default function ConnectPage() {
 		)
 	}
 
+	// Handle drag end for trend articles
+	const handleDragEnd = async (event: DragEndEvent) => {
+		const { active, over } = event
+
+		if (active.id !== over?.id) {
+			const oldIndex = trendArticles.findIndex((article) => article.id === active.id)
+			const newIndex = trendArticles.findIndex((article) => article.id === over?.id)
+
+			const reorderedArticles = arrayMove(trendArticles, oldIndex, newIndex)
+			try {
+				await reorderTrendArticles(reorderedArticles)
+			} catch (error) {
+				console.error('Failed to reorder articles:', error)
+				// Could show a toast notification here
+			}
+		}
+	}
+
+	// Sortable Article Card Component
+	const SortableArticleCard = ({ article }: { article: any }) => {
+		const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+			id: article.id,
+		})
+
+		const style = {
+			transform: CSS.Transform.toString(transform),
+			transition,
+		}
+
+		return (
+			<div
+				ref={setNodeRef}
+				style={style}
+				{...attributes}
+				data-card
+				className={`relative shrink-0 w-[240px] rounded-xl overflow-hidden shadow hover:shadow-lg transition group ${
+					isDragging ? 'opacity-50 scale-105 z-50' : ''
+				}`}
+			>
+				{/* Drag handle - top area of the card */}
+				<div
+					{...listeners}
+					className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center h-8 cursor-grab active:cursor-grabbing"
+				>
+					<div className="w-8 h-1 transition-opacity rounded-full opacity-0 bg-white/50 group-hover:opacity-100" />
+				</div>
+
+				<div className="relative w-full h-40 bg-gray-200">
+					<img
+						src={
+							article.image ||
+							'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop'
+						}
+						alt={article.title}
+						className="object-cover w-full h-40"
+						onError={(e) => {
+							const target = e.target as HTMLImageElement
+							if (
+								target.src !==
+								'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop'
+							) {
+								target.src =
+									'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop'
+							}
+						}}
+						onLoad={(e) => {
+							const target = e.target as HTMLImageElement
+							target.style.opacity = '1'
+						}}
+						style={{ opacity: 0, transition: 'opacity 0.3s ease-in-out' }}
+					/>
+				</div>
+				<div className="flex flex-col justify-end h-24 p-3 text-white bg-gradient-to-b from-gray-800 to-gray-900">
+					<h4 className="text-sm font-semibold leading-snug line-clamp-2">{article.title}</h4>
+					<p className="mt-1 text-xs text-gray-300">by {article.author}</p>
+				</div>
+
+				{/* 관리 버튼들 */}
+				<div className="absolute transition-opacity opacity-0 top-10 right-2 group-hover:opacity-100">
+					<button
+						title="수정"
+						onClick={() => handleEditArticle(article)}
+						className="flex items-center justify-center w-8 h-8 mr-1 rounded-full bg-white/90 hover:bg-white"
+					>
+						<svg
+							className="w-4 h-4 text-gray-700"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+							/>
+						</svg>
+					</button>
+				</div>
+				<div className="absolute transition-opacity opacity-0 top-10 right-12 group-hover:opacity-100">
+					<button
+						title="삭제"
+						onClick={() => handleDeleteArticle(article)}
+						className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/90 hover:bg-red-500"
+					>
+						<svg
+							className="w-4 h-4 text-white"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+							/>
+						</svg>
+					</button>
+				</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="min-h-[calc(100vh-3.5rem)] bg-gray-50">
 			<div className="px-4 py-8 mx-auto max-w-7xl">
@@ -442,6 +615,9 @@ export default function ConnectPage() {
 								<p className="mt-1 text-sm text-gray-500">
 									사용자에게 표시되는 트렌드 아티클을 관리합니다
 								</p>
+								<p className="mt-1 text-xs text-blue-600">
+									💡 아티클 상단을 드래그해서 순서를 변경할 수 있습니다
+								</p>
 							</div>
 							<button
 								onClick={handleCreateArticle}
@@ -467,73 +643,43 @@ export default function ConnectPage() {
 								›
 							</button>
 
-							<div ref={railRef} className="overflow-x-auto no-scrollbar scroll-smooth">
-								<div className="flex justify-start gap-5 pb-4">
-									{trendArticles.map((article) => (
-										<div
-											key={article.id}
-											data-card
-											className="relative shrink-0 w-[240px] rounded-xl overflow-hidden shadow hover:shadow-lg transition group"
-										>
-											<img
-												src={article.image}
-												alt={article.title}
-												className="object-cover w-full h-40"
-											/>
-											<div className="flex flex-col justify-end h-24 p-3 text-white bg-gradient-to-b from-gray-800 to-gray-900">
-												<h4 className="text-sm font-semibold leading-snug line-clamp-2">
-													{article.title}
-												</h4>
-												<p className="mt-1 text-xs text-gray-300">by {article.author}</p>
+							<DndContext
+								sensors={sensors}
+								collisionDetection={closestCenter}
+								onDragEnd={handleDragEnd}
+							>
+								<div ref={railRef} className="overflow-x-auto no-scrollbar scroll-smooth">
+									<div className="flex justify-start gap-5 pb-4">
+										{trendLoading ? (
+											// Loading state
+											<div className="flex items-center justify-center w-full py-12">
+												<div className="text-center">
+													<div className="w-8 h-8 mx-auto border-b-2 border-purple-600 rounded-full animate-spin"></div>
+													<p className="mt-2 text-gray-600">트렌드 아티클을 불러오는 중...</p>
+												</div>
 											</div>
-
-											{/* 관리 버튼들 */}
-											<div className="absolute transition-opacity opacity-0 top-2 right-2 group-hover:opacity-100">
-												<button
-													title="수정"
-													onClick={() => handleEditArticle(article)}
-													className="flex items-center justify-center w-8 h-8 mr-1 rounded-full bg-white/90 hover:bg-white"
-												>
-													<svg
-														className="w-4 h-4 text-gray-700"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
-													>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth={2}
-															d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-														/>
-													</svg>
-												</button>
+										) : trendArticles.length === 0 ? (
+											// Empty state
+											<div className="flex items-center justify-center w-full py-12">
+												<div className="text-center">
+													<p className="text-gray-500">아직 트렌드 아티클이 없습니다.</p>
+													<p className="mt-1 text-sm text-gray-400">새 아티클을 추가해보세요!</p>
+												</div>
 											</div>
-											<div className="absolute transition-opacity opacity-0 top-2 right-12 group-hover:opacity-100">
-												<button
-													title="삭제"
-													onClick={() => handleDeleteArticle(article)}
-													className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/90 hover:bg-red-500"
-												>
-													<svg
-														className="w-4 h-4 text-white"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
-													>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth={2}
-															d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-														/>
-													</svg>
-												</button>
-											</div>
-										</div>
-									))}
+										) : (
+											// Articles list with drag and drop
+											<SortableContext
+												items={trendArticles.map((article) => article.id)}
+												strategy={horizontalListSortingStrategy}
+											>
+												{trendArticles.map((article) => (
+													<SortableArticleCard key={article.id} article={article} />
+												))}
+											</SortableContext>
+										)}
+									</div>
 								</div>
-							</div>
+							</DndContext>
 						</div>
 					</div>
 				)}
@@ -687,7 +833,7 @@ export default function ConnectPage() {
 									✕
 								</button>
 							</div>
-							<div className="flex-1 overflow-y-auto p-5">
+							<div className="flex-1 p-5 overflow-y-auto">
 								<form id="edit-article-form" className="space-y-4" onSubmit={handleEditSubmit}>
 									<div>
 										<label className="block mb-1 text-sm font-medium">제목</label>
@@ -729,11 +875,11 @@ export default function ConnectPage() {
 										</div>
 
 										{/* 파일 업로드 섹션 */}
-										<div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+										<div className="p-4 border-2 border-gray-300 border-dashed rounded-lg">
 											{!editImagePreview ? (
 												<div className="text-center">
-													<p className="text-sm text-gray-500 mb-2">새 이미지를 S3에 업로드</p>
-													<label className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer">
+													<p className="mb-2 text-sm text-gray-500">새 이미지를 S3에 업로드</p>
+													<label className="inline-block px-4 py-2 text-gray-700 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200">
 														파일 선택
 														<input
 															type="file"
@@ -742,7 +888,7 @@ export default function ConnectPage() {
 															className="hidden"
 														/>
 													</label>
-													<p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · 최대 5MB</p>
+													<p className="mt-1 text-xs text-gray-400">JPG, PNG, WebP · 최대 5MB</p>
 												</div>
 											) : (
 												<div>
@@ -750,7 +896,7 @@ export default function ConnectPage() {
 														<img
 															src={editImagePreview}
 															alt="선택된 이미지"
-															className="w-20 h-20 object-cover rounded border"
+															className="object-cover w-20 h-20 border rounded"
 														/>
 														<div className="flex-1">
 															<p className="text-sm font-medium">{editImageFile?.name}</p>
@@ -760,7 +906,7 @@ export default function ConnectPage() {
 																</p>
 															)}
 															{editDraft.image && editImageFile && (
-																<p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+																<p className="flex items-center gap-1 mt-1 text-xs text-green-600">
 																	<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
 																		<path
 																			fillRule="evenodd"
@@ -775,7 +921,7 @@ export default function ConnectPage() {
 														<button
 															type="button"
 															onClick={clearEditImage}
-															className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+															className="px-2 py-1 text-sm text-gray-600 rounded hover:bg-gray-100"
 														>
 															×
 														</button>
@@ -787,12 +933,12 @@ export default function ConnectPage() {
 																type="button"
 																onClick={uploadEditImageToS3}
 																disabled={editUploading}
-																className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+																className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 															>
 																{editUploading ? (
 																	<>
 																		<svg
-																			className="animate-spin h-4 w-4"
+																			className="w-4 h-4 animate-spin"
 																			fill="none"
 																			viewBox="0 0 24 24"
 																		>
@@ -885,11 +1031,11 @@ export default function ConnectPage() {
 								<button
 									type="submit"
 									form="edit-article-form"
-									className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+									className="flex items-center gap-2 px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
 									disabled={editUploading}
 								>
 									{editUploading && (
-										<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+										<svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
 											<circle
 												className="opacity-25"
 												cx="12"
@@ -927,7 +1073,7 @@ export default function ConnectPage() {
 									✕
 								</button>
 							</div>
-							<div className="flex-1 overflow-y-auto p-5">
+							<div className="flex-1 p-5 overflow-y-auto">
 								<form id="create-article-form" className="space-y-4" onSubmit={handleCreateSubmit}>
 									<div>
 										<label className="block mb-1 text-sm font-medium">제목</label>
@@ -969,11 +1115,11 @@ export default function ConnectPage() {
 										</div>
 
 										{/* 파일 업로드 섹션 */}
-										<div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+										<div className="p-4 border-2 border-gray-300 border-dashed rounded-lg">
 											{!createImagePreview ? (
 												<div className="text-center">
-													<p className="text-sm text-gray-500 mb-2">새 이미지를 S3에 업로드</p>
-													<label className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer">
+													<p className="mb-2 text-sm text-gray-500">새 이미지를 S3에 업로드</p>
+													<label className="inline-block px-4 py-2 text-gray-700 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200">
 														파일 선택
 														<input
 															type="file"
@@ -982,7 +1128,7 @@ export default function ConnectPage() {
 															className="hidden"
 														/>
 													</label>
-													<p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · 최대 5MB</p>
+													<p className="mt-1 text-xs text-gray-400">JPG, PNG, WebP · 최대 5MB</p>
 												</div>
 											) : (
 												<div>
@@ -990,7 +1136,7 @@ export default function ConnectPage() {
 														<img
 															src={createImagePreview}
 															alt="선택된 이미지"
-															className="w-20 h-20 object-cover rounded border"
+															className="object-cover w-20 h-20 border rounded"
 														/>
 														<div className="flex-1">
 															<p className="text-sm font-medium">{createImageFile?.name}</p>
@@ -1000,7 +1146,7 @@ export default function ConnectPage() {
 																</p>
 															)}
 															{createDraft.image && createImageFile && (
-																<p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+																<p className="flex items-center gap-1 mt-1 text-xs text-green-600">
 																	<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
 																		<path
 																			fillRule="evenodd"
@@ -1015,7 +1161,7 @@ export default function ConnectPage() {
 														<button
 															type="button"
 															onClick={clearCreateImage}
-															className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+															className="px-2 py-1 text-sm text-gray-600 rounded hover:bg-gray-100"
 														>
 															×
 														</button>
@@ -1027,12 +1173,12 @@ export default function ConnectPage() {
 																type="button"
 																onClick={uploadCreateImageToS3}
 																disabled={createUploading}
-																className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+																className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 															>
 																{createUploading ? (
 																	<>
 																		<svg
-																			className="animate-spin h-4 w-4"
+																			className="w-4 h-4 animate-spin"
 																			fill="none"
 																			viewBox="0 0 24 24"
 																		>
@@ -1127,11 +1273,11 @@ export default function ConnectPage() {
 								<button
 									type="submit"
 									form="create-article-form"
-									className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+									className="flex items-center gap-2 px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
 									disabled={createUploading}
 								>
 									{createUploading && (
-										<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+										<svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
 											<circle
 												className="opacity-25"
 												cx="12"

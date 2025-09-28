@@ -157,3 +157,10 @@ export class TogglePlaceAdvertisementDto {
 	@IsBoolean()
 	isAdvertisement!: boolean
 }
+
+/** 관리자: 다국어 메뉴판 지원 상태 토글 */
+export class ToggleMultilingualMenuDto {
+	@ApiProperty({ description: 'Multilingual menu support status' })
+	@IsBoolean()
+	hasMultilingualMenu!: boolean
+}

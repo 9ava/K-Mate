@@ -8,6 +8,7 @@ import { PlaceBookmark } from '../places/place-bookmark.entity'
 import { Interaction } from '../interactions/interaction.entity'
 import { Post } from '../posts/post.entity'
 import { Comment } from '../comments/comment.entity'
+import { CourseComment } from '../comments/course-comment.entity'
 import { Course } from '../courses/course.entity'
 import { SavedCourse } from '../courses/saved-course.entity'
 
@@ -24,6 +25,7 @@ import { SavedCourse } from '../courses/saved-course.entity'
 			Interaction,
 			Post,
 			Comment,
+			CourseComment,
 			Course,
 			SavedCourse,
 		]),

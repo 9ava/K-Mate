@@ -108,7 +108,7 @@ export default function SidePanel({ place, onClose, onBookmarkChange, isBookmark
 				)}
 
 				{/* 북마크 */}
-				<div className="flex gap-2 pt-2">
+				<div className="flex justify-center gap-2 pt-2">
 					<button
 						onClick={handleAdd}
 						disabled={bmLoading !== null || isBookmarked}

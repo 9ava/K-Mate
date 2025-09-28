@@ -72,7 +72,10 @@
 			"my_travel_course": "我的旅行路线",
 			"monthly_best_9": "月度最佳 9",
 			"my_courses": "我创建的路线",
-			"saved_courses": "已保存路线"
+			"saved_courses": "已保存路线",
+			"all_courses": "全部路线",
+			"monthly_top_3": "月度前三",
+			"other_courses": "其他路线"
 		},
 		"labels": {
 			"my_course": "我的路线",
@@ -150,10 +153,11 @@
 		"titles": {
 			"mypage": "我的页面",
 			"my_activities": "我的活动",
-			"my_courses": "我的旅行路线", 
+			"my_courses": "我的旅行路线",
 			"bookmarks": "收藏的地点",
 			"posts": "我的帖子",
 			"comments": "我的评论",
+			"course_comments": "K-路线评论",
 			"scraps": "我的收藏",
 			"saved_courses": "保存的路线",
 			"created_courses": "创建的路线"
@@ -224,6 +228,77 @@
 			"kmap": "K-Map",
 			"kcourse": "K-Course",
 			"kbuzz": "K-Buzz"
+		}
+	},
+	"comments": {
+		"title": "评论",
+		"course_comments_title": "关于此路线的评论",
+		"placeholder": "请输入评论...",
+		"submit": "发表评论",
+		"submitting": "发表中...",
+		"login_required": "请登录后发表评论。",
+		"loading": "加载评论中...",
+		"empty": "暂无评论。",
+		"empty_hint": "成为第一个评论的人吧！",
+		"save": "保存",
+		"cancel": "取消",
+		"edit": "编辑",
+		"delete": "删除",
+		"load_more": "加载更多评论",
+		"create_failed": "评论发表失败。",
+		"update_failed": "评论修改失败。",
+		"delete_failed": "评论删除失败。",
+		"delete_confirm": "确定要删除此评论吗？"
+	},
+	"main": {
+		"hero": {
+			"title": "与K-Mate一起探索韩国",
+			"subtitle": "您探索韩国文化、地点和趋势的终极伴侣。通过互动地图、课程和社区连接韩国的心脏。",
+			"start_exploring": "开始探索",
+			"browse_courses": "浏览课程"
+		},
+		"features": {
+			"section_title": "以前所未有的方式探索韩国",
+			"section_subtitle": "三个强大的工具来提升您的韩国体验",
+			"kmap": {
+				"title": "K-Map",
+				"description": "展示韩国地标、餐厅、文化景点和隐藏宝石的互动地图。通过当地见解和建议导航韩国。",
+				"cta": "探索地图 →"
+			},
+			"kcourse": {
+				"title": "K-Course",
+				"description": "涵盖韩语、文化、历史和传统的综合课程。通过互动课程和测验按自己的节奏学习。",
+				"cta": "开始学习 →"
+			},
+			"kbuzz": {
+				"title": "K-Buzz",
+				"description": "了解最新的韩国趋势、新闻和社区讨论。与韩国爱好者联系并分享您的经验。",
+				"cta": "加入社区 →"
+			}
+		},
+		"stats": {
+			"locations": "已映射位置",
+			"courses": "可用课程",
+			"members": "社区成员",
+			"satisfaction": "用户满意度"
+		},
+		"cta": {
+			"title": "准备开始您的韩国之旅了吗？",
+			"subtitle": "加入数千名用户发现韩国文化的美丽和丰富",
+			"button": "今天开始"
+		},
+		"footer": {
+			"description": "您探索韩国文化和遗产的终极伴侣。",
+			"features": "功能",
+			"company": "公司",
+			"about": "关于",
+			"contact": "联系",
+			"privacy": "隐私",
+			"connect": "连接",
+			"twitter": "推特",
+			"instagram": "Instagram",
+			"facebook": "Facebook",
+			"copyright": "© 2026 K-Mate. 版权所有。"
 		}
 	}
 }

@@ -5,13 +5,13 @@ export default function LanguageSwitcher() {
 	const { lang, setLang } = useLocaleStore()
 	return (
 		<select
-			className="px-2 py-1 border rounded"
+			className="px-2 py-1 border rounded cursor-pointer"
 			value={lang}
 			onChange={(e) => setLang(e.target.value)}
 		>
-			<option value="en">EN</option>
-			<option value="ko">KO</option>
-			<option value="zh">ZH</option>
+			<option value="en">🇺🇸 English</option>
+			<option value="ko">🇰🇷 한국어</option>
+			<option value="zh">🇨🇳 中文</option>
 		</select>
 	)
 }

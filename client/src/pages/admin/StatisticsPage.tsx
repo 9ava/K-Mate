@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getSystemStatistics, getDailyStatistics, getCategoryStatistics, getTopContent } from '../../api/admin'
 
 interface DailyStats {
 	date: string
@@ -19,65 +20,94 @@ interface CategoryStats {
 export default function StatisticsPage() {
 	const navigate = useNavigate()
 	const [selectedPeriod, setSelectedPeriod] = useState<string>('7days')
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 
-	// Mock daily statistics data
-	const dailyStats: DailyStats[] = [
-		{ date: '2024-01-14', users: 45, posts: 12, comments: 34, pageViews: 1234 },
-		{ date: '2024-01-15', users: 52, posts: 18, comments: 41, pageViews: 1456 },
-		{ date: '2024-01-16', users: 38, posts: 9, comments: 28, pageViews: 987 },
-		{ date: '2024-01-17', users: 67, posts: 23, comments: 55, pageViews: 1678 },
-		{ date: '2024-01-18', users: 71, posts: 26, comments: 62, pageViews: 1823 },
-		{ date: '2024-01-19', users: 84, posts: 31, comments: 78, pageViews: 2134 },
-		{ date: '2024-01-20', users: 92, posts: 35, comments: 89, pageViews: 2456 },
-	]
+	// State for real data
+	const [systemStats, setSystemStats] = useState<any>(null)
+	const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
+	const [categoryStats, setCategoryStats] = useState<any>(null)
+	const [topContent, setTopContent] = useState<any>(null)
 
-	// Mock category statistics
-	const postCategories: CategoryStats[] = [
-		{ name: '관광지', count: 45, percentage: 35, color: 'bg-blue-500' },
-		{ name: '맛집', count: 38, percentage: 30, color: 'bg-orange-500' },
-		{ name: '문화', count: 25, percentage: 20, color: 'bg-green-500' },
-		{ name: '쇼핑', count: 19, percentage: 15, color: 'bg-purple-500' },
-	]
+	// Load data
+	useEffect(() => {
+		loadStatistics()
+	}, [selectedPeriod])
 
-	const userSources: CategoryStats[] = [
-		{ name: 'Google', count: 156, percentage: 45, color: 'bg-red-500' },
-		{ name: 'Kakao', count: 124, percentage: 35, color: 'bg-yellow-500' },
-		{ name: 'Naver', count: 89, percentage: 25, color: 'bg-green-500' },
-		{ name: 'Direct', count: 45, percentage: 15, color: 'bg-gray-500' },
-	]
+	const loadStatistics = async () => {
+		try {
+			setLoading(true)
+			setError(null)
 
-	// Calculate totals and averages
-	const totalUsers = dailyStats.reduce((sum, day) => sum + day.users, 0)
-	const totalPosts = dailyStats.reduce((sum, day) => sum + day.posts, 0)
-	const totalComments = dailyStats.reduce((sum, day) => sum + day.comments, 0)
-	const totalPageViews = dailyStats.reduce((sum, day) => sum + day.pageViews, 0)
+			const [systemData, dailyData, categoryData, topData] = await Promise.all([
+				getSystemStatistics(selectedPeriod),
+				getDailyStatistics(selectedPeriod),
+				getCategoryStatistics(),
+				getTopContent(),
+			])
+
+			setSystemStats(systemData)
+			setDailyStats(dailyData)
+			setCategoryStats(categoryData)
+			setTopContent(topData)
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Failed to load statistics')
+			console.error('Failed to load statistics:', err)
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	if (loading) {
+		return (
+			<div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+					<p className="mt-4 text-gray-600">통계를 불러오는 중...</p>
+				</div>
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 flex items-center justify-center">
+				<div className="text-center">
+					<p className="text-red-600 mb-4">{error}</p>
+					<button
+						onClick={loadStatistics}
+						className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+					>
+						다시 시도
+					</button>
+				</div>
+			</div>
+		)
+	}
+
+	if (!systemStats || !categoryStats || !topContent) {
+		return (
+			<div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 flex items-center justify-center">
+				<p className="text-gray-600">데이터를 불러올 수 없습니다.</p>
+			</div>
+		)
+	}
+
+	// Calculate totals and averages from real data
+	const totalUsers = systemStats.totals.users
+	const totalPosts = systemStats.totals.posts
+	const totalComments = systemStats.totals.comments
+	const totalPageViews = systemStats.totals.pageViews
 	const avgDaily = {
-		users: Math.round(totalUsers / dailyStats.length),
-		posts: Math.round(totalPosts / dailyStats.length),
-		comments: Math.round(totalComments / dailyStats.length),
-		pageViews: Math.round(totalPageViews / dailyStats.length),
+		users: dailyStats.length > 0 ? Math.round(systemStats.period.users / dailyStats.length) : 0,
+		posts: dailyStats.length > 0 ? Math.round(systemStats.period.posts / dailyStats.length) : 0,
+		comments: dailyStats.length > 0 ? Math.round(systemStats.period.comments / dailyStats.length) : 0,
+		pageViews: dailyStats.length > 0 ? Math.round(totalPageViews / dailyStats.length) : 0,
 	}
 
-	// Mock real-time stats
-	const realtimeStats = {
-		activeUsers: 23,
-		onlineAdmins: 2,
-		todayNewUsers: 8,
-		todayNewPosts: 12,
-		todayNewComments: 34,
-		serverStatus: 'healthy',
-		dbConnections: 45,
-		avgResponseTime: '124ms',
-	}
-
-	// Top content
-	const topPosts = [
-		{ id: 1, title: '경복궁 야경 촬영 스팟 추천', author: '사진작가김', views: 1234, likes: 89 },
-		{ id: 2, title: '홍대 핫플레이스 맛집 리스트', author: '맛집탐험가', views: 987, likes: 76 },
-		{ id: 3, title: '강남 쇼핑 완전정복 가이드', author: '쇼핑러버', views: 756, likes: 54 },
-		{ id: 4, title: '한강 피크닉 명소 BEST 5', author: '아웃도어맨', views: 634, likes: 43 },
-		{ id: 5, title: '서울 카페 투어 추천코스', author: '카페호핑', views: 512, likes: 38 },
-	]
+	const realtimeStats = systemStats.realtime
+	const postCategories = categoryStats.postCategories || []
+	const topPosts = topContent.topPosts || []
 
 	const getStatusColor = (status: string) => {
 		return status === 'healthy' ? 'text-green-600' : 'text-red-600'
@@ -98,28 +128,24 @@ export default function StatisticsPage() {
 		}
 	}
 
-	// Mock previous period data for growth calculation
-	const previousStats = {
-		users: totalUsers - 50,
-		posts: totalPosts - 15,
-		comments: totalComments - 45,
-		pageViews: totalPageViews - 1200,
-	}
+	// Previous period data for growth calculation
+	const previousStats = systemStats.previous
 
 	return (
 		<div className="min-h-[calc(100vh-3.5rem)] bg-gray-50">
 			<div className="px-4 py-8 mx-auto max-w-7xl">
 				{/* Header */}
-				<div className="flex items-center justify-between mb-8">
-					<div>
+				<div className="relative mb-8">
+					<div className="text-center">
 						<h1 className="mb-2 text-3xl font-bold text-gray-900">시스템 통계</h1>
 						<p className="text-gray-600">사용자 활동 및 시스템 현황을 확인합니다</p>
 					</div>
-					<div className="flex gap-3">
+					<div className="absolute top-0 right-0 flex gap-3">
 						<select
 							value={selectedPeriod}
 							onChange={(e) => setSelectedPeriod(e.target.value)}
 							className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+							disabled={loading}
 						>
 							<option value="7days">최근 7일</option>
 							<option value="30days">최근 30일</option>
@@ -137,12 +163,8 @@ export default function StatisticsPage() {
 				{/* Real-time Status Cards */}
 				<div className="grid grid-cols-1 gap-4 mb-8 md:grid-cols-4">
 					<div className="p-4 bg-white rounded-lg shadow">
-						<div className="flex items-center justify-between">
-							<div>
-								<div className="text-2xl font-bold text-blue-600">{realtimeStats.activeUsers}</div>
-								<div className="text-sm text-gray-500">현재 접속자</div>
-							</div>
-							<div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full">
+						<div className="text-center">
+							<div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 bg-blue-100 rounded-full">
 								<svg
 									className="w-6 h-6 text-blue-600"
 									fill="none"
@@ -157,21 +179,17 @@ export default function StatisticsPage() {
 									/>
 								</svg>
 							</div>
-						</div>
-						<div className="mt-2 text-xs text-gray-400">
-							관리자 {realtimeStats.onlineAdmins}명 온라인
+							<div className="text-2xl font-bold text-blue-600">{realtimeStats.activeUsers}</div>
+							<div className="text-sm text-gray-500">현재 접속자</div>
+							<div className="mt-2 text-xs text-gray-400">
+								관리자 {realtimeStats.onlineAdmins}명 온라인
+							</div>
 						</div>
 					</div>
 
 					<div className="p-4 bg-white rounded-lg shadow">
-						<div className="flex items-center justify-between">
-							<div>
-								<div className="text-2xl font-bold text-green-600">
-									{realtimeStats.todayNewUsers}
-								</div>
-								<div className="text-sm text-gray-500">오늘 신규 가입</div>
-							</div>
-							<div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full">
+						<div className="text-center">
+							<div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 bg-green-100 rounded-full">
 								<svg
 									className="w-6 h-6 text-green-600"
 									fill="none"
@@ -186,18 +204,16 @@ export default function StatisticsPage() {
 									/>
 								</svg>
 							</div>
+							<div className="text-2xl font-bold text-green-600">
+								{realtimeStats.todayNewUsers}
+							</div>
+							<div className="text-sm text-gray-500">오늘 신규 가입</div>
 						</div>
 					</div>
 
 					<div className="p-4 bg-white rounded-lg shadow">
-						<div className="flex items-center justify-between">
-							<div>
-								<div className={`text-2xl font-bold ${getStatusColor(realtimeStats.serverStatus)}`}>
-									{realtimeStats.serverStatus === 'healthy' ? '정상' : '오류'}
-								</div>
-								<div className="text-sm text-gray-500">서버 상태</div>
-							</div>
-							<div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full">
+						<div className="text-center">
+							<div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 bg-purple-100 rounded-full">
 								<svg
 									className="w-6 h-6 text-purple-600"
 									fill="none"
@@ -212,21 +228,19 @@ export default function StatisticsPage() {
 									/>
 								</svg>
 							</div>
-						</div>
-						<div className="mt-2 text-xs text-gray-400">
-							{realtimeStats.avgResponseTime} 평균 응답시간
+							<div className={`text-2xl font-bold ${getStatusColor(realtimeStats.serverStatus)}`}>
+								{realtimeStats.serverStatus === 'healthy' ? '정상' : '오류'}
+							</div>
+							<div className="text-sm text-gray-500">서버 상태</div>
+							<div className="mt-2 text-xs text-gray-400">
+								{realtimeStats.avgResponseTime} 평균 응답시간
+							</div>
 						</div>
 					</div>
 
 					<div className="p-4 bg-white rounded-lg shadow">
-						<div className="flex items-center justify-between">
-							<div>
-								<div className="text-2xl font-bold text-orange-600">
-									{realtimeStats.dbConnections}
-								</div>
-								<div className="text-sm text-gray-500">DB 연결</div>
-							</div>
-							<div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-full">
+						<div className="text-center">
+							<div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 bg-orange-100 rounded-full">
 								<svg
 									className="w-6 h-6 text-orange-600"
 									fill="none"
@@ -241,6 +255,10 @@ export default function StatisticsPage() {
 									/>
 								</svg>
 							</div>
+							<div className="text-2xl font-bold text-orange-600">
+								{realtimeStats.dbConnections}
+							</div>
+							<div className="text-sm text-gray-500">DB 연결</div>
 						</div>
 					</div>
 				</div>
@@ -376,7 +394,7 @@ export default function StatisticsPage() {
 					<div className="p-6 bg-white rounded-lg shadow">
 						<h3 className="mb-4 text-lg font-semibold text-gray-900">카테고리별 게시물 분포</h3>
 						<div className="space-y-4">
-							{postCategories.map((category) => (
+							{postCategories.map((category: CategoryStats) => (
 								<div key={category.name} className="flex items-center">
 									<div className="w-20 text-sm text-gray-600">{category.name}</div>
 									<div className="flex-1 mx-4">
@@ -404,28 +422,28 @@ export default function StatisticsPage() {
 					<div className="p-6 bg-white rounded-lg shadow">
 						<h3 className="mb-4 text-lg font-semibold text-gray-900">월별 인기 코스 TOP 5</h3>
 						<div className="space-y-4">
-							{[
-								{ id: 1, title: '서울 궁궐 투어', author: '김관광', shares: 45, saves: 38, total: 83 },
-								{ id: 2, title: '홍대 카페 투어', author: '이카페', shares: 32, saves: 41, total: 73 },
-								{ id: 3, title: '명동 맛집 투어', author: '박맛집', shares: 28, saves: 35, total: 63 },
-								{ id: 4, title: '한강 피크닉 코스', author: '최자연', shares: 24, saves: 29, total: 53 },
-								{ id: 5, title: '경복궁 문화탐방', author: '정문화', shares: 19, saves: 26, total: 45 },
-							].map((course, index) => (
-								<div key={course.id} className="flex items-center space-x-4">
-									<div className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm font-bold text-white rounded-full bg-gradient-to-r from-orange-500 to-red-500">
-										{index + 1}
+							{topContent.topCourses && topContent.topCourses.length > 0 ? (
+								topContent.topCourses.map((course: any, index: number) => (
+									<div key={course.id} className="flex items-center space-x-4">
+										<div className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm font-bold text-white rounded-full bg-gradient-to-r from-orange-500 to-red-500">
+											{index + 1}
+										</div>
+										<div className="flex-1 min-w-0">
+											<div className="text-sm font-medium text-gray-900 truncate">{course.title}</div>
+											<div className="text-xs text-gray-500">by {course.author}</div>
+										</div>
+										<div className="flex space-x-2 text-xs text-gray-500">
+											<span title="공유">🔗 {course.shares}</span>
+											<span title="저장">⭐ {course.saves}</span>
+											<span className="font-medium text-orange-600">총 {course.total}</span>
+										</div>
 									</div>
-									<div className="flex-1 min-w-0">
-										<div className="text-sm font-medium text-gray-900 truncate">{course.title}</div>
-										<div className="text-xs text-gray-500">by {course.author}</div>
-									</div>
-									<div className="flex space-x-2 text-xs text-gray-500">
-										<span title="공유">🔗 {course.shares}</span>
-										<span title="저장">⭐ {course.saves}</span>
-										<span className="font-medium text-orange-600">총 {course.total}</span>
-									</div>
+								))
+							) : (
+								<div className="text-center text-gray-500 py-8">
+									데이터가 없습니다
 								</div>
-							))}
+							)}
 						</div>
 						<div className="pt-4 mt-4 text-xs text-gray-500 border-t border-gray-200">
 							💡 공유 횟수 + 저장 횟수로 인기도를 측정합니다
@@ -436,50 +454,65 @@ export default function StatisticsPage() {
 					<div className="p-6 bg-white rounded-lg shadow">
 						<h3 className="mb-4 text-lg font-semibold text-gray-900">인기 게시물 TOP 5</h3>
 						<div className="space-y-4">
-							{topPosts.map((post, index) => (
-								<div key={post.id} className="flex items-center space-x-4">
-									<div className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm font-bold text-white rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
-										{index + 1}
+							{topPosts && topPosts.length > 0 ? (
+								topPosts.map((post: any, index: number) => (
+									<div key={post.id} className="flex items-center space-x-4">
+										<div className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm font-bold text-white rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+											{index + 1}
+										</div>
+										<div className="flex-1 min-w-0">
+											<div className="text-sm font-medium text-gray-900 truncate">{post.title}</div>
+											<div className="text-xs text-gray-500">by {post.author}</div>
+										</div>
+										<div className="flex space-x-4 text-xs text-gray-500">
+											<span>👁 {formatNumber(post.views)}</span>
+											<span>❤️ {post.likes}</span>
+											<span>💬 {post.comments}</span>
+										</div>
 									</div>
-									<div className="flex-1 min-w-0">
-										<div className="text-sm font-medium text-gray-900 truncate">{post.title}</div>
-										<div className="text-xs text-gray-500">by {post.author}</div>
-									</div>
-									<div className="flex space-x-4 text-xs text-gray-500">
-										<span>👁 {formatNumber(post.views)}</span>
-										<span>❤️ {post.likes}</span>
-									</div>
+								))
+							) : (
+								<div className="text-center text-gray-500 py-8">
+									데이터가 없습니다
 								</div>
-							))}
+							)}
 						</div>
 					</div>
 
-					{/* User Sources */}
+					{/* Course Categories */}
 					<div className="p-6 bg-white rounded-lg shadow">
-						<h3 className="mb-4 text-lg font-semibold text-gray-900">사용자 유입 경로</h3>
+						<h3 className="mb-4 text-lg font-semibold text-gray-900">코스 카테고리 분포</h3>
 						<div className="space-y-4">
-							{userSources.map((source) => (
-								<div key={source.name} className="flex items-center">
-									<div className="w-16 text-sm text-gray-600">{source.name}</div>
-									<div className="flex-1 mx-4">
-										<div className="h-4 bg-gray-200 rounded-full">
-											<div
-												className={`${source.color} h-4 rounded-full flex items-center justify-end pr-2`}
-												style={{ width: `${source.percentage}%` }}
-											>
-												<span className="text-xs font-medium text-white">{source.percentage}%</span>
+							{categoryStats.courseCategories && categoryStats.courseCategories.length > 0 ? (
+								categoryStats.courseCategories.map((category: CategoryStats) => (
+									<div key={category.name} className="flex items-center">
+										<div className="w-16 text-sm text-gray-600">{category.name}</div>
+										<div className="flex-1 mx-4">
+											<div className="h-4 bg-gray-200 rounded-full">
+												<div
+													className={`${category.color} h-4 rounded-full flex items-center justify-end pr-2`}
+													style={{ width: `${category.percentage}%` }}
+												>
+													<span className="text-xs font-medium text-white">{category.percentage}%</span>
+												</div>
 											</div>
 										</div>
+										<div className="w-12 text-sm text-right text-gray-600">{category.count}</div>
 									</div>
-									<div className="w-12 text-sm text-right text-gray-600">{source.count}</div>
+								))
+							) : (
+								<div className="text-center text-gray-500 py-8">
+									데이터가 없습니다
 								</div>
-							))}
+							)}
 						</div>
-						<div className="pt-4 mt-4 border-t border-gray-200">
-							<div className="text-sm text-gray-500">
-								총 {formatNumber(userSources.reduce((sum, s) => sum + s.count, 0))}명의 사용자
+						{categoryStats.courseCategories && categoryStats.courseCategories.length > 0 && (
+							<div className="pt-4 mt-4 border-t border-gray-200">
+								<div className="text-sm text-gray-500">
+									총 {formatNumber(categoryStats.courseCategories.reduce((sum: number, c: CategoryStats) => sum + c.count, 0))}개의 코스
+								</div>
 							</div>
-						</div>
+						)}
 					</div>
 				</div>
 			</div>

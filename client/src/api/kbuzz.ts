@@ -47,10 +47,17 @@ type ListParams = {
 
 /** ---------- List / Detail / Like ---------- */
 
-// 목록: GET /posts?postType=&status=&page=&limit=&category=&search=
-export async function fetchPosts(params: ListParams): Promise<KBuzzList> {
+// 목록: GET /posts?postType=&status=&page=&limit=&category=&search=&orderBy=
+export async function fetchPosts(params: ListParams & { orderBy?: string }): Promise<KBuzzList> {
 	const { page = 1, limit = 10, ...rest } = params
-	const { data } = await api.get('/posts', { params: { page, limit, ...rest } })
+	// For trend articles, add order by clause if not specified
+	const queryParams = {
+		page,
+		limit,
+		...rest,
+		...(params.postType === 'trend' && !params.orderBy ? { orderBy: 'order' } : {})
+	}
+	const { data } = await api.get('/posts', { params: queryParams })
 	const posts: KBuzzItem[] = data.data.posts
 	const total: number = data.data.total
 	return {
@@ -105,6 +112,12 @@ export async function updatePost(
 // 삭제: DELETE /posts/:id  (작성자 or admin)
 export async function deletePost(id: number | string) {
 	await api.delete(`/posts/${id}`)
+}
+
+// 순서 업데이트: PUT /posts/reorder (admin only)
+export async function updatePostsOrder(postsOrder: { id: number; order: number }[]) {
+	const { data } = await api.put('/posts/reorder', { postsOrder })
+	return data
 }
 
 /** ---------- (옵션) K-Buzz 전용 목록 API 사용 시 ----------

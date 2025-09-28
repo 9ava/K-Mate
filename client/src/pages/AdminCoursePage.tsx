@@ -123,7 +123,7 @@ export default function AdminCoursePage() {
 				{/* 검색 및 필터 */}
 				<div className="mb-6">
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-center">
-						<div className="flex items-center gap-2 max-w-md mx-auto sm:mx-0">
+						<div className="flex items-center gap-2 w-full max-w-2xl mx-auto sm:mx-0">
 							<input
 								type="text"
 								placeholder="코스 제목 또는 작성자로 검색..."
@@ -153,22 +153,25 @@ export default function AdminCoursePage() {
 						<table className="min-w-full divide-y divide-gray-200">
 							<thead className="bg-gray-50">
 								<tr>
-									<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										코스 정보
 									</th>
-									<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										작성자
 									</th>
-									<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										생성일
 									</th>
-									<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
+										댓글 관리
+									</th>
+									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										공개 설정
 									</th>
-									<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										광고
 									</th>
-									<th className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
+									<th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
 										작업
 									</th>
 								</tr>
@@ -176,13 +179,13 @@ export default function AdminCoursePage() {
 							<tbody className="bg-white divide-y divide-gray-200">
 								{loading ? (
 									<tr>
-										<td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+										<td colSpan={7} className="px-6 py-8 text-center text-gray-500">
 											로딩 중...
 										</td>
 									</tr>
 								) : filteredCourses.length === 0 ? (
 									<tr>
-										<td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+										<td colSpan={7} className="px-6 py-8 text-center text-gray-500">
 											{searchTerm ? '검색 결과가 없습니다.' : '등록된 코스가 없습니다.'}
 										</td>
 									</tr>
@@ -190,22 +193,20 @@ export default function AdminCoursePage() {
 									filteredCourses.map((course) => (
 										<tr key={course.id} className="hover:bg-gray-50">
 											<td className="px-6 py-4">
-												<div className="flex items-start">
-													<div className="flex-1">
-														<div className="flex items-center gap-2">
-															<p className="text-sm font-medium text-gray-900">
-																{course.title}
-															</p>
-															{course.isAdvertisement && (
-																<span className="px-2 py-1 text-xs font-medium text-orange-800 bg-orange-100 rounded-full">
-																	광고
-																</span>
-															)}
-														</div>
-														<p className="mt-1 text-sm text-gray-500">
-															경유지 {course.stops?.length || 0}개
+												<div className="text-center">
+													<div className="flex items-center justify-center gap-2">
+														<p className="text-sm font-medium text-gray-900">
+															{course.title}
 														</p>
+														{course.isAdvertisement && (
+															<span className="px-2 py-1 text-xs font-medium text-orange-800 bg-orange-100 rounded-full">
+																광고
+															</span>
+														)}
 													</div>
+													<p className="mt-1 text-sm text-gray-500">
+														경유지 {course.stops?.length || 0}개
+													</p>
 												</div>
 											</td>
 											<td className="px-6 py-4">
@@ -219,12 +220,25 @@ export default function AdminCoursePage() {
 											<td className="px-6 py-4 text-sm text-gray-500">
 												{new Date(course.created_at).toLocaleDateString('ko-KR')}
 											</td>
+											<td className="px-6 py-4 text-center">
+												<div className="flex flex-col items-center gap-1">
+													<div className="text-sm text-gray-900">
+														댓글 {(course as any).commentCount || 0}개
+													</div>
+													<Link
+														to={`/kcourse/${course.id}#comments`}
+														className="px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-100 rounded hover:bg-indigo-200"
+													>
+														댓글 보기
+													</Link>
+												</div>
+											</td>
 											<td className="px-6 py-4">
 												<button
 													onClick={() => handleToggleVisibility(course.id, course.visibility)}
 													className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-														course.visibility === 'public' 
-															? 'bg-green-100 text-green-800 hover:bg-green-200' 
+														course.visibility === 'public'
+															? 'bg-green-100 text-green-800 hover:bg-green-200'
 															: 'bg-gray-100 text-gray-800 hover:bg-gray-200'
 													}`}
 												>
@@ -243,8 +257,8 @@ export default function AdminCoursePage() {
 													{course.isAdvertisement ? '광고 해제' : '광고 설정'}
 												</button>
 											</td>
-											<td className="px-6 py-4 text-right">
-												<div className="flex justify-end gap-2">
+											<td className="px-6 py-4 text-center">
+												<div className="flex justify-center gap-2">
 													<Link
 														to={`/kcourse/${course.id}`}
 														className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded hover:bg-blue-200"

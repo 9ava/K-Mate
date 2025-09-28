@@ -24,6 +24,7 @@ import MyScrapsPage from '../pages/MyPage/MyScrapsPage'
 import MyCommentsPage from '../pages/MyPage/MyCommentsPage'
 import MyBookmarksPage from '../pages/MyPage/MyBookmarksPage'
 import MyCoursesPage from '../pages/MyPage/MyCoursesPage'
+import MyCourseCommentsPage from '../pages/MyCourseCommentsPage'
 import ErrorDisplayDemoPage from '../pages/ErrorDisplayDemoPage'
 
 const AppRouter = () => {
@@ -57,6 +58,7 @@ const AppRouter = () => {
 					<Route path="/mypage/posts" element={<MyPostsPage />} />
 					<Route path="/mypage/scraps" element={<MyScrapsPage />} />
 					<Route path="/mypage/comments" element={<MyCommentsPage />} />
+					<Route path="/mypage/course-comments" element={<MyCourseCommentsPage />} />
 					<Route path="/mypage/bookmarks" element={<MyBookmarksPage />} />
 					<Route path="/mypage/courses" element={<MyCoursesPage />} />
 					<Route path="/demo/error" element={<ErrorDisplayDemoPage />} />

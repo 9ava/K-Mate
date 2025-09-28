@@ -7,6 +7,7 @@ export interface UserActivityStats {
 	scrapCount: number
 	postCount: number
 	commentCount: number
+	courseCommentCount: number
 	courseCount: number
 	savedCourseCount: number
 }
@@ -85,6 +86,26 @@ export interface MyCommentItem {
 	updatedAt: string
 }
 
+export interface MyCourseCommentItem {
+	id: number
+	content: string
+	course: {
+		id: string
+		title: string
+		author: {
+			id: number
+			name: string
+		}
+	}
+	author: {
+		id: number
+		name: string
+		avatarUrl: string | null
+	}
+	createdAt: string
+	updatedAt: string
+}
+
 export interface MyCourseItem {
 	id: string
 	title: string
@@ -138,6 +159,13 @@ export interface MyPostListResponseDto {
 
 export interface MyCommentListResponseDto {
 	comments: MyCommentItem[]
+	total: number
+	page: number
+	limit: number
+}
+
+export interface MyCourseCommentListResponseDto {
+	comments: MyCourseCommentItem[]
 	total: number
 	page: number
 	limit: number
@@ -242,7 +270,19 @@ export const getSavedCourses = async (query?: PaginationQueryDto): Promise<Saved
 	const params = new URLSearchParams()
 	if (query?.page) params.append('page', query.page.toString())
 	if (query?.limit) params.append('limit', query.limit.toString())
-	
+
 	const response = await api.get<{ success: boolean; data: SavedCourseListResponseDto }>(`/mypage/saved-courses?${params}`)
+	return response.data.data
+}
+
+/**
+ * 내가 쓴 K-코스 댓글 목록 조회
+ */
+export const getMyCourseComments = async (query?: PaginationQueryDto): Promise<MyCourseCommentListResponseDto> => {
+	const params = new URLSearchParams()
+	if (query?.page) params.append('page', query.page.toString())
+	if (query?.limit) params.append('limit', query.limit.toString())
+
+	const response = await api.get<{ success: boolean; data: MyCourseCommentListResponseDto }>(`/mypage/course-comments?${params}`)
 	return response.data.data
 }

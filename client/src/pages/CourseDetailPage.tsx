@@ -9,6 +9,7 @@ import type { Course, CreateCourseRequest } from '../types/course'
 import MapCanvas from '../components/map/MapCanvas'
 import CoursePanel from '../components/course/CoursePanel'
 import SearchPanel from '../components/search/SearchPanel'
+import CommentSection from '../components/comment/CommentSection'
 
 type Stop = { 
 	id: string
@@ -129,7 +130,7 @@ export default function CourseDetailPage() {
 				setSelectedCategory(response.data.category || 'all')
 				const convertedStops = await convertCourseToStops(response.data)
 				setStops(convertedStops)
-				
+
 				// TODO: 저장 상태 확인 API 추가 시 구현
 				// 임시로 false로 설정
 				setIsSaved(false)
@@ -143,6 +144,26 @@ export default function CourseDetailPage() {
 
 		loadCourse()
 	}, [courseId])
+
+	// 해시 스크롤 처리
+	useEffect(() => {
+		if (!loading && !isEditing) {
+			// 페이지 로딩이 완료되고 편집 모드가 아닐 때만 스크롤 처리
+			const hash = window.location.hash
+			if (hash === '#comments') {
+				// 약간의 지연을 두고 스크롤 (DOM 렌더링 완료 대기)
+				setTimeout(() => {
+					const commentsElement = document.getElementById('comments')
+					if (commentsElement) {
+						commentsElement.scrollIntoView({
+							behavior: 'smooth',
+							block: 'start'
+						})
+					}
+				}, 100)
+			}
+		}
+	}, [loading, isEditing])
 
 	// 내 코스인지 확인
 	const isMyCase = course && user && String(course.authorId) === String(user.id)
@@ -271,37 +292,40 @@ export default function CourseDetailPage() {
 		<div className="min-h-screen bg-gray-50">
 			{/* 헤더 */}
 			<div className="px-4 py-3 bg-white border-b">
-				<div className="flex items-center justify-between mx-auto max-w-7xl">
-					<div className="flex items-center gap-4">
-						<button
-							onClick={() => handleBackToList()}
-							className="text-gray-500 hover:text-gray-700"
-						>
-							← 목록으로
-						</button>
-						<div>
-							<div className="flex items-center gap-2">
-								<h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
-								{/* 카테고리 배지 */}
-								{course.category && (
-									<span className={`px-2 py-1 text-xs font-medium rounded-full ${
-										course.category === 'all' ? 'bg-purple-100 text-purple-800' :
-										course.category === 'cultural' ? 'bg-blue-100 text-blue-800' :
-										course.category === 'cafe' ? 'bg-amber-100 text-amber-800' :
-										course.category === 'food' ? 'bg-red-100 text-red-800' : 
-										'bg-gray-100 text-gray-800'
-									}`}>
-										{t(`kcourse.categories.${course.category}`)}
-									</span>
-								)}
-							</div>
-							<div className="text-sm text-gray-500">
-								{course.author?.name || '작성자'} · {new Date(course.created_at).toLocaleDateString('ko-KR')} 
-								· {course.visibility === 'public' ? '공개' : '비공개'}
-							</div>
+				<div className="relative mx-auto max-w-7xl">
+					{/* 뒤로가기 버튼 - 왼쪽에 고정 */}
+					<button
+						onClick={() => handleBackToList()}
+						className="absolute left-0 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+					>
+						← 목록으로
+					</button>
+
+					{/* 중앙 정렬된 제목 및 정보 */}
+					<div className="text-center">
+						<div className="flex items-center justify-center gap-2 mb-1">
+							<h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
+							{/* 카테고리 배지 */}
+							{course.category && (
+								<span className={`px-2 py-1 text-xs font-medium rounded-full ${
+									course.category === 'all' ? 'bg-purple-100 text-purple-800' :
+									course.category === 'cultural' ? 'bg-blue-100 text-blue-800' :
+									course.category === 'cafe' ? 'bg-amber-100 text-amber-800' :
+									course.category === 'food' ? 'bg-red-100 text-red-800' :
+									'bg-gray-100 text-gray-800'
+								}`}>
+									{t(`kcourse.categories.${course.category}`)}
+								</span>
+							)}
+						</div>
+						<div className="text-sm text-gray-500">
+							{course.author?.name || '작성자'} · {new Date(course.created_at).toLocaleDateString('ko-KR')}
+							· {course.visibility === 'public' ? '공개' : '비공개'}
 						</div>
 					</div>
-					<div className="flex items-center gap-2">
+
+					{/* 오른쪽 버튼들 - 오른쪽에 고정 */}
+					<div className="absolute right-0 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
 						{/* 저장/저장취소 버튼 (남의 것만) */}
 						{!isMyCase && (
 							<button
@@ -386,20 +410,33 @@ export default function CourseDetailPage() {
 					</aside>
 				</div>
 			) : (
-				// 읽기 모드: 지도만 표시
-				<div className="relative" style={{ height: 'calc(100vh - 120px)' }}>
-					{stops.length > 0 ? (
-						<>
-							<MapCanvas key={`course-map-${courseId}-${stops.length}`} stops={stops} />
-							
-							{/* 코스 정보 오버레이 */}
-							<RouteInfoOverlay stops={stops} />
-						</>
-					) : (
-						<div className="flex items-center justify-center h-full">
-							<div className="text-lg text-gray-500">경로를 불러오는 중...</div>
+				// 읽기 모드: 지도와 댓글 표시
+				<div className="flex flex-col">
+					{/* 지도 영역 */}
+					<div className="relative" style={{ height: 'calc(100vh - 120px)' }}>
+						{stops.length > 0 ? (
+							<>
+								<MapCanvas key={`course-map-${courseId}-${stops.length}`} stops={stops} />
+
+								{/* 코스 정보 오버레이 */}
+								<RouteInfoOverlay stops={stops} />
+							</>
+						) : (
+							<div className="flex items-center justify-center h-full">
+								<div className="text-lg text-gray-500">경로를 불러오는 중...</div>
+							</div>
+						)}
+					</div>
+
+					{/* 댓글 섹션 */}
+					<div id="comments" className="px-4 py-6 bg-gray-50">
+						<div className="mx-auto max-w-4xl">
+							<CommentSection
+								courseId={courseId || ''}
+								title={t('comments.course_comments_title', '이 코스에 대한 댓글')}
+							/>
 						</div>
-					)}
+					</div>
 				</div>
 			)}
 		</div>

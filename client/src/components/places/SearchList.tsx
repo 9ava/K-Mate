@@ -79,6 +79,14 @@ export default function SearchList({ places, onSelect, title = '장소 목록', 
 								<div className="flex-1 min-w-0">
 									<div className="flex items-center gap-2">
 										<div className="font-semibold truncate">{p.name}</div>
+										{p.hasMultilingualMenu && (
+											<div className="flex items-center gap-1">
+												<div className="w-3 h-3 bg-purple-600 rounded-full border border-white shadow-sm"></div>
+												<span className="px-2 py-0.5 text-xs text-white bg-purple-600 rounded-full">
+													다국어메뉴
+												</span>
+											</div>
+										)}
 										{p.isAdvertisement && (
 											<span className="px-2 py-0.5 text-xs text-gray-600 bg-white border border-gray-300 rounded-full">
 												광고 ⓘ

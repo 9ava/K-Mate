@@ -152,12 +152,13 @@ export default function CoursePanel({
 					<SortableContext items={ids} strategy={verticalListSortingStrategy}>
 						<ul className="space-y-2">
 							{stops.map((s, i) => (
-								<SortableItem 
-									key={s.id} 
-									id={s.id} 
-									index={i} 
-									stop={s} 
+								<SortableItem
+									key={s.id}
+									id={s.id}
+									index={i}
+									stop={s}
 									onRemove={removeStop}
+									isLast={i === stops.length - 1}
 								/>
 							))}
 						</ul>

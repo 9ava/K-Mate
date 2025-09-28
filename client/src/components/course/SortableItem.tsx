@@ -28,11 +28,13 @@ export default function SortableItem({
 	index,
 	stop,
 	onRemove,
+	isLast = false,
 }: {
 	id: string
 	index: number
 	stop: Stop
 	onRemove: (stopId: string) => void
+	isLast?: boolean
 }) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id,
@@ -84,38 +86,44 @@ export default function SortableItem({
 		<li
 			ref={setNodeRef}
 			style={style}
-			className="bg-white border rounded-lg shadow-sm overflow-hidden"
+			className="relative"
 		>
-			<div className="flex">
-				{/* 사진 영역 */}
-				<div className="w-16 h-16 flex-shrink-0 relative overflow-hidden">
-					{loading ? (
-						<div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-							<div className="text-xs text-gray-400">...</div>
-						</div>
-					) : placeInfo.photoUrl ? (
-						<img 
-							src={placeInfo.photoUrl} 
-							alt={stop.name}
-							className="w-full h-full object-cover"
-						/>
-					) : (
-						<div className="w-full h-full bg-gray-200 flex items-center justify-center">
-							<svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-							</svg>
-						</div>
-					)}
-					
-					{/* 순서 번호 */}
-					<div className="absolute top-1 left-1 w-5 h-5 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center font-medium">
+			{/* 연결선 - 숫자 텍스트 중심을 정확히 통과 */}
+			{!isLast && (
+				<div className="absolute top-[46px] w-[2px] h-[60px] bg-blue-400 z-10" style={{left: '5px'}}></div>
+			)}
+
+			<div className="bg-white border rounded-lg shadow-sm">
+				<div className="flex">
+					{/* 사진 영역과 번호 */}
+					<div className="w-16 h-16 flex-shrink-0 relative overflow-hidden rounded-l-lg">
+						{loading ? (
+							<div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+								<div className="text-xs text-gray-400">...</div>
+							</div>
+						) : placeInfo.photoUrl ? (
+							<img
+								src={placeInfo.photoUrl}
+								alt={stop.name}
+								className="w-full h-full object-cover"
+							/>
+						) : (
+							<div className="w-full h-full bg-gray-200 flex items-center justify-center">
+								<svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+								</svg>
+							</div>
+						)}
+					</div>
+
+					{/* 순서 번호 - 이미지 중앙 왼쪽에 위치 */}
+					<div className="absolute left-[-3px] top-[30px] w-4 h-4 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center font-medium z-20 border border-white">
 						{index + 1}
 					</div>
-				</div>
 
-				{/* 내용 영역 */}
-				<div className="flex-1 p-2 min-w-0">
+					{/* 내용 영역 */}
+					<div className="flex-1 p-2 min-w-0">
 					<div className="flex items-center justify-between">
 						<div className="flex-1 min-w-0">
 							<h4 className="font-medium text-sm text-gray-900 truncate mb-1">
@@ -160,6 +168,7 @@ export default function SortableItem({
 								</svg>
 							</button>
 						</div>
+					</div>
 					</div>
 				</div>
 			</div>

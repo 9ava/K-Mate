@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../features/auth/useAuth'
 import { Link } from 'react-router-dom'
 import Header from '../components/layout/Header'
 
 export default function MainPage() {
+	const { t } = useTranslation()
 	const { refresh, ready } = useAuth()
 
 	useEffect(() => {
@@ -22,27 +24,26 @@ export default function MainPage() {
 				<div className="relative px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
 					<div className="text-center">
 						<h1 className="mb-6 text-4xl font-bold text-gray-900 md:text-6xl">
-							Discover Korea with
+							{t('main.hero.title', 'Discover Korea with')}
 							<span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
 								K-Mate
 							</span>
 						</h1>
-						<p className="max-w-3xl mx-auto mb-8 text-xl text-gray-600">
-							Your ultimate companion for exploring Korean culture, places, and trends. Connect with
-							the heart of Korea through interactive maps, courses, and community.
+						<p className="max-w-3xl mx-auto mb-8 text-xl text-gray-600 whitespace-pre-line">
+							{t('main.hero.subtitle', 'Your ultimate companion for exploring Korean culture, places, and trends. Connect with the heart of Korea through interactive maps, courses, and community.')}
 						</p>
 						<div className="flex flex-col justify-center gap-4 sm:flex-row">
 							<Link
 								to="/kmap"
 								className="px-8 py-4 font-semibold text-white transition-all duration-200 transform rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg hover:scale-105"
 							>
-								Start Exploring
+								{t('main.hero.start_exploring', 'Start Exploring')}
 							</Link>
 							<Link
-								to="/course"
+								to="/kcourse"
 								className="px-8 py-4 font-semibold text-gray-700 transition-colors duration-200 border-2 border-gray-300 rounded-full hover:border-gray-400"
 							>
-								Browse Courses
+								{t('main.hero.browse_courses', 'Browse Courses')}
 							</Link>
 						</div>
 					</div>
@@ -58,10 +59,10 @@ export default function MainPage() {
 				<div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
 					<div className="mb-16 text-center">
 						<h2 className="mb-4 text-3xl font-bold text-gray-900 md:text-4xl">
-							Explore Korea Like Never Before
+							{t('main.features.section_title', 'Explore Korea Like Never Before')}
 						</h2>
 						<p className="text-xl text-gray-600">
-							Three powerful tools to enhance your Korean experience
+							{t('main.features.section_subtitle', 'Three powerful tools to enhance your Korean experience')}
 						</p>
 					</div>
 
@@ -89,16 +90,15 @@ export default function MainPage() {
 									/>
 								</svg>
 							</div>
-							<h3 className="mb-4 text-2xl font-bold text-gray-900">K-Map</h3>
+							<h3 className="mb-4 text-2xl font-bold text-gray-900">{t('main.features.kmap.title', 'K-Map')}</h3>
 							<p className="mb-6 text-gray-600">
-								Interactive maps showcasing Korean landmarks, restaurants, cultural sites, and
-								hidden gems. Navigate Korea with local insights and recommendations.
+								{t('main.features.kmap.description', 'Interactive maps showcasing Korean landmarks, restaurants, cultural sites, and hidden gems. Navigate Korea with local insights and recommendations.')}
 							</p>
 							<Link
 								to="/kmap"
 								className="font-semibold text-blue-600 transition-colors duration-200 hover:text-blue-700"
 							>
-								Explore Map →
+								{t('main.features.kmap.cta', 'Explore Map →')}
 							</Link>
 						</div>
 
@@ -119,16 +119,15 @@ export default function MainPage() {
 									/>
 								</svg>
 							</div>
-							<h3 className="mb-4 text-2xl font-bold text-gray-900">K-Course</h3>
+							<h3 className="mb-4 text-2xl font-bold text-gray-900">{t('main.features.kcourse.title', 'K-Course')}</h3>
 							<p className="mb-6 text-gray-600">
-								Comprehensive courses covering Korean language, culture, history, and traditions.
-								Learn at your own pace with interactive lessons and quizzes.
+								{t('main.features.kcourse.description', 'Comprehensive courses covering Korean language, culture, history, and traditions. Learn at your own pace with interactive lessons and quizzes.')}
 							</p>
 							<Link
-								to="/course"
+								to="/kcourse"
 								className="font-semibold text-green-600 transition-colors duration-200 hover:text-green-700"
 							>
-								Start Learning →
+								{t('main.features.kcourse.cta', 'Start Learning →')}
 							</Link>
 						</div>
 
@@ -149,16 +148,15 @@ export default function MainPage() {
 									/>
 								</svg>
 							</div>
-							<h3 className="mb-4 text-2xl font-bold text-gray-900">K-Buzz</h3>
+							<h3 className="mb-4 text-2xl font-bold text-gray-900">{t('main.features.kbuzz.title', 'K-Buzz')}</h3>
 							<p className="mb-6 text-gray-600">
-								Stay updated with the latest Korean trends, news, and community discussions. Connect
-								with fellow Korea enthusiasts and share your experiences.
+								{t('main.features.kbuzz.description', 'Stay updated with the latest Korean trends, news, and community discussions. Connect with fellow Korea enthusiasts and share your experiences.')}
 							</p>
 							<Link
 								to="/buzz"
 								className="font-semibold text-purple-600 transition-colors duration-200 hover:text-purple-700"
 							>
-								Join Community →
+								{t('main.features.kbuzz.cta', 'Join Community →')}
 							</Link>
 						</div>
 					</div>
@@ -171,19 +169,19 @@ export default function MainPage() {
 					<div className="grid gap-8 text-center md:grid-cols-4">
 						<div>
 							<div className="mb-2 text-4xl font-bold text-blue-600">1000+</div>
-							<div className="text-gray-600">Locations Mapped</div>
+							<div className="text-gray-600">{t('main.stats.locations', 'Locations Mapped')}</div>
 						</div>
 						<div>
 							<div className="mb-2 text-4xl font-bold text-green-600">50+</div>
-							<div className="text-gray-600">Courses Available</div>
+							<div className="text-gray-600">{t('main.stats.courses', 'Courses Available')}</div>
 						</div>
 						<div>
 							<div className="mb-2 text-4xl font-bold text-purple-600">10K+</div>
-							<div className="text-gray-600">Community Members</div>
+							<div className="text-gray-600">{t('main.stats.members', 'Community Members')}</div>
 						</div>
 						<div>
 							<div className="mb-2 text-4xl font-bold text-orange-600">99%</div>
-							<div className="text-gray-600">User Satisfaction</div>
+							<div className="text-gray-600">{t('main.stats.satisfaction', 'User Satisfaction')}</div>
 						</div>
 					</div>
 				</div>
@@ -193,16 +191,16 @@ export default function MainPage() {
 			<section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
 				<div className="max-w-4xl px-4 mx-auto text-center sm:px-6 lg:px-8">
 					<h2 className="mb-6 text-3xl font-bold text-white md:text-4xl">
-						Ready to Start Your Korean Journey?
+						{t('main.cta.title', 'Ready to Start Your Korean Journey?')}
 					</h2>
 					<p className="mb-8 text-xl text-blue-100">
-						Join thousands of users discovering the beauty and richness of Korean culture
+						{t('main.cta.subtitle', 'Join thousands of users discovering the beauty and richness of Korean culture')}
 					</p>
 					<Link
 						to="/kmap"
 						className="px-8 py-4 font-semibold text-blue-600 transition-all duration-200 transform bg-white rounded-full hover:shadow-lg hover:scale-105"
 					>
-						Get Started Today
+						{t('main.cta.button', 'Get Started Today')}
 					</Link>
 				</div>
 			</section>
@@ -219,11 +217,11 @@ export default function MainPage() {
 								<span className="text-xl font-semibold">Mate</span>
 							</div>
 							<p className="text-gray-400">
-								Your ultimate companion for exploring Korean culture and heritage.
+								{t('main.footer.description', 'Your ultimate companion for exploring Korean culture and heritage.')}
 							</p>
 						</div>
 						<div>
-							<h4 className="mb-4 font-semibold">Features</h4>
+							<h4 className="mb-4 font-semibold">{t('main.footer.features', 'Features')}</h4>
 							<ul className="space-y-2 text-gray-400">
 								<li>
 									<Link to="/kmap" className="transition-colors hover:text-white">
@@ -231,7 +229,7 @@ export default function MainPage() {
 									</Link>
 								</li>
 								<li>
-									<Link to="/course" className="transition-colors hover:text-white">
+									<Link to="/kcourse" className="transition-colors hover:text-white">
 										K-Course
 									</Link>
 								</li>
@@ -243,48 +241,48 @@ export default function MainPage() {
 							</ul>
 						</div>
 						<div>
-							<h4 className="mb-4 font-semibold">Company</h4>
+							<h4 className="mb-4 font-semibold">{t('main.footer.company', 'Company')}</h4>
 							<ul className="space-y-2 text-gray-400">
 								<li>
 									<a href="#" className="transition-colors hover:text-white">
-										About
+										{t('main.footer.about', 'About')}
 									</a>
 								</li>
 								<li>
 									<a href="#" className="transition-colors hover:text-white">
-										Contact
+										{t('main.footer.contact', 'Contact')}
 									</a>
 								</li>
 								<li>
 									<a href="#" className="transition-colors hover:text-white">
-										Privacy
+										{t('main.footer.privacy', 'Privacy')}
 									</a>
 								</li>
 							</ul>
 						</div>
 						<div>
-							<h4 className="mb-4 font-semibold">Connect</h4>
+							<h4 className="mb-4 font-semibold">{t('main.footer.connect', 'Connect')}</h4>
 							<ul className="space-y-2 text-gray-400">
 								<li>
 									<a href="#" className="transition-colors hover:text-white">
-										Twitter
+										{t('main.footer.twitter', 'Twitter')}
 									</a>
 								</li>
 								<li>
 									<a href="#" className="transition-colors hover:text-white">
-										Instagram
+										{t('main.footer.instagram', 'Instagram')}
 									</a>
 								</li>
 								<li>
 									<a href="#" className="transition-colors hover:text-white">
-										Facebook
+										{t('main.footer.facebook', 'Facebook')}
 									</a>
 								</li>
 							</ul>
 						</div>
 					</div>
 					<div className="pt-8 mt-8 text-center text-gray-400 border-t border-gray-800">
-						© 2026 K-Mate. All rights reserved.
+						{t('main.footer.copyright', '© 2026 K-Mate. All rights reserved.')}
 					</div>
 				</div>
 			</footer>

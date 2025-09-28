@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../features/auth/auth.store'
+import { useContentStore } from '../features/content/content.store'
 import { fetchPosts, createPost, type KBuzzList } from '../api/kbuzz'
 import { toKstFromUtcShort } from '../lib/date'
 import { uploadToS3, generateCommunityImageKey, validateImageFile } from '../api/s3'
@@ -58,43 +59,44 @@ export default function KBuzzPage() {
 	const bootstrap = useAuthStore((s) => s.bootstrap)
 	const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle)
 
+	// 📰 콘텐츠 스토어 (트렌드 아티클용)
+	const { trendArticles, loadTrendArticles } = useContentStore()
+
 	// 최초 진입 시 세션 동기화
 	useEffect(() => {
 		if (!ready) bootstrap()
 	}, [ready, bootstrap])
 
 
-	/* ---- K-Trend: 서버에서 trend 목록 불러오기 ---- */
-	const [articles, setArticles] = useState<Article[]>([])
+	/* ---- K-Trend: 콘텐츠 스토어에서 순서가 적용된 trend 목록 불러오기 ---- */
 	const [trendLoading, setTrendLoading] = useState(false)
-	useEffect(() => {
-		let alive = true
-		setTrendLoading(true)
-		fetchPosts({ postType: 'trend', status: 'published', page: 1, limit: 10 })
-			.then((res) => {
-				if (!alive) return
 
-				const mapped = res.items.map((t, idx) => ({
-					id: t.id,
-					title: t.title,
-					author: t.author.name,
-					// 발표용: DB에 imageUrl 없어도 내가 넣은 고정 이미지 쓰기
-					// 서버가 주는 이미지가 있으면 우선 사용
-					image:
-						(t as any).imageUrl ??
-						// 하드코딩 맵에서 찾아보기
-						TREND_IMAGE_BY_ID[t.id] ??
-						// 없으면 플레이스홀더
-						TREND_PLACEHOLDERS[idx % TREND_PLACEHOLDERS.length],
-					//image: (t as any).imageUrl ?? TREND_PLACEHOLDERS[idx % TREND_PLACEHOLDERS.length],
-				}))
-				setArticles(mapped)
-			})
-			.finally(() => alive && setTrendLoading(false))
-		return () => {
-			alive = false
+	// 트렌드 아티클 로드
+	useEffect(() => {
+		const loadData = async () => {
+			setTrendLoading(true)
+			try {
+				await loadTrendArticles()
+			} catch (error) {
+				console.error('Failed to load trend articles:', error)
+			} finally {
+				setTrendLoading(false)
+			}
 		}
-	}, [])
+		loadData()
+	}, [loadTrendArticles])
+
+	// 트렌드 아티클을 Article 형태로 매핑 (기존 UI 호환성을 위해)
+	const articles: Article[] = trendArticles.map((article, idx) => ({
+		id: article.id,
+		title: article.title,
+		author: article.author,
+		// 어드민에서 설정한 이미지 우선 사용, 없으면 하드코딩 맵, 최후 플레이스홀더
+		image:
+			article.image ||
+			TREND_IMAGE_BY_ID[article.id] ||
+			TREND_PLACEHOLDERS[idx % TREND_PLACEHOLDERS.length],
+	}))
 
 	/* ---- Community: 서버에서 community 목록 + 페이지네이션 ---- */
 	const PAGE_SIZE = 5
@@ -302,12 +304,12 @@ export default function KBuzzPage() {
 										key={article.id}
 										data-card
 										onClick={() => navigate(`/buzz/trend/${article.id}`)}
-										className="relative shrink-0 w-[240px] rounded-xl overflow-hidden shadow hover:shadow-lg transition"
+										className="relative shrink-0 w-[240px] rounded-xl overflow-hidden shadow hover:shadow-lg transition cursor-pointer"
 									>
 										<img
 											src={article.image}
 											alt={article.title}
-											className="w-full h-40 object-cover"
+											className="w-full h-40 object-cover cursor-pointer"
 										/>
 										<div className="p-3 bg-gradient-to-b from-gray-800 to-gray-900 text-white h-24 flex flex-col justify-end">
 											<h3 className="font-semibold text-sm leading-snug line-clamp-2">
@@ -328,7 +330,7 @@ export default function KBuzzPage() {
 					<h2 className="text-xl font-semibold text-gray-900 pl-1">K-Community</h2>
 					<button
 						onClick={handleCreate}
-						className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+						className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer"
 						disabled={!ready}
 						title={!ready ? '로그인 상태 확인 중…' : undefined}
 					>

@@ -32,6 +32,7 @@ import {
 	UserProfileDto,
 	MyCourseListResponseDto,
 	SavedCourseListResponseDto,
+	MyCourseCommentListResponseDto,
 } from './mypage.dto'
 
 @ApiTags('Mypage')
@@ -377,6 +378,59 @@ export class MypageController {
 	): Promise<{ success: boolean; data: SavedCourseListResponseDto }> {
 		const userId = (req.user as any)?.id as number
 		const data = await this.mypageService.getSavedCourses(userId, query)
+		return { success: true, data }
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────
+	// 내가 쓴 코스 댓글 목록 조회
+	// ────────────────────────────────────────────────────────────────────────────
+	@ApiOperation({ summary: '내가 쓴 코스 댓글 목록 조회' })
+	@ApiOkResponse({
+		description: '내가 쓴 코스 댓글 목록 조회 성공',
+		schema: {
+			example: {
+				success: true,
+				data: {
+					comments: [
+						{
+							id: 1,
+							content: '정말 멋진 코스네요! 다음에 꼭 가보겠습니다.',
+							course: {
+								id: '123e4567-e89b-12d3-a456-426614174000',
+								title: '서울 궁궐 투어',
+								author: {
+									id: 2,
+									name: '김철수',
+									avatarUrl: 'https://example.com/avatar2.jpg',
+								},
+							},
+							author: {
+								id: 1,
+								name: '홍길동',
+								avatarUrl: 'https://example.com/avatar.jpg',
+							},
+							createdAt: '2024-01-15T10:30:00Z',
+							updatedAt: '2024-01-15T10:30:00Z',
+						},
+					],
+					total: 1,
+					page: 1,
+					limit: 10,
+				},
+			},
+		},
+	})
+	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
+	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
+	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
+	@Get('course-comments')
+	async getMyCourseComments(
+		@Req() req: Request,
+		@Query() query: PaginationQueryDto
+	): Promise<{ success: boolean; data: MyCourseCommentListResponseDto }> {
+		const userId = (req.user as any)?.id as number
+		const data = await this.mypageService.getMyCourseComments(userId, query)
 		return { success: true, data }
 	}
 

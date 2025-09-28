@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { DbInitService } from './db-init.service'
 
 @Module({
 	imports: [
@@ -12,12 +13,14 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 				password: process.env.DB_PASS,
 				database: process.env.DB_NAME,
 				charset: 'utf8mb4',
+				ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 				autoLoadEntities: true,
 				synchronize: false,
-				// logging: true,
+				logging: true,
 			}),
 		}),
 	],
+	providers: [DbInitService],
 	exports: [TypeOrmModule],
 })
 export class DatabaseModule {}

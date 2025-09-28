@@ -1,5 +1,5 @@
 // K-Map Marker Factory
-import type { PlaceType } from '../../types/place'
+import type { PlaceType, Place } from '../../types/place'
 
 export function getIconClassByType(type: PlaceType | null): string {
 	switch (type) {
@@ -27,7 +27,7 @@ export function getClassByType(type: PlaceType | null): string {
 	}
 }
 
-export function makePlaceMarkerEl(type: PlaceType | null, title?: string): HTMLElement {
+export function makePlaceMarkerEl(type: PlaceType | null, title?: string, place?: Place): HTMLElement {
 	const wrap = document.createElement('div')
 	wrap.setAttribute('aria-label', title ?? 'place')
 
@@ -86,6 +86,7 @@ export function makePlaceMarkerEl(type: PlaceType | null, title?: string): HTMLE
 
 	wrap.appendChild(markerBg)
 	wrap.appendChild(iconContainer)
+
 
 	// 호버 효과
 	wrap.addEventListener('mouseenter', () => {

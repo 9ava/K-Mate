@@ -18,6 +18,7 @@ export type Place = {
 	typeSource?: 'auto' | 'admin'
 	description: string | null
 	isAdvertisement?: boolean // 광고 여부 필드 추가
+	hasMultilingualMenu?: boolean // 다국어 메뉴판 지원 여부
 	lastSyncedAt?: string | null // ISO
 	createdAt?: string
 	updatedAt?: string

@@ -72,7 +72,10 @@
 			"my_travel_course": "My Travel Courses",
 			"monthly_best_9": "Monthly Best 9",
 			"my_courses": "My Courses",
-			"saved_courses": "Saved Courses"
+			"saved_courses": "Saved Courses",
+			"all_courses": "All Courses",
+			"monthly_top_3": "Monthly Top 3",
+			"other_courses": "Other Courses"
 		},
 		"labels": {
 			"my_course": "My Course",
@@ -154,6 +157,7 @@
 			"bookmarks": "Bookmarked Places",
 			"posts": "My Posts",
 			"comments": "My Comments",
+			"course_comments": "K-Course Comments",
 			"scraps": "My Scraps",
 			"saved_courses": "Saved Courses",
 			"created_courses": "Created Courses"
@@ -222,6 +226,77 @@
 			"kmap": "K-Map",
 			"kcourse": "K-Course",
 			"kbuzz": "K-Buzz"
+		}
+	},
+	"comments": {
+		"title": "Comments",
+		"course_comments_title": "Comments on this course",
+		"placeholder": "Write a comment...",
+		"submit": "Post Comment",
+		"submitting": "Posting...",
+		"login_required": "Please log in to write a comment.",
+		"loading": "Loading comments...",
+		"empty": "No comments yet.",
+		"empty_hint": "Be the first to write a comment!",
+		"save": "Save",
+		"cancel": "Cancel",
+		"edit": "Edit",
+		"delete": "Delete",
+		"load_more": "Load More Comments",
+		"create_failed": "Failed to create comment.",
+		"update_failed": "Failed to update comment.",
+		"delete_failed": "Failed to delete comment.",
+		"delete_confirm": "Are you sure you want to delete this comment?"
+	},
+	"main": {
+		"hero": {
+			"title": "Discover Korea with",
+			"subtitle": "Your ultimate companion for exploring Korean culture, places, and trends. Connect with the heart of Korea through interactive maps, courses, and community.",
+			"start_exploring": "Start Exploring",
+			"browse_courses": "Browse Courses"
+		},
+		"features": {
+			"section_title": "Explore Korea Like Never Before",
+			"section_subtitle": "Three powerful tools to enhance your Korean experience",
+			"kmap": {
+				"title": "K-Map",
+				"description": "Interactive maps showcasing Korean landmarks, restaurants, cultural sites, and hidden gems. Navigate Korea with local insights and recommendations.",
+				"cta": "Explore Map →"
+			},
+			"kcourse": {
+				"title": "K-Course",
+				"description": "Comprehensive courses covering Korean language, culture, history, and traditions. Learn at your own pace with interactive lessons and quizzes.",
+				"cta": "Start Learning →"
+			},
+			"kbuzz": {
+				"title": "K-Buzz",
+				"description": "Stay updated with the latest Korean trends, news, and community discussions. Connect with fellow Korea enthusiasts and share your experiences.",
+				"cta": "Join Community →"
+			}
+		},
+		"stats": {
+			"locations": "Locations Mapped",
+			"courses": "Courses Available",
+			"members": "Community Members",
+			"satisfaction": "User Satisfaction"
+		},
+		"cta": {
+			"title": "Ready to Start Your Korean Journey?",
+			"subtitle": "Join thousands of users discovering the beauty and richness of Korean culture",
+			"button": "Get Started Today"
+		},
+		"footer": {
+			"description": "Your ultimate companion for exploring Korean culture and heritage.",
+			"features": "Features",
+			"company": "Company",
+			"about": "About",
+			"contact": "Contact",
+			"privacy": "Privacy",
+			"connect": "Connect",
+			"twitter": "Twitter",
+			"instagram": "Instagram",
+			"facebook": "Facebook",
+			"copyright": "© 2026 K-Mate. All rights reserved."
 		}
 	}
 }

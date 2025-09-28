@@ -77,11 +77,51 @@ export class PlacesService {
 	}
 
 	/**
+	 * Validates if a string is a proper Google Place ID
+	 * Google Place IDs typically start with "ChIJ", "EhIJ", "GhIJ", etc.
+	 * or are longer alphanumeric strings (not just numeric like "85")
+	 */
+	private isValidGooglePlaceId(placeId: string): boolean {
+		// Basic validation: should be longer than 10 chars and not just numeric
+		if (!placeId || placeId.length < 10 || /^\d+$/.test(placeId)) {
+			return false
+		}
+		// Additional check for common Google Place ID prefixes
+		return /^[A-Za-z0-9_-]+$/.test(placeId)
+	}
+
+	/**
 	 * placeId 상세 조회 후 DB upsert (30일 캐시)
 	 * - 필요한 필드만 요청 (필드 마스크)
 	 * - 지정 필드 매핑 + (관리자 고정이 아니면) 자동 카테고리 분류
 	 */
 	async getOrSyncByPlaceId(googlePlaceId: string): Promise<Place> {
+		// Validate Google Place ID format
+		if (!this.isValidGooglePlaceId(googlePlaceId)) {
+			console.log(`Invalid Google Place ID format: ${googlePlaceId}`)
+			// Return a placeholder Place object for invalid IDs
+			const fallbackPlace = this.placeRepo.create({
+				googlePlaceId,
+				type: null,
+				name: `Unknown Place (${googlePlaceId})`,
+				address: 'Address not available',
+				lat: 0,
+				lng: 0,
+				isAdvertisement: false,
+				phone: null,
+				website: null,
+				googleMapsUrl: null,
+				openingHoursJson: null,
+				photosJson: null,
+				sourceTypesJson: null,
+				typeSource: 'auto',
+				description: 'This place information is not available due to invalid place ID',
+				lastSyncedAt: new Date(),
+			})
+			// Save the fallback to avoid repeated API calls
+			return await this.placeRepo.save(fallbackPlace)
+		}
+
 		let entity = await this.placeRepo.findOne({ where: { googlePlaceId } })
 
 		const needsRefresh =
@@ -105,45 +145,77 @@ export class PlacesService {
 			'types', // 원본 구글 타입 목록
 		].join(',')
 
-		const { data } = await firstValueFrom(
-			this.http.get(`${this.base}/places/${googlePlaceId}`, { headers: this.headers(mask) })
-		)
+		try {
+			const { data } = await firstValueFrom(
+				this.http.get(`${this.base}/places/${googlePlaceId}`, { headers: this.headers(mask) })
+			)
 
-		const p = entity ?? this.placeRepo.create({ googlePlaceId })
+			const p = entity ?? this.placeRepo.create({ googlePlaceId })
 
-		// ✅ 지정 필드만 동기화(값 없으면 기존 유지)
-		p.name = data.displayName?.text ?? p.name
-		p.address = data.formattedAddress ?? p.address
-		p.lat = data.location?.latitude ?? p.lat
-		p.lng = data.location?.longitude ?? p.lng
-		p.phone = data.internationalPhoneNumber ?? p.phone
-		p.website = data.websiteUri ?? p.website
-		p.googleMapsUrl = data.googleMapsUri ?? p.googleMapsUrl
-		p.openingHoursJson = data.currentOpeningHours ?? p.openingHoursJson
-		p.photosJson = data.photos ?? p.photosJson
-		p.description = data.editorialSummary?.text ?? p.description
+			// ✅ 지정 필드만 동기화(값 없으면 기존 유지)
+			p.name = data.displayName?.text ?? p.name
+			p.address = data.formattedAddress ?? p.address
+			p.lat = data.location?.latitude ?? p.lat
+			p.lng = data.location?.longitude ?? p.lng
+			p.phone = data.internationalPhoneNumber ?? p.phone
+			p.website = data.websiteUri ?? p.website
+			p.googleMapsUrl = data.googleMapsUri ?? p.googleMapsUrl
+			p.openingHoursJson = data.currentOpeningHours ?? p.openingHoursJson
+			p.photosJson = data.photos ?? p.photosJson
+			p.description = data.editorialSummary?.text ?? p.description
 
-		// 원본 구글 types 보관 + 자동 분류
-		if ('sourceTypesJson' in p) {
-			// 엔티티에 컬럼이 있다면 채움(마이그레이션 반영된 경우)
-			// @ts-ignore - 동적 접근 허용
-			p.sourceTypesJson = data.types ?? p.sourceTypesJson
-		}
-		if ('typeSource' in p) {
-			// @ts-ignore
-			if (p.typeSource !== 'admin') {
-				const cat = this.mapGoogleTypesToCategory(data.types)
-				if (cat) {
-					// @ts-ignore
-					p.type = cat
-				}
-				// @ts-ignore
-				p.typeSource = 'auto'
+			// 원본 구글 types 보관 + 자동 분류
+			if ('sourceTypesJson' in p) {
+				// 엔티티에 컬럼이 있다면 채움(마이그레이션 반영된 경우)
+				// @ts-ignore - 동적 접근 허용
+				p.sourceTypesJson = data.types ?? p.sourceTypesJson
 			}
-		}
+			if ('typeSource' in p) {
+				// @ts-ignore
+				if (p.typeSource !== 'admin') {
+					const cat = this.mapGoogleTypesToCategory(data.types)
+					if (cat) {
+						// @ts-ignore
+						p.type = cat
+					}
+					// @ts-ignore
+					p.typeSource = 'auto'
+				}
+			}
 
-		p.lastSyncedAt = new Date()
-		return await this.placeRepo.save(p)
+			p.lastSyncedAt = new Date()
+			return await this.placeRepo.save(p)
+		} catch (error) {
+			console.error(`Failed to fetch Google Place details for ${googlePlaceId}:`, error)
+
+			// If entity exists, return it as is (stale cache is better than nothing)
+			if (entity) {
+				console.log(`Returning existing cached data for ${googlePlaceId}`)
+				return entity
+			}
+
+			// Create a fallback Place object with basic info
+			const fallbackPlace = this.placeRepo.create({
+				googlePlaceId,
+				type: null,
+				name: `Place ${googlePlaceId}`,
+				address: 'Address not available',
+				lat: 0,
+				lng: 0,
+				isAdvertisement: false,
+				phone: null,
+				website: null,
+				googleMapsUrl: null,
+				openingHoursJson: null,
+				photosJson: null,
+				sourceTypesJson: null,
+				typeSource: 'auto',
+				description: 'Place details temporarily unavailable',
+				lastSyncedAt: new Date(),
+			})
+
+			return await this.placeRepo.save(fallbackPlace)
+		}
 	}
 
 	/**
@@ -328,6 +400,10 @@ export class PlacesService {
 			.skip((page - 1) * take)
 			.take(take)
 
+		// Filter out invalid "Unknown Place" entries
+		qb.andWhere('p.name NOT LIKE :unknownPattern', { unknownPattern: 'Unknown Place%' })
+		qb.andWhere('(p.lat != 0 OR p.lng != 0)') // Exclude places with invalid coordinates
+
 		if (opts.q) {
 			qb.andWhere('(p.name LIKE :q OR p.address LIKE :q)', { q: `%${opts.q}%` })
 		}
@@ -446,6 +522,17 @@ export class PlacesService {
 		}
 
 		place.isAdvertisement = isAdvertisement
+		return await this.placeRepo.save(place)
+	}
+
+	/** 관리자: 다국어 메뉴판 지원 상태 토글 */
+	async toggleMultilingualMenu(id: number, hasMultilingualMenu: boolean): Promise<Place> {
+		const place = await this.placeRepo.findOne({ where: { id } })
+		if (!place) {
+			throw new NotFoundException('Place not found')
+		}
+
+		place.hasMultilingualMenu = hasMultilingualMenu
 		return await this.placeRepo.save(place)
 	}
 }

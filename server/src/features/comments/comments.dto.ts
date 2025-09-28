@@ -66,3 +66,27 @@ export class CommentResponseDto {
 	@ApiProperty({ description: '생성일시' })
 	createdAt!: Date
 }
+
+/**
+ * 코스 댓글 응답 DTO
+ */
+export class CourseCommentResponseDto {
+	@ApiProperty({ description: '댓글 ID' })
+	id!: number
+
+	@ApiProperty({ description: '코스 ID' })
+	courseId!: string
+
+	@ApiProperty({ description: '작성자 정보' })
+	user!: {
+		id: number
+		name: string
+		avatarUrl: string | null
+	}
+
+	@ApiProperty({ description: '댓글 내용' })
+	content!: string
+
+	@ApiProperty({ description: '생성일시' })
+	createdAt!: Date
+}
