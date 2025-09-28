@@ -11,7 +11,6 @@ export default function MyCourseCommentsPage() {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [page, setPage] = useState(1)
-	const [totalPages, setTotalPages] = useState(1)
 	const [hasMore, setHasMore] = useState(false)
 
 	const loadComments = async (pageNum: number = 1) => {
@@ -25,7 +24,6 @@ export default function MyCourseCommentsPage() {
 				setComments(prev => [...prev, ...response.comments])
 			}
 
-			setTotalPages(Math.ceil(response.total / response.limit))
 			setHasMore(pageNum < Math.ceil(response.total / response.limit))
 			setPage(pageNum)
 		} catch (err) {

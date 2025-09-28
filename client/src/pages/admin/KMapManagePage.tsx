@@ -12,7 +12,6 @@ export default function KMapManagePage() {
 	const [selectedCategory, setSelectedCategory] = useState<PlaceType | 'all'>('all')
 	const [searchTerm, setSearchTerm] = useState('')
 	const [page, setPage] = useState(1)
-	const [totalPages, setTotalPages] = useState(1)
 
 	// Load places on component mount
 	useEffect(() => {
@@ -30,7 +29,6 @@ export default function KMapManagePage() {
 				pageSize: 20
 			})
 			setPlaces(response.items)
-			setTotalPages(response.totalPages || 1)
 		} catch (err) {
 			setError('장소 목록을 불러오는데 실패했습니다.')
 			console.error(err)

@@ -503,7 +503,7 @@ export default function CommunityDetailPage() {
 
 							{/* 현재 이미지 표시 */}
 							{post.imageUrl && !imagePreview && (
-								<div className="mb-4 p-3 border rounded-lg bg-gray-50">
+								<div className="p-3 mb-4 border rounded-lg bg-gray-50">
 									<p className="mb-2 text-sm font-medium text-gray-700">현재 이미지:</p>
 									<div className="flex items-start gap-3">
 										{/* eslint-disable-next-line @next/next/no-img-element */}
@@ -512,7 +512,7 @@ export default function CommunityDetailPage() {
 											alt="현재 이미지"
 											className="object-cover w-16 h-16 border rounded"
 											onError={(e) => {
-												(e.target as HTMLImageElement).style.display = 'none'
+												;(e.target as HTMLImageElement).style.display = 'none'
 											}}
 										/>
 										<div className="flex-1">
@@ -523,7 +523,7 @@ export default function CommunityDetailPage() {
 											type="button"
 											onClick={() => {
 												if (confirm('이미지를 제거하시겠습니까?')) {
-													setPost(prev => ({ ...prev, imageUrl: undefined }))
+													setPost((prev) => ({ ...prev, imageUrl: undefined }))
 												}
 											}}
 											className="px-2 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50"
@@ -572,7 +572,9 @@ export default function CommunityDetailPage() {
 										{imageFile && (
 											<div className="text-xs text-gray-500">
 												{(imageFile.size / 1024 / 1024).toFixed(2)} MB
-												{uploading ? ` · 업로드중 ${uploadProgress}%` : ' · 저장 시 자동으로 업로드됩니다'}
+												{uploading
+													? ` · 업로드중 ${uploadProgress}%`
+													: ' · 저장 시 자동으로 업로드됩니다'}
 											</div>
 										)}
 									</div>

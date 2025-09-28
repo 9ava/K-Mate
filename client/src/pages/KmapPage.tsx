@@ -30,24 +30,28 @@ export default function KmapPage() {
 	const [mode, setMode] = useState<Mode>('type') // ✅ 현재 보기 모드
 	const [type, setType] = useState<PlaceType | ''>('') // ✅ 초기값을 빈 문자열로 설정
 	const [loading, setLoading] = useState(false)
-	const [loadingState, setLoadingState] = useState<'idle' | 'map-init' | 'places' | 'markers'>('idle')
+	const [loadingState, setLoadingState] = useState<'idle' | 'map-init' | 'places' | 'markers'>(
+		'idle'
+	)
 	const [selected, setSelected] = useState<Place | null>(null)
 	const [places, setPlaces] = useState<Place[]>([])
 	const [titleKey, setTitleKey] = useState<string>('popular') // 번역 키만 저장
 	const [showSearchList, setShowSearchList] = useState(false) // ✅ SearchList 표시 상태
 	const [bookmarkedPlaces, setBookmarkedPlaces] = useState<Set<string>>(new Set()) // 북마크된 장소 ID 목록
 	const [nearbyRadius, setNearbyRadius] = useState(5000) // 주변 검색 반경 (미터 단위)
-	
+
 	// 실시간 위치 관련 상태
 	const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
-	const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null)
+	const [locationPermission, setLocationPermission] = useState<
+		'granted' | 'denied' | 'prompt' | null
+	>(null)
 	const [isTracking, setIsTracking] = useState(false)
 	const userMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
 	const watchIdRef = useRef<number | null>(null)
-	
+
 	// 실시간 번역 적용되는 title
 	const listTitle = t(`kmap.titles.${titleKey}`)
-	
+
 	// 로그인 상태 변경 시 북마크 목록 로드
 	useEffect(() => {
 		if (isAuthed) {
@@ -60,14 +64,12 @@ export default function KmapPage() {
 	const loadBookmarkedPlaces = async () => {
 		try {
 			const bookmarks = await listMyBookmarks()
-			const bookmarkedIds = new Set(bookmarks.map(b => b.placeId))
+			const bookmarkedIds = new Set(bookmarks.map((b) => b.placeId))
 			setBookmarkedPlaces(bookmarkedIds)
 		} catch (error) {
 			console.error('북마크 목록 로드 실패:', error)
 		}
 	}
-
-
 
 	// 위치 권한 확인 및 현재 위치 가져오기
 	const requestLocationPermission = async (): Promise<boolean> => {
@@ -117,7 +119,7 @@ export default function KmapPage() {
 				(position) => {
 					const location = {
 						lat: position.coords.latitude,
-						lng: position.coords.longitude
+						lng: position.coords.longitude,
 					}
 					setUserLocation(location)
 					resolve(location)
@@ -129,7 +131,7 @@ export default function KmapPage() {
 				{
 					enableHighAccuracy: true,
 					timeout: 10000,
-					maximumAge: 60000
+					maximumAge: 60000,
 				}
 			)
 		})
@@ -161,7 +163,7 @@ export default function KmapPage() {
 				position: location,
 				content: userIcon,
 				title: 'My Location',
-				zIndex: 9999 // 가장 위에 표시
+				zIndex: 9999, // 가장 위에 표시
 			})
 		} catch (error) {
 			console.error('Error updating user location marker:', error)
@@ -213,7 +215,7 @@ export default function KmapPage() {
 					async (position) => {
 						const location = {
 							lat: position.coords.latitude,
-							lng: position.coords.longitude
+							lng: position.coords.longitude,
 						}
 						setUserLocation(location)
 						await updateUserLocationMarker(location)
@@ -225,7 +227,7 @@ export default function KmapPage() {
 					{
 						enableHighAccuracy: true,
 						timeout: 15000,
-						maximumAge: 30000
+						maximumAge: 30000,
 					}
 				)
 
@@ -248,7 +250,7 @@ export default function KmapPage() {
 			}
 		}
 	}, [])
-	
+
 	const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 	const ENV_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined
 	const MAP_ID = ENV_MAP_ID || 'DEMO_MAP_ID'
@@ -280,7 +282,7 @@ export default function KmapPage() {
 			const position = {
 				lat: center.lat(),
 				lng: center.lng(),
-				zoom: zoom
+				zoom: zoom,
 			}
 			sessionStorage.setItem(MAP_POSITION_KEY, JSON.stringify(position))
 		}
@@ -315,7 +317,9 @@ export default function KmapPage() {
 
 			// 저장된 위치가 있으면 사용, 없으면 기본값 (서울)
 			const storedPosition = getStoredMapPosition()
-			const mapCenter = storedPosition ? { lat: storedPosition.lat, lng: storedPosition.lng } : { lat: 37.5665, lng: 126.978 }
+			const mapCenter = storedPosition
+				? { lat: storedPosition.lat, lng: storedPosition.lng }
+				: { lat: 37.5665, lng: 126.978 }
 			const initialZoom = storedPosition ? storedPosition.zoom : 12
 
 			// 지도를 먼저 생성 (위치 권한 대기하지 않음)
@@ -338,21 +342,23 @@ export default function KmapPage() {
 
 			// 저장된 위치가 없을 때만 사용자 위치로 이동
 			if (!storedPosition) {
-				requestLocationPermission().then(async (hasPermission) => {
-					if (hasPermission && !cancelled) {
-						try {
-							const userPos = await getCurrentPosition()
-							map.panTo(userPos)
-							map.setZoom(16)
-							setUserLocation(userPos)
-							await updateUserLocationMarker(userPos)
-						} catch (error) {
-							console.warn('사용자 위치 가져오기 실패:', error)
+				requestLocationPermission()
+					.then(async (hasPermission) => {
+						if (hasPermission && !cancelled) {
+							try {
+								const userPos = await getCurrentPosition()
+								map.panTo(userPos)
+								map.setZoom(16)
+								setUserLocation(userPos)
+								await updateUserLocationMarker(userPos)
+							} catch (error) {
+								console.warn('사용자 위치 가져오기 실패:', error)
+							}
 						}
-					}
-				}).catch(() => {
-					// 위치 권한 실패는 조용히 무시
-				})
+					})
+					.catch(() => {
+						// 위치 권한 실패는 조용히 무시
+					})
 			}
 		})()
 
@@ -368,29 +374,26 @@ export default function KmapPage() {
 			setLoading(true)
 			setLoadingState('places')
 			try {
-				if (mode === 'type' && type) { // ✅ type이 있을 때만 로드
-					setTitleKey(
-						type === 'travel' ? 'travel' : 
-						type === 'food' ? 'food' : 
-						'cafe'
-					)
+				if (mode === 'type' && type) {
+					// ✅ type이 있을 때만 로드
+					setTitleKey(type === 'travel' ? 'travel' : type === 'food' ? 'food' : 'cafe')
 
 					// 전체 장소 API에서 타입별로 필터링해서 가져오기 (관리자 마커 + 코스 장소 모두 포함)
 					const response = await listPlaces({ type: type, pageSize: 100 })
-					
+
 					// Place 타입으로 변환
 					const items: Place[] = response.items
 
 					setPlaces(items)
 					setLoadingState('markers')
 					await renderMarkers(items)
-					
+
 					// fitBounds 제거 - 지도 위치 유지
 					setSelected(null)
 				} else if (mode === 'bookmarks') {
 					// bookmarks 모드 - 로그인 상태 확인
 					setTitleKey('bookmarks')
-					
+
 					if (!isAuthed) {
 						// 비로그인 상태: 빈 배열과 특별한 처리
 						setPlaces([])
@@ -454,22 +457,22 @@ export default function KmapPage() {
 	// 커스텀 마커 요소 생성 (성능 최적화됨)
 	const createCustomMarker = (place: Place): HTMLElement => {
 		try {
-			const markerEl = makePlaceMarkerEl(place.type, place.name, place)
+			const markerEl = makePlaceMarkerEl(place.type, place.name)
 			return markerEl
 		} catch (error) {
 			console.error('[K-Map] Error creating custom marker, using fallback:', error)
-			
+
 			// Fallback: 더 간단한 마커 (성능 최적화)
 			const container = document.createElement('div')
-			
+
 			// 타입별 색상 매핑 (한 번만 계산)
 			const colorMap: Record<string, string> = {
-				'travel': '#3b82f6',
-				'food': '#ef4444', 
-				'cafe': '#f59e0b'
+				travel: '#3b82f6',
+				food: '#ef4444',
+				cafe: '#f59e0b',
 			}
 			const dotColor = colorMap[place.type || ''] || '#6b7280'
-			
+
 			// CSS 문자열을 한 번에 설정 (DOM 조작 최소화)
 			container.innerHTML = `<div style="
 				width: 16px;
@@ -478,7 +481,7 @@ export default function KmapPage() {
 				border-radius: 50%;
 				filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
 			"></div>`
-			
+
 			container.style.cssText = `
 				width: 32px;
 				height: 32px;
@@ -489,7 +492,7 @@ export default function KmapPage() {
 				transition: transform 200ms ease;
 				z-index: 100;
 			`
-			
+
 			// 이벤트 리스너를 한 번에 처리
 			let isHovered = false
 			container.onmouseenter = () => {
@@ -506,7 +509,7 @@ export default function KmapPage() {
 					isHovered = false
 				}
 			}
-			
+
 			return container
 		}
 	}
@@ -536,7 +539,7 @@ export default function KmapPage() {
 				content: createCustomMarker(place),
 				title: place.name,
 			})
-			
+
 			// 마커 클릭 이벤트
 			marker.addListener('gmp-click', () => openPlace(place))
 			return marker
@@ -554,21 +557,13 @@ export default function KmapPage() {
 						return new AdvancedMarkerElement({
 							position,
 							content: makeClusterMarkerEl(count),
-							zIndex: 1000 + Math.min(count, 100) // 레이어링
+							zIndex: 1000 + Math.min(count, 100), // 레이어링
 						})
-					}
+					},
 				},
 				// 기본 클러스터링 옵션 사용
 			})
 		}
-	}
-
-	const fitBounds = (items: Place[]) => {
-		const map = mapObjRef.current!
-		if (!items.length) return
-		const b = new google.maps.LatLngBounds()
-		items.forEach((p) => b.extend({ lat: p.lat, lng: p.lng }))
-		map.fitBounds(b)
 	}
 
 	// 리스트/마커 클릭 → 서버 상세 조회
@@ -595,11 +590,11 @@ export default function KmapPage() {
 		if (targetMarker && targetMarker.content) {
 			const originalTransform = (targetMarker.content as HTMLElement).style.transform
 			const originalZIndex = (targetMarker.content as HTMLElement).style.zIndex
-			
+
 			// 강조 효과
 			;(targetMarker.content as HTMLElement).style.transform = 'scale(1.5)'
 			;(targetMarker.content as HTMLElement).style.zIndex = '10000'
-			
+
 			// 1초 후 원래대로
 			setTimeout(() => {
 				if (targetMarker.content) {
@@ -630,7 +625,7 @@ export default function KmapPage() {
 			setType('')
 			return
 		}
-		
+
 		// 다른 타입 선택하거나 처음 선택
 		setMode('type')
 		setType(t)
@@ -644,7 +639,7 @@ export default function KmapPage() {
 			setType('')
 			return
 		}
-		
+
 		// 북마크 모드 활성화
 		setMode('bookmarks')
 		setType('') // 카테고리 선택 해제
@@ -656,12 +651,12 @@ export default function KmapPage() {
 			setShowSearchList(false)
 			return
 		}
-		
+
 		// 메뉴 열기: SearchList 토글하고 모든 활성화 상태 해제
 		setShowSearchList(true)
 		setType('') // 카테고리 활성화 해제
 		setMode('type') // 북마크 모드도 해제
-		
+
 		// 전체 장소 데이터 로드
 		try {
 			setLoading(true)
@@ -681,7 +676,7 @@ export default function KmapPage() {
 	const handleBookmarkChange = async () => {
 		// 북마크 목록 새로고침
 		await loadBookmarkedPlaces()
-		
+
 		// 북마크 모드인 경우 리스트도 새로고침
 		if (mode === 'bookmarks' && isAuthed) {
 			try {
@@ -731,9 +726,9 @@ export default function KmapPage() {
 
 				{/* 좌측 검색 결과 패널 - 조건부 렌더링 */}
 				{showSearchList && (
-					<SearchList 
-						places={places} 
-						onSelect={openPlace} 
+					<SearchList
+						places={places}
+						onSelect={openPlace}
 						title={listTitle}
 						isBookmarkMode={mode === 'bookmarks'}
 					/>
@@ -741,9 +736,9 @@ export default function KmapPage() {
 
 				{/* 상세 패널 */}
 				{selected && (
-					<SidePanel 
-						place={selected} 
-						onClose={handleClose} 
+					<SidePanel
+						place={selected}
+						onClose={handleClose}
 						onBookmarkChange={handleBookmarkChange}
 						isBookmarked={bookmarkedPlaces.has(selected.googlePlaceId)}
 					/>
@@ -752,19 +747,31 @@ export default function KmapPage() {
 				{/* 지도 */}
 				<div className="relative flex-1">
 					<div ref={mapRef} className="absolute inset-0" />
-					
+
 					{/* 위치 버튼들 */}
 					<div className="absolute flex flex-col gap-2 bottom-4 right-4">
 						{/* 위치 권한 상태 알림 */}
 						{locationPermission === 'denied' && (
-							<div className="max-w-xs p-3 bg-red-50 border border-red-200 rounded-lg shadow-lg">
+							<div className="max-w-xs p-3 border border-red-200 rounded-lg shadow-lg bg-red-50">
 								<div className="flex items-start gap-2">
-									<svg className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+									<svg
+										className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
+										/>
 									</svg>
 									<div>
 										<p className="text-xs font-medium text-red-800">위치 권한 필요</p>
-										<p className="text-xs text-red-600 mt-1">브라우저 설정에서 위치 권한을 허용해주세요.</p>
+										<p className="mt-1 text-xs text-red-600">
+											브라우저 설정에서 위치 권한을 허용해주세요.
+										</p>
 									</div>
 								</div>
 							</div>
@@ -773,7 +780,7 @@ export default function KmapPage() {
 						{/* 반경 조절 슬라이더 - 위치 권한이 있을 때만 표시 */}
 						{userLocation && locationPermission === 'granted' && (
 							<div className="p-3 bg-white rounded-lg shadow-lg">
-								<label className="block text-xs text-gray-600 mb-2">
+								<label className="block mb-2 text-xs text-gray-600">
 									{t('kmap.nearby_radius')}: {(nearbyRadius / 1000).toFixed(1)}km
 								</label>
 								<input
@@ -787,43 +794,43 @@ export default function KmapPage() {
 								/>
 							</div>
 						)}
-						
+
 						{/* 현재 위치로 이동 버튼 - 권한 상태에 따른 스타일링 */}
 						<button
 							onClick={moveToCurrentLocation}
 							disabled={locationPermission === 'denied'}
 							className={`flex items-center justify-center w-12 h-12 transition-all duration-200 rounded-lg shadow-lg hover:shadow-xl group ${
-								locationPermission === 'denied' 
-									? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+								locationPermission === 'denied'
+									? 'bg-gray-100 text-gray-400 cursor-not-allowed'
 									: 'bg-white text-gray-600 hover:text-blue-600'
 							}`}
 							title={
-								locationPermission === 'denied' 
-									? '위치 권한이 차단되었습니다' 
+								locationPermission === 'denied'
+									? '위치 권한이 차단되었습니다'
 									: t('kmap.location.my_location')
 							}
 						>
-							<svg 
+							<svg
 								className={`w-6 h-6 ${
-									locationPermission === 'denied' 
-										? 'text-gray-400' 
+									locationPermission === 'denied'
+										? 'text-gray-400'
 										: 'text-gray-600 group-hover:text-blue-600'
-								}`} 
-								fill="none" 
-								stroke="currentColor" 
+								}`}
+								fill="none"
+								stroke="currentColor"
 								viewBox="0 0 24 24"
 							>
-								<path 
-									strokeLinecap="round" 
-									strokeLinejoin="round" 
-									strokeWidth={2} 
-									d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" 
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
 								/>
-								<path 
-									strokeLinecap="round" 
-									strokeLinejoin="round" 
-									strokeWidth={2} 
-									d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" 
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
 								/>
 							</svg>
 						</button>
@@ -835,32 +842,37 @@ export default function KmapPage() {
 							className={`w-12 h-12 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group ${
 								locationPermission === 'denied'
 									? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-									: isTracking 
-										? 'bg-blue-600 text-white' 
-										: 'bg-white text-gray-600 hover:text-blue-600'
+									: isTracking
+									? 'bg-blue-600 text-white'
+									: 'bg-white text-gray-600 hover:text-blue-600'
 							}`}
 							title={
 								locationPermission === 'denied'
 									? '위치 권한이 차단되었습니다'
-									: isTracking 
-										? t('kmap.location.stop_tracking') 
-										: t('kmap.location.start_tracking')
+									: isTracking
+									? t('kmap.location.stop_tracking')
+									: t('kmap.location.start_tracking')
 							}
 						>
-							<svg 
+							<svg
 								className={`w-6 h-6 ${
 									locationPermission === 'denied'
 										? 'text-gray-400'
-										: isTracking 
-											? 'text-white' 
-											: 'group-hover:text-blue-600'
-								}`} 
-								fill="none" 
-								stroke="currentColor" 
+										: isTracking
+										? 'text-white'
+										: 'group-hover:text-blue-600'
+								}`}
+								fill="none"
+								stroke="currentColor"
 								viewBox="0 0 24 24"
 							>
-								<circle cx="12" cy="12" r="3" strokeWidth={2}/>
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+								<circle cx="12" cy="12" r="3" strokeWidth={2} />
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"
+								/>
 							</svg>
 						</button>
 					</div>

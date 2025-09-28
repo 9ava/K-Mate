@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import MainPage from '../pages/MainPage'
 import KmapPage from '../pages/KmapPage'
+import TipsPage from '../pages/TipsPage'
 import AuthCallbackPage from '../pages/AuthCallbackPage'
 import LoginPage from '../pages/LoginPage'
 import KcoursePage from '../pages/KcoursePage'
@@ -43,6 +44,7 @@ const AppRouter = () => {
 					<Route path="/courses/:courseId" element={<CourseDetailPage />} />
 					<Route path="/planner" element={<PlannerPage />} />
 					<Route path="/kmap" element={<KmapPage />} />
+					<Route path="/tips" element={<TipsPage />} />
 					<Route path="/buzz" element={<KBuzzPage />} />
 					<Route path="/buzz/post/:id" element={<CommunityDetailPage />} />
 					<Route path="/buzz/trend/:id" element={<TrendDetailPage />} />
