@@ -11,16 +11,14 @@ import { User } from '../users/user.entity'
 
 /**
  * CommentsModule - 댓글 관리
- * 
+ *
  * 주요 기능:
  * - 댓글 CRUD
  * - community, trend 게시글에만 댓글 허용 (tips는 금지)
  * - DB 트리거로 정책 강제
  */
 @Module({
-	imports: [
-		TypeOrmModule.forFeature([Comment, CourseComment, Post, Course, User]),
-	],
+	imports: [TypeOrmModule.forFeature([Comment, CourseComment, Post, Course, User])],
 	controllers: [CommentsController],
 	providers: [CommentsService],
 	exports: [CommentsService],

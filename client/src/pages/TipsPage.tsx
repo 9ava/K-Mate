@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/layout/Sidebar'
-import { Loader } from '@googlemaps/js-api-loader'
+import { getGoogleMapsLoader } from '../lib/map/googleMapsLoader'
 import type { TipItem } from '../types/tips'
 import TmoneyGuide from './TipsArticle/TmoneyGuide'
 import MpassGuide from './TipsArticle/MpassGuide'
@@ -56,11 +56,7 @@ export default function TipsPage() {
 			console.warn('Map is already initialized.')
 			return
 		}
-		const loader = new Loader({
-			apiKey: API_KEY,
-			version: 'weekly',
-			libraries: ['marker', 'places'],
-		})
+		const loader = getGoogleMapsLoader()
 		loader
 			.importLibrary('maps')
 			.then(() => {
@@ -124,7 +120,7 @@ export default function TipsPage() {
 									setSelectedId(null)
 								}}
 								className={[
-									'px-3 py-1.5 rounded-lg border text-sm',
+									'px-3 py-1.5 rounded-lg border text-sm cursor-pointer',
 									tab === c ? 'bg-gray-900 text-white' : 'bg-white hover:bg-gray-50',
 								].join(' ')}
 							>

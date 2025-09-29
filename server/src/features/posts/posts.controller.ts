@@ -26,7 +26,7 @@ import {
 } from '@nestjs/swagger'
 import { PostsService } from './posts.service'
 import { CreatePostDto, UpdatePostDto, GetPostsQueryDto, PostResponseDto } from './posts.dto'
-import { JwtAuthOptionalGuard } from '../../common/guards/jwt-auth.optional.guard';
+import { JwtAuthOptionalGuard } from '../../common/guards/jwt-auth.optional.guard'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { Roles } from '../../common/decorators/roles.decorator'
 import { RolesGuard } from '../../common/guards/roles.guard'
@@ -51,7 +51,7 @@ export class PostsController {
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles('admin', 'user')
 	async createPost(@Req() req: Request, @Body() createPostDto: CreatePostDto) {
-	const userId = (req.user as any).id
+		const userId = (req.user as any).id
 		const data = await this.postsService.createPost(userId, createPostDto)
 		return { success: true, data }
 	}
@@ -80,19 +80,28 @@ export class PostsController {
 							scrapCount: 3,
 							commentCount: 2,
 							createdAt: '2024-01-01T00:00:00.000Z',
-							updatedAt: '2024-01-01T00:00:00.000Z'
-						}
+							updatedAt: '2024-01-01T00:00:00.000Z',
+						},
 					],
-					total: 1
-				}
-			}
-		}
+					total: 1,
+				},
+			},
+		},
 	})
 	@ApiQuery({ name: 'postType', required: false, enum: ['community', 'tips', 'trend'] })
-	@ApiQuery({ name: 'category', required: false, enum: ['travel_tip', 'food_review', 'cafe_review', 'general'] })
+	@ApiQuery({
+		name: 'category',
+		required: false,
+		enum: ['travel_tip', 'food_review', 'cafe_review', 'general'],
+	})
 	@ApiQuery({ name: 'status', required: false, enum: ['published', 'draft', 'hidden'] })
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10)',
+	})
 	@ApiQuery({ name: 'search', required: false, type: String, description: '검색 키워드' })
 	@Get()
 	@UseGuards(JwtAuthOptionalGuard)
@@ -142,7 +151,7 @@ export class PostsController {
 		@Req() req: Request,
 		@Body() updatePostDto: UpdatePostDto
 	) {
-	const userId = (req.user as any).id
+		const userId = (req.user as any).id
 		const data = await this.postsService.updatePost(id, userId, updatePostDto)
 		return { success: true, data }
 	}
@@ -156,9 +165,9 @@ export class PostsController {
 		schema: {
 			example: {
 				success: true,
-				message: '게시글이 삭제되었습니다.'
-			}
-		}
+				message: '게시글이 삭제되었습니다.',
+			},
+		},
 	})
 	@ApiNotFoundResponse({ description: '게시글을 찾을 수 없음' })
 	@ApiForbiddenResponse({ description: '권한 없음 (작성자만 또는 tips/trend는 관리자만)' })
@@ -168,7 +177,7 @@ export class PostsController {
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles('admin', 'user')
 	async deletePost(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-	const userId = (req.user as any).id
+		const userId = (req.user as any).id
 		await this.postsService.deletePost(id, userId)
 		return { success: true, message: '게시글이 삭제되었습니다.' }
 	}
@@ -200,21 +209,30 @@ export class PostsController {
 							id: 2,
 							name: '홍길동',
 							email: 'user1@kmate.com',
-							avatar_url: 'https://example.com/user1.jpg'
+							avatar_url: 'https://example.com/user1.jpg',
 						},
 						created_at: '2024-01-01T00:00:00.000Z',
-						updated_at: '2024-01-01T00:00:00.000Z'
-					}
+						updated_at: '2024-01-01T00:00:00.000Z',
+					},
 				],
 				total: 1,
 				page: 1,
-				limit: 10
-			}
-		}
+				limit: 10,
+			},
+		},
 	})
-	@ApiQuery({ name: 'category', required: false, enum: ['travel', 'food', 'cafe', 'culture', 'shopping', 'nature', 'activity', 'other'] })
+	@ApiQuery({
+		name: 'category',
+		required: false,
+		enum: ['travel', 'food', 'cafe', 'culture', 'shopping', 'nature', 'activity', 'other'],
+	})
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10)',
+	})
 	@ApiQuery({ name: 'search', required: false, type: String, description: '검색 키워드' })
 	@Get('buzz')
 	async getBuzzPosts(@Query() query: any) {
@@ -231,9 +249,9 @@ export class PostsController {
 		schema: {
 			example: {
 				success: true,
-				message: '좋아요가 추가되었습니다.'
-			}
-		}
+				message: '좋아요가 추가되었습니다.',
+			},
+		},
 	})
 	@ApiParam({ name: 'id', type: Number, description: '게시글 ID' })
 	@ApiCookieAuth('access_token')
@@ -241,7 +259,7 @@ export class PostsController {
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles('admin', 'user')
 	async likeBuzzPost(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-	const userId = (req.user as any).id
+		const userId = (req.user as any).id
 		await this.postsService.likePost(id, userId)
 		return { success: true, message: '좋아요가 추가되었습니다.' }
 	}
@@ -257,17 +275,26 @@ export class PostsController {
 				success: true,
 				data: {
 					posts: [],
-					total: 0
-				}
-			}
-		}
+					total: 0,
+				},
+			},
+		},
 	})
 	@ApiParam({ name: 'userId', type: Number, description: '사용자 ID' })
 	@ApiQuery({ name: 'postType', required: false, enum: ['community', 'tips', 'trend'] })
-	@ApiQuery({ name: 'category', required: false, enum: ['travel_tip', 'food_review', 'cafe_review', 'general'] })
+	@ApiQuery({
+		name: 'category',
+		required: false,
+		enum: ['travel_tip', 'food_review', 'cafe_review', 'general'],
+	})
 	@ApiQuery({ name: 'status', required: false, enum: ['published', 'draft', 'hidden'] })
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10)',
+	})
 	@Get('user/:userId')
 	async getPostsByUser(
 		@Param('userId', ParseIntPipe) userId: number,

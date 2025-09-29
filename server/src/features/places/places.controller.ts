@@ -77,14 +77,19 @@ export class PlacesController {
 						lat: 37.57,
 						lng: 126.98,
 						photoName: 'places/.../photos/...',
-						types: ['tourist_attraction', 'point_of_interest']
+						types: ['tourist_attraction', 'point_of_interest'],
 					},
 				],
 			},
 		},
 	})
 	@ApiQuery({ name: 'q', required: true, description: '검색어' })
-	@ApiQuery({ name: 'language', required: false, description: '언어 코드 (ko, en, zh)', example: 'en' })
+	@ApiQuery({
+		name: 'language',
+		required: false,
+		description: '언어 코드 (ko, en, zh)',
+		example: 'en',
+	})
 	@ApiQuery({ name: 'lat', required: false, type: Number, description: '위도 (지역 제한용)' })
 	@ApiQuery({ name: 'lng', required: false, type: Number, description: '경도 (지역 제한용)' })
 	@ApiQuery({ name: 'radius', required: false, type: Number, description: '반경 (미터)' })
@@ -96,12 +101,12 @@ export class PlacesController {
 		@Query('lat') lat?: number,
 		@Query('lng') lng?: number,
 		@Query('radius') radius?: number,
-		@Query('maxResults') maxResults?: number,
+		@Query('maxResults') maxResults?: number
 	) {
 		if (!query) {
 			return { success: false, error: '검색어가 필요합니다.' }
 		}
-		
+
 		const data = await this.places.searchText({
 			query,
 			language: language || 'en',
@@ -147,7 +152,6 @@ export class PlacesController {
 		return { success: true, data }
 	}
 
-
 	// ────────────────────────────────────────────────────────────────────────────
 	// 사진 프록시 (리다이렉트)
 	// ────────────────────────────────────────────────────────────────────────────
@@ -164,7 +168,7 @@ export class PlacesController {
 		return res.redirect(url)
 	}
 
-		// ────────────────────────────────────────────────────────────────────────────
+	// ────────────────────────────────────────────────────────────────────────────
 	// 상세 (DB 캐시 30일, 없으면 동기화)
 	// ────────────────────────────────────────────────────────────────────────────
 	@ApiOperation({ summary: '장소 상세 (DB 캐시 30일, 없으면 동기화)' })
@@ -175,7 +179,6 @@ export class PlacesController {
 		const data = await this.places.getOrSyncByPlaceId(placeId)
 		return { success: true, data }
 	}
-
 
 	// ────────────────────────────────────────────────────────────────────────────
 	// 사용자: 새 장소 추가 (로그인 필요)
@@ -200,7 +203,7 @@ export class PlacesController {
 	@Roles('admin')
 	@Post('admin/add')
 	async adminAdd(@Body() dto: AdminAddPlaceDto, @Req() req: Request) {
-		const role = (req.user?.role ?? 'user') as 'user' | 'admin'
+		const role = req.user?.role ?? 'user'
 		const saved = await this.places.adminAddPlace(dto, role)
 		return { success: true, data: saved }
 	}
@@ -243,10 +246,7 @@ export class PlacesController {
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles('admin')
 	@Put(':id/advertisement')
-	async toggleAdvertisement(
-		@Param('id') id: number,
-		@Body() dto: TogglePlaceAdvertisementDto
-	) {
+	async toggleAdvertisement(@Param('id') id: number, @Body() dto: TogglePlaceAdvertisementDto) {
 		const place = await this.places.toggleAdvertisement(id, dto.isAdvertisement)
 		return { success: true, data: place }
 	}
@@ -260,10 +260,7 @@ export class PlacesController {
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles('admin')
 	@Put(':id/multilingual-menu')
-	async toggleMultilingualMenu(
-		@Param('id') id: number,
-		@Body() dto: ToggleMultilingualMenuDto
-	) {
+	async toggleMultilingualMenu(@Param('id') id: number, @Body() dto: ToggleMultilingualMenuDto) {
 		const place = await this.places.toggleMultilingualMenu(id, dto.hasMultilingualMenu)
 		return { success: true, data: place }
 	}

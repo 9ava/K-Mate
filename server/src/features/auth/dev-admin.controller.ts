@@ -9,9 +9,7 @@ import type { Request } from 'express'
 
 @Controller('dev')
 export class DevAdminController {
-	constructor(
-		@InjectRepository(User) private readonly users: Repository<User>
-	) {}
+	constructor(@InjectRepository(User) private readonly users: Repository<User>) {}
 
 	/**
 	 * DEVELOPMENT ONLY: Promote current user to admin
@@ -42,8 +40,8 @@ export class DevAdminController {
 				id: updatedUser?.id,
 				email: updatedUser?.email,
 				name: updatedUser?.name,
-				role: updatedUser?.role
-			}
+				role: updatedUser?.role,
+			},
 		}
 	}
 
@@ -59,9 +57,9 @@ export class DevAdminController {
 			user: {
 				id: user?.id,
 				email: user?.email,
-				role: user?.role
+				role: user?.role,
 			},
-			isAdmin: user?.role === 'admin'
+			isAdmin: user?.role === 'admin',
 		}
 	}
 }

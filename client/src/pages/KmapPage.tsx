@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Sidebar from '../components/layout/Sidebar'
-import { Loader } from '@googlemaps/js-api-loader'
+import { getGoogleMapsLoader } from '../lib/map/googleMapsLoader'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import { getPlaceDetail, listPlaces } from '../api/places'
 import { listMyBookmarks } from '../api/bookmarks'
@@ -262,13 +262,7 @@ export default function KmapPage() {
 	const loader = useMemo(() => {
 		if (!API_KEY) console.warn('VITE_GOOGLE_MAPS_API_KEY 가 설정되지 않았습니다.')
 		if (!ENV_MAP_ID) console.warn('VITE_GOOGLE_MAPS_MAP_ID 가 비어있습니다. DEMO_MAP_ID 사용')
-		return new Loader({
-			apiKey: API_KEY ?? '',
-			version: 'beta', // AdvancedMarkerElement를 위해 beta 버전 사용
-			libraries: ['marker'],
-			language: 'en', // 영어로 강제 설정
-			region: 'KR', // 한국 지역이지만 영어로 표시
-		})
+		return getGoogleMapsLoader()
 	}, [API_KEY, ENV_MAP_ID])
 
 	// 지도 위치 저장을 위한 sessionStorage 키
@@ -731,6 +725,7 @@ export default function KmapPage() {
 						onSelect={openPlace}
 						title={listTitle}
 						isBookmarkMode={mode === 'bookmarks'}
+						onClose={() => setShowSearchList(false)}
 					/>
 				)}
 

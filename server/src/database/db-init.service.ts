@@ -19,7 +19,9 @@ export class DbInitService implements OnModuleInit {
 			await this.dataSource.query(`SET FOREIGN_KEY_CHECKS = 1`)
 			console.log('course_comments table dropped successfully')
 
-			console.log('Creating course_comments table with correct schema (no FK constraints - let TypeORM handle them)...')
+			console.log(
+				'Creating course_comments table with correct schema (no FK constraints - let TypeORM handle them)...'
+			)
 			await this.dataSource.query(`
 				CREATE TABLE course_comments (
 					id bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -32,7 +34,9 @@ export class DbInitService implements OnModuleInit {
 					INDEX IDX_course_comments_user_id (user_id)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 			`)
-			console.log('course_comments table created successfully (TypeORM will add FK constraints during synchronization)')
+			console.log(
+				'course_comments table created successfully (TypeORM will add FK constraints during synchronization)'
+			)
 		} catch (error) {
 			console.log('Error managing course_comments table:', error)
 			try {
@@ -58,6 +62,5 @@ export class DbInitService implements OnModuleInit {
 				console.log('Error adding has_multilingual_menu column:', error.message)
 			}
 		}
-
 	}
 }

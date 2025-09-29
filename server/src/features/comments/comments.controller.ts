@@ -25,7 +25,13 @@ import {
 	ApiForbiddenResponse,
 } from '@nestjs/swagger'
 import { CommentsService } from './comments.service'
-import { CreateCommentDto, UpdateCommentDto, GetCommentsQueryDto, CommentResponseDto, CourseCommentResponseDto } from './comments.dto'
+import {
+	CreateCommentDto,
+	UpdateCommentDto,
+	GetCommentsQueryDto,
+	CommentResponseDto,
+	CourseCommentResponseDto,
+} from './comments.dto'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 
 @ApiTags('Comments')
@@ -53,7 +59,7 @@ export class CommentsController {
 		@Req() req: Request,
 		@Body() createCommentDto: CreateCommentDto
 	) {
-	const userId = (req.user as any).id
+		const userId = (req.user as any).id
 		const data = await this.commentsService.createComment(postId, userId, createCommentDto)
 		return { success: true, data }
 	}
@@ -74,18 +80,23 @@ export class CommentsController {
 							postId: 1,
 							user: { id: 1, name: '홍길동', avatarUrl: null },
 							content: '정말 유용한 정보네요!',
-							createdAt: '2024-01-01T00:00:00.000Z'
-						}
+							createdAt: '2024-01-01T00:00:00.000Z',
+						},
 					],
-					total: 1
-				}
-			}
-		}
+					total: 1,
+				},
+			},
+		},
 	})
 	@ApiNotFoundResponse({ description: '게시글을 찾을 수 없음' })
 	@ApiParam({ name: 'postId', type: Number, description: '게시글 ID' })
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10)',
+	})
 	@Get('post/:postId')
 	async getCommentsByPost(
 		@Param('postId', ParseIntPipe) postId: number,
@@ -131,7 +142,7 @@ export class CommentsController {
 		@Req() req: Request,
 		@Body() updateCommentDto: UpdateCommentDto
 	) {
-	const userId = (req.user as any).id
+		const userId = (req.user as any).id
 		const data = await this.commentsService.updateComment(id, userId, updateCommentDto)
 		return { success: true, data }
 	}
@@ -145,9 +156,9 @@ export class CommentsController {
 		schema: {
 			example: {
 				success: true,
-				message: '댓글이 삭제되었습니다.'
-			}
-		}
+				message: '댓글이 삭제되었습니다.',
+			},
+		},
 	})
 	@ApiNotFoundResponse({ description: '댓글을 찾을 수 없음' })
 	@ApiForbiddenResponse({ description: '작성자만 삭제 가능' })
@@ -156,7 +167,7 @@ export class CommentsController {
 	@Delete(':id')
 	@UseGuards(JwtAuthGuard)
 	async deleteComment(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-	const userId = (req.user as any).id
+		const userId = (req.user as any).id
 		await this.commentsService.deleteComment(id, userId)
 		return { success: true, message: '댓글이 삭제되었습니다.' }
 	}
@@ -172,14 +183,19 @@ export class CommentsController {
 				success: true,
 				data: {
 					comments: [],
-					total: 0
-				}
-			}
-		}
+					total: 0,
+				},
+			},
+		},
 	})
 	@ApiParam({ name: 'userId', type: Number, description: '사용자 ID' })
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10)',
+	})
 	@Get('user/:userId')
 	async getCommentsByUser(
 		@Param('userId', ParseIntPipe) userId: number,
@@ -226,21 +242,26 @@ export class CommentsController {
 					comments: [
 						{
 							id: 1,
-							courseId: "123",
+							courseId: '123',
 							user: { id: 1, name: '홍길동', avatarUrl: null },
 							content: '정말 좋은 코스네요!',
-							createdAt: '2024-01-01T00:00:00.000Z'
-						}
+							createdAt: '2024-01-01T00:00:00.000Z',
+						},
 					],
-					total: 1
-				}
-			}
-		}
+					total: 1,
+				},
+			},
+		},
 	})
 	@ApiNotFoundResponse({ description: '코스를 찾을 수 없음' })
 	@ApiParam({ name: 'courseId', type: String, description: '코스 ID' })
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10)',
+	})
 	@Get('course/:courseId')
 	async getCommentsByCourse(
 		@Param('courseId') courseId: string,
@@ -280,9 +301,9 @@ export class CommentsController {
 		schema: {
 			example: {
 				success: true,
-				message: '댓글이 삭제되었습니다.'
-			}
-		}
+				message: '댓글이 삭제되었습니다.',
+			},
+		},
 	})
 	@ApiNotFoundResponse({ description: '댓글을 찾을 수 없음' })
 	@ApiForbiddenResponse({ description: '작성자만 삭제 가능' })

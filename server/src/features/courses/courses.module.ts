@@ -23,6 +23,6 @@ import { SavedCourse } from './saved-course.entity'
 	],
 	controllers: [CoursesController],
 	providers: [CoursesService],
-	exports: [CoursesService], 
+	exports: [CoursesService],
 })
 export class CoursesModule {}

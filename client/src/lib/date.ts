@@ -5,7 +5,7 @@ import timezone from 'dayjs/plugin/timezone'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-const KST = 'Asia/Seoul'
+const KST = 'Asia/Seoul' // Korean Standard Time (same as KMT - Korean Mean Time) UTC+9
 
 // 문자열에 타임존 표시가 있는지 검사: 끝이 Z 또는 +09:00 / -07:00 같은 오프셋
 function hasTZ(s: string) {
@@ -47,5 +47,13 @@ export function toKstFromUtc(input: string | number | Date) {
 	return dayjs.utc(input).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm:ss')
 }
 export function toKstFromUtcShort(input: string | number | Date) {
+	return dayjs.utc(input).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm')
+}
+
+// KMT (Korean Mean Time) - same as KST but with explicit naming
+export function toKmtFromUtc(input: string | number | Date) {
+	return dayjs.utc(input).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm:ss')
+}
+export function toKmtFromUtcShort(input: string | number | Date) {
 	return dayjs.utc(input).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm')
 }

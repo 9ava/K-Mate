@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MapCanvas from '../components/map/MapCanvas'
-import SearchPanel from '../components/search/SearchPanel'
 import CoursePanel from '../components/course/CoursePanel'
 import { createCourse } from '../api/courses'
 import type { CreateCourseRequest } from '../types/course'
@@ -55,9 +54,12 @@ export default function PlannerPage() {
 			setSaving(true)
 			await createCourse(courseData)
 			alert(t('planner.messages.course_saved'))
-			
-			// 저장 후 K-Course 페이지로 이동
-			navigate('/kcourse')
+
+			// 저장 후 K-Course 페이지로 이동 (새로 생성된 코스가 바로 표시되도록 refresh 파라미터 추가)
+			// 공개 코스인 경우 "All courses" 탭으로, 비공개 코스인 경우 "My courses" 탭으로 이동
+			const refreshParam = Date.now().toString()
+			const targetTab = payload.visibility === 'public' ? 'all-courses' : 'my-course'
+			navigate(`/kcourse?tab=${targetTab}&refresh=${refreshParam}`)
 		} catch (error: any) {
 			alert(`${t('planner.messages.save_failed')}: ${error?.message ?? error}`)
 		} finally {
@@ -67,24 +69,7 @@ export default function PlannerPage() {
 
 	return (
 		// 헤더가 고정(top-14 등)이라면 아래처럼 오프셋을 줘서 덮지 않도록
-		<div className="fixed inset-x-0 bottom-0 top-14 grid grid-cols-[20rem_1fr_20rem]">
-			{/* 좌 패널 */}
-			<aside className="z-10 overflow-y-auto bg-white border-r">
-				<SearchPanel
-					onPick={(p) => {
-						const newStop: Stop = {
-							id: p.id,
-							name: p.name,
-							lat: p.lat,
-							lng: p.lng,
-							address: p.address,
-							placeId: p.id, // Google Place ID로 사용
-						}
-						setStops((prev) => (prev.some((s) => s.id === p.id) ? prev : [...prev, newStop]))
-					}}
-				/>
-			</aside>
-
+		<div className="fixed inset-x-0 bottom-0 top-14 grid grid-cols-[1fr_20rem]">
 			{/* 지도 칼럼 */}
 			<main className="relative z-0">
 				{/* ✅ MapCanvas는 absolute inset-0 로 이 영역만 꽉 채움 */}
@@ -93,10 +78,10 @@ export default function PlannerPage() {
 
 			{/* 우 패널 */}
 			<aside className="z-10 overflow-y-auto bg-white border-l">
-				<CoursePanel 
-					stops={stops} 
-					setStops={setStops} 
-					onSave={saveCourse} 
+				<CoursePanel
+					stops={stops}
+					setStops={setStops}
+					onSave={saveCourse}
 					saving={saving}
 					selectedCategory={selectedCategory}
 					onCategoryChange={setSelectedCategory}

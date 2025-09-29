@@ -1,6 +1,16 @@
 // src/features/places/places.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsString, IsNotEmpty, IsOptional, IsIn, IsUrl, IsEnum, IsInt, Min, IsBoolean } from 'class-validator'
+import {
+	IsString,
+	IsNotEmpty,
+	IsOptional,
+	IsIn,
+	IsUrl,
+	IsEnum,
+	IsInt,
+	Min,
+	IsBoolean,
+} from 'class-validator'
 import { Type, Transform } from 'class-transformer'
 
 /** Nearby places query DTO */
@@ -78,7 +88,6 @@ export class AdminAddPlaceDto {
 
 // ... (other DTOs)
 
-
 /** 목록 조회(필터/검색/페이지네이션) */
 export class ListQueryDto {
 	@ApiPropertyOptional({ enum: ['travel', 'food', 'cafe'], description: '카테고리 필터' })
@@ -115,26 +124,26 @@ export class UserAddPlaceDto {
 
 	@ApiPropertyOptional({ description: 'Custom name for the place' })
 	@IsOptional()
-	@Transform(({ value }) => value === '' ? undefined : value)
+	@Transform(({ value }) => (value === '' ? undefined : value))
 	@IsString()
 	name?: string
 
 	@ApiPropertyOptional({ description: 'Custom category for the place' })
 	@IsOptional()
-	@Transform(({ value }) => value === '' ? undefined : value)
+	@Transform(({ value }) => (value === '' ? undefined : value))
 	@IsString()
 	@IsIn(['K-Travel', 'K-Food', 'K-Cafe'])
 	category?: 'K-Travel' | 'K-Food' | 'K-Cafe'
 
 	@ApiPropertyOptional({ description: 'Custom description for the place' })
 	@IsOptional()
-	@Transform(({ value }) => value === '' ? undefined : value)
+	@Transform(({ value }) => (value === '' ? undefined : value))
 	@IsString()
 	description?: string
 
 	@ApiPropertyOptional({ description: 'Custom image URL for the place' })
 	@IsOptional()
-	@Transform(({ value }) => value === '' ? undefined : value)
+	@Transform(({ value }) => (value === '' ? undefined : value))
 	@IsUrl({}, { message: 'imageUrl must be a valid URL' })
 	imageUrl?: string
 

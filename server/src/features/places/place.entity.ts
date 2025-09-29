@@ -119,5 +119,4 @@ export class Place {
 	})
 	@Column({ name: 'has_multilingual_menu', type: 'boolean', default: false })
 	hasMultilingualMenu!: boolean
-
 }

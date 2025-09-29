@@ -120,6 +120,17 @@ export async function updatePostsOrder(postsOrder: { id: number; order: number }
 	return data
 }
 
+// Interaction (like/scrap) APIs
+export async function toggleInteraction(interactionType: 'like' | 'scrap', postId: number) {
+	const { data } = await api.post('/interactions/toggle', { interactionType, postId })
+	return data
+}
+
+export async function getInteractionStats(postId: number) {
+	const { data } = await api.get(`/interactions/stats/post/${postId}`)
+	return data.data
+}
+
 /** ---------- (옵션) K-Buzz 전용 목록 API 사용 시 ----------
  * 서버에 /posts/buzz 가 따로 있으니, 이걸 쓰고 싶을 때 아래 함수 사용하세요.
  * 응답 형태가 다르므로 별도 타입을 둡니다. (필요 없으면 삭제해도 됨)

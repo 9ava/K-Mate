@@ -1,4 +1,3 @@
-
 // src/features/places/places.module.ts
 import { Module } from '@nestjs/common'
 import { HttpModule } from '@nestjs/axios'
@@ -16,7 +15,7 @@ import { User } from '../users/user.entity'
 @Module({
 	imports: [
 		HttpModule.register({ timeout: 8000 }), // axios 기반 Nest HttpService
-	TypeOrmModule.forFeature([Place, PlaceBookmark, User]),
+		TypeOrmModule.forFeature([Place, PlaceBookmark, User]),
 	],
 	controllers: [PlacesController],
 	providers: [PlacesService],

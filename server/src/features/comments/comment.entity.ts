@@ -14,7 +14,7 @@ import { Post } from '../posts/post.entity'
 
 /**
  * Comment 엔티티 - 댓글 관리
- * 
+ *
  * 주요 특징:
  * - community, trend 게시글에만 댓글 허용 (tips는 금지)
  * - DB 트리거로 정책 강제

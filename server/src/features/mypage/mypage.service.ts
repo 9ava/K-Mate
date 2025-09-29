@@ -47,7 +47,15 @@ export class MypageService {
 		}
 
 		// 각 카테고리별 개수 조회 (안전한 병렬 처리)
-		const [bookmarkCount, scrapCount, postCount, commentCount, courseCount, savedCourseCount, courseCommentCount] = await Promise.allSettled([
+		const [
+			bookmarkCount,
+			scrapCount,
+			postCount,
+			commentCount,
+			courseCount,
+			savedCourseCount,
+			courseCommentCount,
+		] = await Promise.allSettled([
 			// 북마크 수
 			this.bookmarkRepo.count({ where: { user: { id: userId } } }),
 			// 스크랩 수 (interactionType이 'scrap'인 것)
@@ -65,7 +73,7 @@ export class MypageService {
 		])
 
 		// Promise.allSettled 결과 처리
-		const getCount = (result: PromiseSettledResult<number>) => 
+		const getCount = (result: PromiseSettledResult<number>) =>
 			result.status === 'fulfilled' ? result.value : 0
 
 		return {
@@ -82,7 +90,10 @@ export class MypageService {
 	/**
 	 * 내 북마크 목록 조회
 	 */
-	async getMyBookmarks(userId: number, query: PaginationQueryDto): Promise<BookmarkListResponseDto> {
+	async getMyBookmarks(
+		userId: number,
+		query: PaginationQueryDto
+	): Promise<BookmarkListResponseDto> {
 		const { page = 1, limit = 10 } = query
 		const skip = (page - 1) * limit
 
@@ -146,7 +157,9 @@ export class MypageService {
 				id: interaction.id,
 				postId: interaction.post.id,
 				title: interaction.post.title,
-				content: interaction.post.content.substring(0, 100) + (interaction.post.content.length > 100 ? '...' : ''),
+				content:
+					interaction.post.content.substring(0, 100) +
+					(interaction.post.content.length > 100 ? '...' : ''),
 				postType: interaction.post.postType,
 				category: interaction.post.category || undefined,
 				author: {
@@ -218,7 +231,10 @@ export class MypageService {
 	/**
 	 * 내가 쓴 댓글 목록 조회
 	 */
-	async getMyComments(userId: number, query: PaginationQueryDto): Promise<MyCommentListResponseDto> {
+	async getMyComments(
+		userId: number,
+		query: PaginationQueryDto
+	): Promise<MyCommentListResponseDto> {
 		const { page = 1, limit = 10 } = query
 		const skip = (page - 1) * limit
 
@@ -341,7 +357,10 @@ export class MypageService {
 	/**
 	 * 저장한 코스 목록 조회
 	 */
-	async getSavedCourses(userId: number, query: PaginationQueryDto): Promise<SavedCourseListResponseDto> {
+	async getSavedCourses(
+		userId: number,
+		query: PaginationQueryDto
+	): Promise<SavedCourseListResponseDto> {
 		const { page = 1, limit = 10 } = query
 		const skip = (page - 1) * limit
 
@@ -403,7 +422,10 @@ export class MypageService {
 	/**
 	 * 내가 쓴 코스 댓글 목록 조회
 	 */
-	async getMyCourseComments(userId: number, query: PaginationQueryDto): Promise<MyCourseCommentListResponseDto> {
+	async getMyCourseComments(
+		userId: number,
+		query: PaginationQueryDto
+	): Promise<MyCourseCommentListResponseDto> {
 		const { page = 1, limit = 10 } = query
 		const skip = (page - 1) * limit
 
@@ -419,7 +441,7 @@ export class MypageService {
 				where: { user: { id: userId } },
 				relations: {
 					course: { author: true },
-					user: true
+					user: true,
 				},
 				order: { createdAt: 'DESC' },
 				skip,
@@ -468,5 +490,4 @@ export class MypageService {
 			}
 		}
 	}
-
 }

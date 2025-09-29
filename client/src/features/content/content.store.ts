@@ -1,14 +1,6 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 
-// Hardcoded image mapping for fallback
-const TREND_IMAGE_BY_ID: Record<number, string> = {
-	38: 'https://s3.amazonaws.com/shecodesio-production/uploads/files/000/076/597/original/gimbap.jpg?1681263447', // Kimbap
-	32: 'https://ik.imagekit.io/umhihello/Chuseok/Pages/Hanbok/hanbok-3.jpg?updatedAt=1740718178774', // Hanbok
-	31: 'https://softervolumes.com/wp-content/uploads/2021/12/Dorrell-Coffee-6z4-Seoul-2.jpg', // Cafe
-	30: 'https://blog.delivered.co.kr/wp-content/uploads/2025/01/featured-2025-drama.jpg', // Webtoons
-	3: 'https://ychef.files.bbci.co.uk/1280x720/p0lq9155.jpg', // K-Pop
-}
 
 export interface ContentItem {
 	id: number
@@ -26,7 +18,7 @@ export interface TrendArticle {
 	id: number
 	title: string
 	author: string
-	image: string
+	image: string | null
 	content: string
 	aboutTitle?: string
 	aboutDescription?: string
@@ -51,6 +43,10 @@ type Actions = {
 	reorderTrendArticles: (articles: TrendArticle[]) => void
 	updateContentStatus: (id: number, status: 'active' | 'hidden' | 'reported') => void
 	deleteContent: (id: number) => void
+	// Trend order management for cross-device sync
+	exportTrendOrder: () => string | null
+	importTrendOrder: (orderJson: string) => boolean
+	clearTrendOrder: () => void
 }
 
 export const useContentStore = create<State & Actions>()(
@@ -59,88 +55,7 @@ export const useContentStore = create<State & Actions>()(
 			(set, get) => ({
 				trendArticles: [],
 
-				allContent: [
-					// K-Community content
-					{
-						id: 1,
-						type: 'post',
-						category: 'community',
-						title: 'Photo correlations',
-						content: 'Discussion about photo correlations and techniques...',
-						author: 'Marta Tomaszewska',
-						createdAt: '3 hours ago',
-						status: 'active',
-					},
-					{
-						id: 2,
-						type: 'post',
-						category: 'community',
-						title: 'The only thing worse than being a GWoC is being a GWoC: Guy Without a Camera',
-						content: 'Thoughts on photography and equipment...',
-						author: 'ponzu',
-						createdAt: '3 hours ago',
-						status: 'active',
-					},
-					{
-						id: 3,
-						type: 'post',
-						category: 'community',
-						title: 'Lightroom - Server NAS',
-						content: 'Setting up Lightroom with Network Attached Storage...',
-						author: 'Tomasz Fiema',
-						createdAt: '3 hours ago',
-						status: 'active',
-					},
-					{
-						id: 4,
-						type: 'post',
-						category: 'community',
-						title: 'Community UX 개선 아이디어',
-						content: '커뮤니티 사용자 경험을 개선할 수 있는 아이디어들을 공유합니다...',
-						author: '지영',
-						createdAt: '1 hour ago',
-						status: 'active',
-					},
-					{
-						id: 5,
-						type: 'post',
-						category: 'community',
-						title: 'Next.js vs Vite 경험담',
-						content: '두 프레임워크를 사용해본 경험을 공유합니다...',
-						author: '익명',
-						createdAt: '30 mins ago',
-						status: 'active',
-					},
-					{
-						id: 6,
-						type: 'post',
-						category: 'community',
-						title: '오늘의 사진 공유해요 📸',
-						content: '오늘 찍은 멋진 사진들을 공유해보세요!',
-						author: '민수',
-						createdAt: '10 mins ago',
-						status: 'active',
-					},
-					// Additional community comments
-					{
-						id: 201,
-						type: 'comment',
-						category: 'community',
-						content: '저도 가봤는데 정말 맛있더라구요!',
-						author: 'student2@example.com',
-						createdAt: '2024-01-19',
-						status: 'active',
-					},
-					{
-						id: 202,
-						type: 'comment',
-						category: 'community',
-						content: '스터디 그룹에 참여하고 싶습니다!',
-						author: 'study_enthusiast@example.com',
-						createdAt: '2024-01-20',
-						status: 'hidden',
-					},
-				],
+				allContent: [], // Now using real data from API instead of hardcoded content
 
 				// Actions
 				addCommunityPost: (postData) => {
@@ -201,13 +116,12 @@ export const useContentStore = create<State & Actions>()(
 								imageLength: post.imageUrl?.length || 0
 							})
 
-							// Priority: 1) Backend order, 2) localStorage order, 3) default index
-							const order = (post as any).order ?? savedOrder[post.id] ?? index
+							// Priority: 1) localStorage order, 2) Backend order, 3) default index
+							// Note: Backend doesn't currently support order field, so prioritize localStorage
+							const order = savedOrder[post.id] ?? (post as any).order ?? index
 
-							// Use admin-uploaded image first, then fallback to hardcoded map, then default
-							const finalImage = post.imageUrl ||
-											  TREND_IMAGE_BY_ID[post.id] ||
-											  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop'
+							// Use only the actual uploaded image, no fallback
+							const finalImage = post.imageUrl
 
 							console.log('🎨 Final image for post', post.id, ':', finalImage)
 
@@ -318,28 +232,18 @@ export const useContentStore = create<State & Actions>()(
 					// Update local state immediately for better UX
 					set({ trendArticles: reorderedArticles })
 
-					// Try to save order to backend, but continue even if it fails
-					try {
-						const { updatePostsOrder } = await import('../../api/kbuzz')
-						const postsOrder = reorderedArticles.map((article, index) => ({
-							id: article.id,
-							order: index,
-						}))
+					// Save order to localStorage for persistence across sessions and devices
+					const orderMap = reorderedArticles.reduce((acc, article) => {
+						acc[article.id] = article.order || 0
+						return acc
+					}, {} as Record<number, number>)
 
-						await updatePostsOrder(postsOrder)
-						console.log('✅ Articles order saved to backend:', postsOrder)
-					} catch (error) {
-						console.warn('⚠️ Backend reorder API not available, using local storage:', (error as Error).message || error)
+					localStorage.setItem('k-mate-trend-article-order', JSON.stringify(orderMap))
+					console.log('📁 K-Trend order saved to localStorage:', orderMap)
 
-						// Fallback: Save order to localStorage for persistence across sessions
-						const orderMap = reorderedArticles.reduce((acc, article) => {
-							acc[article.id] = article.order
-							return acc
-						}, {} as Record<number, number>)
-
-						localStorage.setItem('k-mate-trend-article-order', JSON.stringify(orderMap))
-						console.log('📁 Order saved to localStorage:', orderMap)
-					}
+					// Note: Backend reorder API is not implemented yet
+					// Future enhancement: Add backend persistence for cross-device sync
+					console.log('ℹ️ Order saved locally. For cross-device sync, backend order field needs to be implemented.')
 				},
 
 				updateContentStatus: (id, status) => {
@@ -354,6 +258,39 @@ export const useContentStore = create<State & Actions>()(
 					set((state) => ({
 						allContent: state.allContent.filter((content) => content.id !== id),
 					}))
+				},
+
+				// Trend article order management
+				exportTrendOrder: () => {
+					const orderJson = localStorage.getItem('k-mate-trend-article-order')
+					if (orderJson) {
+						console.log('📤 Exported K-Trend order:', orderJson)
+						return orderJson
+					}
+					return null
+				},
+
+				importTrendOrder: (orderJson: string) => {
+					try {
+						const orderMap = JSON.parse(orderJson)
+						localStorage.setItem('k-mate-trend-article-order', JSON.stringify(orderMap))
+						console.log('📥 Imported K-Trend order:', orderMap)
+
+						// Reload articles to apply new order
+						get().loadTrendArticles()
+						return true
+					} catch (error) {
+						console.error('❌ Failed to import K-Trend order:', error)
+						return false
+					}
+				},
+
+				clearTrendOrder: () => {
+					localStorage.removeItem('k-mate-trend-article-order')
+					console.log('🗑️ Cleared K-Trend order from localStorage')
+
+					// Reload articles to apply default order
+					get().loadTrendArticles()
 				},
 
 				// Getters

@@ -1,5 +1,6 @@
 // src/components/layout/Sidebar.tsx
 import type React from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { PlaceType } from '../../types/place'
 
 type Props = {
@@ -19,6 +20,7 @@ const Sidebar: React.FC<Props> = ({
 	isMenuOpen = false,
 	isBookmarkMode = false,
 }) => {
+	const navigate = useNavigate()
 	const menuItems: Array<{
 		icon: string
 		label: string
@@ -61,7 +63,11 @@ const Sidebar: React.FC<Props> = ({
 
 			<div className="flex-1" />
 			<div className="space-y-2">
-				<button className="flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer hover:bg-gray-100">
+				<button
+					onClick={() => navigate('/tips')}
+					className="flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer hover:bg-gray-100"
+					title="K-Tips"
+				>
 					<span className="text-sm font-bold">TIPS</span>
 				</button>
 			</div>

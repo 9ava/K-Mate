@@ -64,7 +64,7 @@ export default function SidePanel({ place, onClose, onBookmarkChange, isBookmark
 				<button
 					onClick={onClose}
 					aria-label="닫기"
-					className="ml-2 text-xl text-gray-500 hover:text-gray-700 shrink-0"
+					className="ml-2 text-xl text-gray-500 hover:text-gray-700 shrink-0 cursor-pointer"
 				>
 					✕
 				</button>
@@ -112,16 +112,16 @@ export default function SidePanel({ place, onClose, onBookmarkChange, isBookmark
 					<button
 						onClick={handleAdd}
 						disabled={bmLoading !== null || isBookmarked}
-						className={`px-3 py-1.5 rounded-md disabled:opacity-60 ${
-							isBookmarked 
-								? 'bg-green-600 text-white cursor-not-allowed' 
-								: 'bg-blue-600 text-white hover:bg-blue-700'
+						className={`px-3 py-1.5 rounded-md disabled:opacity-60 disabled:cursor-not-allowed ${
+							isBookmarked
+								? 'bg-green-600 text-white cursor-not-allowed'
+								: 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
 						}`}
 					>
-						{isBookmarked 
-							? '✅ 북마크됨' 
-							: bmLoading === 'add' 
-								? '추가 중…' 
+						{isBookmarked
+							? '✅ 북마크됨'
+							: bmLoading === 'add'
+								? '추가 중…'
 								: '북마크 추가'
 						}
 					</button>
@@ -129,7 +129,7 @@ export default function SidePanel({ place, onClose, onBookmarkChange, isBookmark
 						<button
 							onClick={handleRemove}
 							disabled={bmLoading !== null}
-							className="px-3 py-1.5 rounded-md bg-gray-200 text-gray-800 disabled:opacity-60 hover:bg-gray-300"
+							className="px-3 py-1.5 rounded-md bg-gray-200 text-gray-800 disabled:opacity-60 disabled:cursor-not-allowed hover:bg-gray-300 cursor-pointer"
 						>
 							{bmLoading === 'remove' ? '삭제 중…' : '북마크 제거'}
 						</button>
@@ -137,7 +137,7 @@ export default function SidePanel({ place, onClose, onBookmarkChange, isBookmark
 				</div>
 
 				<p className="text-xs text-gray-500">
-					* 북마크 기능은 로그인 후 이용할 수 있어요. (JWT 쿠키 기반)
+					* 북마크 기능은 로그인 후 이용할 수 있어요.
 				</p>
 			</div>
 		</aside>

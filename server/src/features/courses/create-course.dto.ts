@@ -105,7 +105,7 @@ export class CreateCourseDto {
 				order: 2,
 				name: '창덕궁',
 				lat: 37.5794,
-				lng: 126.9910,
+				lng: 126.991,
 				externalId: 'ChIJa9YXOH-hfDURdLNNbOWQyIk',
 			},
 		],

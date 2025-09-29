@@ -42,7 +42,17 @@
 			"start_tracking": "Start Real-time Tracking",
 			"stop_tracking": "Stop Tracking"
 		},
-		"nearby_radius": "Nearby Radius"
+		"nearby_radius": "Nearby Radius",
+		"empty": {
+			"login_required_title": "Login Required",
+			"login_required_message": "Bookmark feature is available after login.",
+			"login_button": "Login",
+			"no_bookmarks_title": "No Bookmarked Places",
+			"no_bookmarks_message": "Bookmark your favorite places on K-Map!",
+			"no_bookmarks_hint": "Click the 'Add Bookmark' button on the place detail page.",
+			"no_results_title": "No Search Results",
+			"no_results_message": "Try a different search term."
+		}
 	},
 	"features": {
 		"kmap": {
@@ -101,9 +111,13 @@
 	},
 	"planner": {
 		"search": {
+			"label": "Search Places",
 			"placeholder": "Search places (En/Ko)",
 			"button": "Search",
-			"add": "Add"
+			"searching": "Searching...",
+			"add": "Add",
+			"added": "Added",
+			"results": "Search Results ({{count}})"
 		},
 		"course": {
 			"title": "My Course",

@@ -17,7 +17,7 @@ export type UserRole = 'user' | 'admin'
 
 /**
  * User 엔티티 - Google OAuth 2.0 최적화된 사용자 관리
- * 
+ *
  * 주요 특징:
  * - Google OAuth 2.0을 통한 사용자 인증 및 기본 정보 관리
  * - 내부 ID와 Google ID를 분리하여 성능 최적화 및 확장성 확보
@@ -81,12 +81,12 @@ export class User {
 	 * 값: 'user' (일반 사용자), 'admin' (관리자)
 	 * 기본값: 'user' (일반 사용자로 기본 설정)
 	 */
-	@Column({ 
-		type: 'enum', 
-		enum: ['user', 'admin'], 
-		name: 'role', 
-		nullable: false, 
-		default: 'user' 
+	@Column({
+		type: 'enum',
+		enum: ['user', 'admin'],
+		name: 'role',
+		nullable: false,
+		default: 'user',
 	})
 	role!: UserRole
 
@@ -105,5 +105,4 @@ export class User {
 	 */
 	@UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
 	updated_at!: Date
-
 }

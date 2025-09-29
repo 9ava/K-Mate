@@ -42,7 +42,17 @@
 			"start_tracking": "开始实时定位",
 			"stop_tracking": "停止定位"
 		},
-		"nearby_radius": "附近半径"
+		"nearby_radius": "附近半径",
+		"empty": {
+			"login_required_title": "需要登录",
+			"login_required_message": "书签功能需要登录后使用。",
+			"login_button": "登录",
+			"no_bookmarks_title": "没有收藏的地点",
+			"no_bookmarks_message": "在K-Map上收藏您喜欢的地点吧！",
+			"no_bookmarks_hint": "在地点详情页点击"添加收藏"按钮即可。",
+			"no_results_title": "没有搜索结果",
+			"no_results_message": "请尝试其他搜索词。"
+		}
 	},
 	"features": {
 		"kmap": {
@@ -101,9 +111,13 @@
 	},
 	"planner": {
 		"search": {
+			"label": "搜索地点",
 			"placeholder": "搜索地点(中/韩/英)",
 			"button": "搜索",
-			"add": "添加"
+			"searching": "搜索中...",
+			"add": "添加",
+			"added": "已添加",
+			"results": "搜索结果 ({{count}}个)"
 		},
 		"course": {
 			"title": "我的路线",

@@ -15,11 +15,9 @@ import { AdminModule } from './features/admin/admin.module'
 import { MypageModule } from './features/mypage/mypage.module'
 import { S3Module } from './s3/s3.module'
 
-
-
 /**
  * App Module - K-Buzz 애플리케이션 메인 모듈
- * 
+ *
  * 주요 기능:
  * - 전역 설정 관리 (환경변수, 데이터베이스)
  * - 인증 시스템 (Google OAuth + JWT)
@@ -33,16 +31,15 @@ import { S3Module } from './s3/s3.module'
 		// DB설정은 DatabaseModule에서 import
 		DatabaseModule,
 
-
 		// features - ERD 구조에 따른 모듈 구성
-		AuthModule,           // 인증 시스템 (Google OAuth + JWT)
+		AuthModule, // 인증 시스템 (Google OAuth + JWT)
 		PlacesModule,
 		PostsModule,
 		InteractionsModule,
 		CommentsModule,
 		CoursesModule,
 		AdminModule,
-		MypageModule,         // 마이페이지 기능
+		MypageModule, // 마이페이지 기능
 		S3Module,
 	],
 	controllers: [AppController],

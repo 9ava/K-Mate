@@ -1,14 +1,5 @@
 // src/features/mypage/mypage.controller.ts - 마이페이지 컨트롤러
-import {
-	Controller,
-	Get,
-	Put,
-	Query,
-	Req,
-	UseGuards,
-	ParseIntPipe,
-	Body,
-} from '@nestjs/common'
+import { Controller, Get, Put, Query, Req, UseGuards, ParseIntPipe, Body } from '@nestjs/common'
 import type { Request } from 'express'
 import {
 	ApiTags,
@@ -65,7 +56,9 @@ export class MypageController {
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
 	@Get('stats')
-	async getUserActivityStats(@Req() req: Request): Promise<{ success: boolean; data: UserActivityStatsDto }> {
+	async getUserActivityStats(
+		@Req() req: Request
+	): Promise<{ success: boolean; data: UserActivityStatsDto }> {
 		const userId = (req.user as any)?.id as number
 		const data = await this.mypageService.getUserActivityStats(userId)
 		return { success: true, data }
@@ -88,7 +81,7 @@ export class MypageController {
 							name: '경복궁',
 							address: '서울특별시 종로구 사직로 161',
 							lat: 37.5796,
-							lng: 126.9770,
+							lng: 126.977,
 							googleMapsUrl: 'https://maps.google.com/...',
 							type: 'travel',
 							createdAt: '2024-01-15T10:30:00Z',
@@ -102,7 +95,12 @@ export class MypageController {
 		},
 	})
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10, 최대: 100)',
+	})
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
 	@Get('bookmarks')
@@ -149,7 +147,12 @@ export class MypageController {
 		},
 	})
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10, 최대: 100)',
+	})
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
 	@Get('scraps')
@@ -194,7 +197,12 @@ export class MypageController {
 		},
 	})
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10, 최대: 100)',
+	})
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
 	@Get('posts')
@@ -243,7 +251,12 @@ export class MypageController {
 		},
 	})
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10, 최대: 100)',
+	})
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
 	@Get('comments')
@@ -319,7 +332,12 @@ export class MypageController {
 		},
 	})
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10, 최대: 100)',
+	})
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
 	@Get('courses')
@@ -368,7 +386,12 @@ export class MypageController {
 		},
 	})
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10, 최대: 100)',
+	})
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
 	@Get('saved-courses')
@@ -421,7 +444,12 @@ export class MypageController {
 		},
 	})
 	@ApiQuery({ name: 'page', required: false, type: Number, description: '페이지 번호 (기본: 1)' })
-	@ApiQuery({ name: 'limit', required: false, type: Number, description: '페이지당 항목 수 (기본: 10, 최대: 100)' })
+	@ApiQuery({
+		name: 'limit',
+		required: false,
+		type: Number,
+		description: '페이지당 항목 수 (기본: 10, 최대: 100)',
+	})
 	@ApiUnauthorizedResponse({ description: '로그인이 필요합니다' })
 	@ApiNotFoundResponse({ description: '사용자를 찾을 수 없습니다' })
 	@Get('course-comments')
@@ -433,5 +461,4 @@ export class MypageController {
 		const data = await this.mypageService.getMyCourseComments(userId, query)
 		return { success: true, data }
 	}
-
 }

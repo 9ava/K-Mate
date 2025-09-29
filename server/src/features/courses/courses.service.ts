@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common'
+import {
+	Injectable,
+	NotFoundException,
+	ForbiddenException,
+	BadRequestException,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, DataSource } from 'typeorm'
 import { Course } from './course.entity'
@@ -25,7 +30,7 @@ export class CoursesService {
 	 * 새로운 여행 코스 생성
 	 * - 트랜잭션으로 Course와 CourseStop을 원자적으로 생성
 	 * - stops 배열의 order 순서대로 경유지 저장
-	 * 
+	 *
 	 * @param dto 코스 생성 데이터
 	 * @param authorId 작성자 ID
 	 * @returns 생성된 코스 정보 (id, title)
@@ -63,7 +68,7 @@ export class CoursesService {
 	 * 특정 코스 상세 조회
 	 * - 코스와 경유지, 작성자 정보를 함께 조회
 	 * - 비공개 코스는 작성자만 접근 가능
-	 * 
+	 *
 	 * @param id 조회할 코스 ID
 	 * @param requesterId 요청자 ID (옵셔널)
 	 * @returns 코스 상세 정보
@@ -76,7 +81,7 @@ export class CoursesService {
 			relations: ['author', 'stops'],
 			order: { stops: { order: 'ASC' } }, // 경유지를 순서대로 정렬
 		})
-		
+
 		if (!course) {
 			throw new NotFoundException('Course not found')
 		}
@@ -85,7 +90,7 @@ export class CoursesService {
 		if (course.visibility === 'private' && String(course.authorId) !== String(requesterId)) {
 			throw new ForbiddenException('Access denied to private course')
 		}
-		
+
 		return course
 	}
 
@@ -93,7 +98,7 @@ export class CoursesService {
 	 * 특정 사용자의 코스 목록 조회
 	 * - 작성자 본인의 모든 코스 (공개/비공개 포함)
 	 * - 최신 생성일 순으로 정렬
-	 * 
+	 *
 	 * @param authorId 작성자 ID
 	 * @returns 해당 사용자의 코스 목록
 	 */
@@ -109,7 +114,7 @@ export class CoursesService {
 	 * 공개 코스 목록 조회 (페이지네이션)
 	 * - visibility='public'인 코스만 반환
 	 * - 광고가 먼저, 그 다음 최신 생성일 순으로 정렬
-	 * 
+	 *
 	 * @param page 페이지 번호 (1부터 시작)
 	 * @param limit 페이지당 항목 수
 	 * @returns 공개 코스 목록과 페이지네이션 정보
@@ -118,9 +123,9 @@ export class CoursesService {
 		const [courses, total] = await this.courseRepo.findAndCount({
 			where: { visibility: 'public' },
 			relations: ['author', 'stops'],
-			order: { 
-				isAdvertisement: 'DESC',  // 광고를 먼저 정렬
-				created_at: 'DESC'        // 그 다음 최신순
+			order: {
+				isAdvertisement: 'DESC', // 광고를 먼저 정렬
+				created_at: 'DESC', // 그 다음 최신순
 			},
 			skip: (page - 1) * limit,
 			take: limit,
@@ -141,7 +146,7 @@ export class CoursesService {
 	 * 관리자용 모든 코스 목록 조회 (페이지네이션)
 	 * - 공개/비공개 모든 코스 반환
 	 * - 광고가 먼저, 그 다음 최신 생성일 순으로 정렬
-	 * 
+	 *
 	 * @param page 페이지 번호 (1부터 시작)
 	 * @param limit 페이지당 항목 수
 	 * @returns 모든 코스 목록과 페이지네이션 정보
@@ -150,9 +155,9 @@ export class CoursesService {
 		const [courses, total] = await this.courseRepo.findAndCount({
 			// visibility 조건 없음 - 모든 코스 조회
 			relations: ['author', 'stops'],
-			order: { 
-				isAdvertisement: 'DESC',  // 광고를 먼저 정렬
-				created_at: 'DESC'        // 그 다음 최신순
+			order: {
+				isAdvertisement: 'DESC', // 광고를 먼저 정렬
+				created_at: 'DESC', // 그 다음 최신순
 			},
 			skip: (page - 1) * limit,
 			take: limit,
@@ -173,7 +178,7 @@ export class CoursesService {
 	 * 코스 업데이트
 	 * - 작성자만 수정 가능
 	 * - 기존 경유지들을 삭제하고 새로운 경유지들로 교체
-	 * 
+	 *
 	 * @param id 수정할 코스 ID
 	 * @param dto 수정할 코스 데이터
 	 * @param requesterId 요청자 ID
@@ -229,7 +234,7 @@ export class CoursesService {
 	 * 코스 삭제
 	 * - 작성자만 삭제 가능
 	 * - 관련된 경유지들도 함께 삭제 (CASCADE)
-	 * 
+	 *
 	 * @param id 삭제할 코스 ID
 	 * @param requesterId 요청자 ID
 	 */
@@ -250,7 +255,7 @@ export class CoursesService {
 	 * - 다른 사용자의 코스를 내 목록에 저장
 	 * - 자신의 코스는 저장할 수 없음
 	 * - 이미 저장한 코스는 중복 저장 불가
-	 * 
+	 *
 	 * @param courseId 저장할 코스 ID
 	 * @param userId 사용자 ID
 	 */
@@ -268,7 +273,7 @@ export class CoursesService {
 
 		// 3. 이미 저장했는지 확인
 		const existing = await this.savedCourseRepo.findOne({
-			where: { courseId: Number(course.id), userId: Number(userId) }
+			where: { courseId: Number(course.id), userId: Number(userId) },
 		})
 		if (existing) {
 			throw new BadRequestException('Course already saved')
@@ -282,15 +287,15 @@ export class CoursesService {
 		await this.savedCourseRepo.save(savedCourse)
 
 		// 5. 저장 횟수 증가
-		await this.courseRepo.update(courseId, { 
-			saveCount: () => 'save_count + 1' 
+		await this.courseRepo.update(courseId, {
+			saveCount: () => 'save_count + 1',
 		})
 	}
 
 	/**
 	 * 코스 저장 취소
 	 * - 저장했던 코스를 내 목록에서 제거
-	 * 
+	 *
 	 * @param courseId 저장 취소할 코스 ID
 	 * @param userId 사용자 ID
 	 */
@@ -299,13 +304,14 @@ export class CoursesService {
 			courseId: Number(courseId),
 			userId: Number(userId),
 		})
-		
+
 		if (result.affected === 0) {
 			throw new NotFoundException('Saved course not found')
 		}
 
 		// 저장 횟수 감소 (0 이하로는 내려가지 않게)
-		await this.courseRepo.createQueryBuilder()
+		await this.courseRepo
+			.createQueryBuilder()
 			.update(Course)
 			.set({ saveCount: () => 'GREATEST(save_count - 1, 0)' })
 			.where('id = :id', { id: courseId })
@@ -316,7 +322,7 @@ export class CoursesService {
 	 * 저장된 코스 목록 조회
 	 * - 내가 저장한 다른 사용자의 코스들
 	 * - 최신 저장일 순으로 정렬
-	 * 
+	 *
 	 * @param userId 사용자 ID
 	 * @returns 저장된 코스 목록
 	 */
@@ -327,13 +333,13 @@ export class CoursesService {
 			order: { savedAt: 'DESC' },
 		})
 
-		return savedCourses.map(sc => sc.course)
+		return savedCourses.map((sc) => sc.course)
 	}
 
 	/**
 	 * 코스 광고 상태 토글
 	 * - 관리자만 수행 가능
-	 * 
+	 *
 	 * @param id 코스 ID
 	 * @param isAdvertisement 광고 설정 여부
 	 */
@@ -352,7 +358,7 @@ export class CoursesService {
 	/**
 	 * 코스 공개/비공개 상태 토글
 	 * - 관리자만 수행 가능
-	 * 
+	 *
 	 * @param id 코스 ID
 	 * @param visibility 공개 설정 ('public' | 'private')
 	 */
@@ -371,7 +377,7 @@ export class CoursesService {
 	/**
 	 * 코스 공유
 	 * - 공유 횟수를 증가시킴
-	 * 
+	 *
 	 * @param courseId 공유할 코스 ID
 	 */
 	async shareCourse(courseId: string) {
@@ -381,8 +387,8 @@ export class CoursesService {
 		}
 
 		// 공유 횟수 증가
-		await this.courseRepo.update(courseId, { 
-			shareCount: () => 'share_count + 1' 
+		await this.courseRepo.update(courseId, {
+			shareCount: () => 'share_count + 1',
 		})
 
 		return course
@@ -392,14 +398,14 @@ export class CoursesService {
 	 * 월별 Best 코스 조회
 	 * - 전체 기간 중 공유 + 저장 횟수 기준으로 인기 코스 조회
 	 * - 광고 코스가 먼저 표시됨
-	 * 
+	 *
 	 * @param limit 조회할 개수 (기본값: 9)
 	 * @returns 인기 코스 목록 (월별 Best)
 	 */
 	async getMonthlyBestCourses(year?: number, month?: number, limit: number = 9) {
 		try {
 			// year, month 파라미터는 호환성을 위해 유지하지만 실제로는 사용하지 않음
-			
+
 			const courses = await this.courseRepo
 				.createQueryBuilder('course')
 				.leftJoinAndSelect('course.author', 'author')
@@ -424,7 +430,7 @@ export class CoursesService {
 					.orderBy('course.created_at', 'DESC')
 					.limit(limit)
 					.getMany()
-				
+
 				return fallbackCourses
 			} catch (fallbackError) {
 				console.error('Fallback query also failed:', fallbackError)

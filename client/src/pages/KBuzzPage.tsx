@@ -4,15 +4,16 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../features/auth/auth.store'
 import { useContentStore } from '../features/content/content.store'
 import { fetchPosts, createPost, type KBuzzList } from '../api/kbuzz'
-import { toKstFromUtcShort } from '../lib/date'
+import { toKmtFromUtcShort } from '../lib/date'
 import { uploadToS3, generateCommunityImageKey, validateImageFile } from '../api/s3'
+import LoginRequiredModal from '../components/common/LoginRequiredModal'
 
 /* ----------------------- Types ----------------------- */
 interface Article {
 	id: number
 	title: string
 	author: string
-	image?: string
+	image?: string | null
 }
 
 interface Post {
@@ -25,29 +26,7 @@ interface Post {
 	imageUrl?: string
 }
 
-/* ---------- trend 카드용 임시 이미지 플레이스홀더 ---------- */
-const TREND_PLACEHOLDERS = [
-	'https://picsum.photos/800/500?1',
-	'https://picsum.photos/800/500?2',
-	'https://picsum.photos/800/500?3',
-	'https://picsum.photos/800/500?4',
-	'https://picsum.photos/800/500?5',
-	'https://picsum.photos/800/500?6',
-	'https://picsum.photos/800/500?7',
-	'https://picsum.photos/800/500?8',
-	'https://picsum.photos/800/500?9',
-	'https://picsum.photos/800/500?10',
-]
 
-/* ---------- trend 카드용 임시 이미지 (하드코딩) ---------- */
-// 🟢 각 게시글의 실제 ID에 맞춰 URL을 넣어 주세요.
-const TREND_IMAGE_BY_ID: Record<number, string> = {
-	38: 'https://s3.amazonaws.com/shecodesio-production/uploads/files/000/076/597/original/gimbap.jpg?1681263447', // Kimbap
-	32: 'https://ik.imagekit.io/umhihello/Chuseok/Pages/Hanbok/hanbok-3.jpg?updatedAt=1740718178774', // Hanbok
-	31: 'https://softervolumes.com/wp-content/uploads/2021/12/Dorrell-Coffee-6z4-Seoul-2.jpg', // Cafe
-	30: 'https://blog.delivered.co.kr/wp-content/uploads/2025/01/featured-2025-drama.jpg', // Webtoons
-	3: 'https://ychef.files.bbci.co.uk/1280x720/p0lq9155.jpg', // K-Pop
-}
 
 export default function KBuzzPage() {
 	const navigate = useNavigate()
@@ -57,7 +36,6 @@ export default function KBuzzPage() {
 	const user = useAuthStore((s) => s.user)
 	const ready = useAuthStore((s) => s.ready)
 	const bootstrap = useAuthStore((s) => s.bootstrap)
-	const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle)
 
 	// 📰 콘텐츠 스토어 (트렌드 아티클용)
 	const { trendArticles, loadTrendArticles } = useContentStore()
@@ -86,16 +64,13 @@ export default function KBuzzPage() {
 		loadData()
 	}, [loadTrendArticles])
 
-	// 트렌드 아티클을 Article 형태로 매핑 (기존 UI 호환성을 위해)
-	const articles: Article[] = trendArticles.map((article, idx) => ({
+	// 트렌드 아티클을 Article 형태로 매핑 (데이터베이스 이미지만 사용)
+	const articles: Article[] = trendArticles.map((article) => ({
 		id: article.id,
 		title: article.title,
 		author: article.author,
-		// 어드민에서 설정한 이미지 우선 사용, 없으면 하드코딩 맵, 최후 플레이스홀더
-		image:
-			article.image ||
-			TREND_IMAGE_BY_ID[article.id] ||
-			TREND_PLACEHOLDERS[idx % TREND_PLACEHOLDERS.length],
+		// 데이터베이스에 저장된 이미지만 사용
+		image: article.image,
 	}))
 
 	/* ---- Community: 서버에서 community 목록 + 페이지네이션 ---- */
@@ -120,7 +95,7 @@ export default function KBuzzPage() {
 						id: it.id,
 						title: it.title,
 						author: it.author.name,
-						createdAt: toKstFromUtcShort(it.createdAt),
+						createdAt: toKmtFromUtcShort(it.createdAt),
 						replies: it.commentCount,
 					}))
 				)
@@ -148,6 +123,7 @@ export default function KBuzzPage() {
 
 	/* ---- 새 글 모달 ---- */
 	const [open, setOpen] = useState(false)
+	const [showLoginModal, setShowLoginModal] = useState(false)
 	const [draft, setDraft] = useState<{ title: string; content: string }>({
 		title: '',
 		content: '',
@@ -212,7 +188,7 @@ export default function KBuzzPage() {
 	}
 	const handleCreate = () => {
 		if (!user) {
-			loginWithGoogle()
+			setShowLoginModal(true)
 			return
 		}
 		setOpen(true)
@@ -306,11 +282,22 @@ export default function KBuzzPage() {
 										onClick={() => navigate(`/buzz/trend/${article.id}`)}
 										className="relative shrink-0 w-[240px] rounded-xl overflow-hidden shadow hover:shadow-lg transition cursor-pointer"
 									>
-										<img
-											src={article.image}
-											alt={article.title}
-											className="w-full h-40 object-cover cursor-pointer"
-										/>
+										{article.image ? (
+											<img
+												src={article.image}
+												alt={article.title}
+												className="w-full h-40 object-cover cursor-pointer"
+											/>
+										) : (
+											<div className="w-full h-40 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+												<div className="text-center">
+													<svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+													</svg>
+													<span className="text-xs text-gray-500">K-Trend</span>
+												</div>
+											</div>
+										)}
 										<div className="p-3 bg-gradient-to-b from-gray-800 to-gray-900 text-white h-24 flex flex-col justify-end">
 											<h3 className="font-semibold text-sm leading-snug line-clamp-2">
 												{article.title}
@@ -413,7 +400,7 @@ export default function KBuzzPage() {
 							<button
 								onClick={handleClose}
 								aria-label="close"
-								className="h-8 w-8 rounded-full border text-gray-600 hover:bg-gray-50"
+								className="h-8 w-8 rounded-full border text-gray-600 hover:bg-gray-50 cursor-pointer"
 							>
 								✕
 							</button>
@@ -454,7 +441,7 @@ export default function KBuzzPage() {
 											<button
 												type="button"
 												onClick={handlePickClick}
-												className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50 text-left"
+												className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50 text-left cursor-pointer"
 											>
 												파일 선택
 											</button>
@@ -533,13 +520,13 @@ export default function KBuzzPage() {
 								<button
 									type="button"
 									onClick={handleClose}
-									className="px-4 py-2 rounded-lg border hover:bg-gray-50"
+									className="px-4 py-2 rounded-lg border hover:bg-gray-50 cursor-pointer"
 								>
 									Cancel
 								</button>
 								<button
 									type="submit"
-									className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+									className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
 									disabled={!user || uploading}
 									title={!user ? '로그인 후 작성할 수 있어요' : uploading ? '업로드 중...' : undefined}
 								>
@@ -556,6 +543,13 @@ export default function KBuzzPage() {
 					</div>
 				</div>
 			)}
+
+			{/* ===== 로그인 필요 모달 ===== */}
+			<LoginRequiredModal
+				isOpen={showLoginModal}
+				onClose={() => setShowLoginModal(false)}
+				message="게시글을 작성하려면 로그인이 필요합니다."
+			/>
 		</div>
 	)
 }

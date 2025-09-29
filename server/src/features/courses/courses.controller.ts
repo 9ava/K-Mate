@@ -1,4 +1,15 @@
-import { Controller, Post, Body, UseGuards, Req, Get, Query, Param, Put, Delete } from '@nestjs/common'
+import {
+	Controller,
+	Post,
+	Body,
+	UseGuards,
+	Req,
+	Get,
+	Query,
+	Param,
+	Put,
+	Delete,
+} from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 import { JwtService } from '@nestjs/jwt'
 import {
@@ -182,12 +193,12 @@ export class CoursesController {
 		if (me === 'true') {
 			const myCourses = await this.coursesService.findMine(String(req.user.id))
 			const savedCourses = await this.coursesService.getSavedCourses(String(req.user.id))
-			return { 
-				success: true, 
+			return {
+				success: true,
 				data: {
 					myCourses,
 					savedCourses,
-				}
+				},
 			}
 		}
 		// 공개 코스 목록 등 확장 가능
@@ -286,15 +297,15 @@ export class CoursesController {
 			month ? Number(month) : undefined,
 			limit ? Number(limit) : 9
 		)
-		
-		return { 
-			success: true, 
+
+		return {
+			success: true,
 			data: courses,
 			meta: {
 				year: year ?? new Date().getFullYear(),
 				month: month ?? new Date().getMonth() + 1,
 				limit: limit ?? 9,
-			}
+			},
 		}
 	}
 
@@ -336,10 +347,10 @@ export class CoursesController {
 		try {
 			// JWT 쿠키에서 사용자 ID 추출
 			let userId: string | undefined = undefined
-			
+
 			try {
 				const token = req.cookies?.access_token
-				
+
 				if (token) {
 					const payload = await this.jwt.verifyAsync(token, { secret: process.env.JWT_SECRET! })
 					userId = payload.sub
@@ -347,7 +358,7 @@ export class CoursesController {
 			} catch (jwtError) {
 				// JWT 검증 실패해도 public 코스는 접근 가능하므로 계속 진행
 			}
-			
+
 			const course = await this.coursesService.findOne(id, userId)
 			return { success: true, data: course }
 		} catch (error) {

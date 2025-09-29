@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMapStore } from '../../features/map/map.store'
 import { useAuth } from '../../features/auth/useAuth'
+import { getGoogleMapsLoader } from '../../lib/map/googleMapsLoader'
 
 // Use Google Maps API types directly
 type PlaceResult = google.maps.places.PlaceResult
@@ -17,6 +18,7 @@ export default function AddMarkerPage() {
 	const [searchResults, setSearchResults] = useState<PlaceResult[]>([])
 	const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null)
 	const [isLoading, setIsLoading] = useState(false)
+	const [mapLoading, setMapLoading] = useState(true)
 	const [markers, setMarkers] = useState<google.maps.Marker[]>([])
 
 	// Form data for new marker
@@ -83,41 +85,70 @@ export default function AddMarkerPage() {
 	}
 
 	useEffect(() => {
-		// Initialize Google Maps
-		if (!window.google || !mapRef.current) return
+		// Initialize Google Maps using the loader
+		let isMounted = true
+		const initializeMap = async () => {
+			try {
+				if (!mapRef.current) return
 
-		const mapInstance = new google.maps.Map(mapRef.current, {
-			center: { lat: 37.5665, lng: 126.9780 }, // Seoul center
-			zoom: 13,
-			mapTypeControl: true,
-			streetViewControl: true,
-			fullscreenControl: true,
-		})
+				const loader = getGoogleMapsLoader()
 
-		const placesServiceInstance = new google.maps.places.PlacesService(mapInstance)
+				// Load the maps and places libraries
+				await loader.load()
 
-		setMap(mapInstance)
-		setPlacesService(placesServiceInstance)
+				if (!isMounted) return
 
-		// Initialize autocomplete
-		if (searchInputRef.current) {
-			const autocomplete = new google.maps.places.Autocomplete(searchInputRef.current, {
-				componentRestrictions: { country: 'kr' }, // Restrict to South Korea
-				fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types', 'photos', 'rating', 'business_status']
-			})
+				const mapInstance = new google.maps.Map(mapRef.current, {
+					center: { lat: 37.5665, lng: 126.9780 }, // Seoul center
+					zoom: 13,
+					mapTypeControl: true,
+					streetViewControl: true,
+					fullscreenControl: true,
+				})
 
-			autocomplete.addListener('place_changed', () => {
-				const place = autocomplete.getPlace()
-				if (place.place_id) {
-					handlePlaceSelection(place)
+				const placesServiceInstance = new google.maps.places.PlacesService(mapInstance)
+
+				setMap(mapInstance)
+				setPlacesService(placesServiceInstance)
+				setMapLoading(false)
+
+				// Initialize autocomplete
+				if (searchInputRef.current && isMounted) {
+					const autocomplete = new google.maps.places.Autocomplete(searchInputRef.current, {
+						componentRestrictions: { country: 'kr' }, // Restrict to South Korea
+						fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types', 'photos', 'rating', 'business_status']
+					})
+
+					autocomplete.addListener('place_changed', () => {
+						const place = autocomplete.getPlace()
+						if (place.place_id && isMounted) {
+							handlePlaceSelection(place)
+						}
+					})
 				}
-			})
+			} catch (error) {
+				console.error('Failed to initialize Google Maps:', error)
+				if (isMounted) {
+					setMapLoading(false)
+					alert('Google Maps를 로드하는데 실패했습니다. 페이지를 새로고침해주세요.')
+				}
+			}
+		}
+
+		initializeMap()
+
+		return () => {
+			isMounted = false
 		}
 	}, [])
 
 	const searchPlaces = (query: string) => {
-		if (!placesService || !query.trim()) return
+		if (!placesService || !query.trim()) {
+			console.warn('Search cancelled: placesService not ready or empty query')
+			return
+		}
 
+		console.log('Searching for:', query)
 		setIsLoading(true)
 
 		const request = {
@@ -127,11 +158,26 @@ export default function AddMarkerPage() {
 		}
 
 		placesService.textSearch(request, (results, status) => {
+			console.log('Search results:', { status, results: results?.length || 0 })
 			setIsLoading(false)
+
 			if (status === google.maps.places.PlacesServiceStatus.OK && results) {
 				setSearchResults(results.slice(0, 10)) // Limit to 10 results
+				console.log('Search successful, found:', results.length, 'places')
 			} else {
 				setSearchResults([])
+				console.warn('Search failed or no results:', status)
+
+				// Show user-friendly error message
+				if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+					alert('검색 결과가 없습니다. 다른 키워드로 검색해보세요.')
+				} else if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+					alert('검색 한도가 초과되었습니다. 잠시 후 다시 시도해주세요.')
+				} else if (status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+					alert('검색 권한이 거부되었습니다. API 키를 확인해주세요.')
+				} else if (status === google.maps.places.PlacesServiceStatus.INVALID_REQUEST) {
+					alert('잘못된 검색 요청입니다. 올바른 장소명을 입력해주세요.')
+				}
 			}
 		})
 	}
@@ -280,10 +326,10 @@ export default function AddMarkerPage() {
 											searchPlaces(searchInputRef.current.value)
 										}
 									}}
-									disabled={isLoading}
+									disabled={isLoading || mapLoading}
 									className="w-full px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 disabled:bg-gray-400"
 								>
-									{isLoading ? '검색 중...' : '검색'}
+									{mapLoading ? 'Google Maps 로딩 중...' : isLoading ? '검색 중...' : '검색'}
 								</button>
 							</div>
 
@@ -407,10 +453,20 @@ export default function AddMarkerPage() {
 							<h2 className="text-lg font-semibold">지도 미리보기</h2>
 							<p className="text-sm text-gray-600">검색한 장소가 지도에 표시됩니다</p>
 						</div>
-						<div
-							ref={mapRef}
-							className="w-full h-96 lg:h-[600px] rounded-b-lg"
-						/>
+						<div className="relative">
+							{mapLoading && (
+								<div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-b-lg z-10">
+									<div className="text-center">
+										<div className="w-8 h-8 mx-auto mb-4 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+										<p className="text-gray-600">Google Maps를 로딩 중...</p>
+									</div>
+								</div>
+							)}
+							<div
+								ref={mapRef}
+								className="w-full h-96 lg:h-[600px] rounded-b-lg"
+							/>
+						</div>
 					</div>
 				</div>
 			</div>

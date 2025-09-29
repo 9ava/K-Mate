@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, Index, Column } from 'typeorm'
+import {
+	Entity,
+	PrimaryGeneratedColumn,
+	ManyToOne,
+	JoinColumn,
+	CreateDateColumn,
+	Index,
+	Column,
+} from 'typeorm'
 import { Course } from './course.entity'
 import { User } from '../users/user.entity'
 

@@ -96,15 +96,15 @@ export class AuthService {
 	}
 
 	async findAll(): Promise<User[]> {
-		return this.users.find();
+		return this.users.find()
 	}
 
 	async createAdmin(email: string) {
-		let user = await this.users.findOne({ where: { email } });
+		let user = await this.users.findOne({ where: { email } })
 
 		if (user) {
-			user.role = 'admin';
-			await this.users.save(user);
+			user.role = 'admin'
+			await this.users.save(user)
 		} else {
 			user = this.users.create({
 				email,
@@ -112,27 +112,27 @@ export class AuthService {
 				google_sub: `admin_${email}`, // Placeholder
 				name: 'Admin User',
 				email_verified: 1,
-			});
-			await this.users.save(user);
+			})
+			await this.users.save(user)
 		}
 
-		return user;
+		return user
 	}
 
 	async updateUserRole(id: number, role: 'user' | 'admin'): Promise<User> {
-		const user = await this.users.findOne({ where: { id } });
+		const user = await this.users.findOne({ where: { id } })
 		if (!user) {
-			throw new Error('User not found');
+			throw new Error('User not found')
 		}
-		user.role = role;
-		return this.users.save(user);
+		user.role = role
+		return this.users.save(user)
 	}
 
 	async deleteUser(id: number): Promise<void> {
-		const user = await this.users.findOne({ where: { id } });
+		const user = await this.users.findOne({ where: { id } })
 		if (!user) {
-			throw new Error('User not found');
+			throw new Error('User not found')
 		}
-		await this.users.remove(user);
+		await this.users.remove(user)
 	}
 }

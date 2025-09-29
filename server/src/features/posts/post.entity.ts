@@ -65,7 +65,7 @@ export class Post {
 	@Column({
 		name: 'image_url',
 		type: 'text',
-		nullable: true
+		nullable: true,
 	})
 	imageUrl?: string
 

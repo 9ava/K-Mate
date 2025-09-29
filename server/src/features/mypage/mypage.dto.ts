@@ -40,7 +40,13 @@ export class PaginationQueryDto {
 	@Min(1)
 	page?: number = 1
 
-	@ApiProperty({ description: '페이지당 항목 수', required: false, default: 10, minimum: 1, maximum: 100 })
+	@ApiProperty({
+		description: '페이지당 항목 수',
+		required: false,
+		default: 10,
+		minimum: 1,
+		maximum: 100,
+	})
 	@IsOptional()
 	@Type(() => Number)
 	@IsNumber()

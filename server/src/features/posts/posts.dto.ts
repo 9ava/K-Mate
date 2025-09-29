@@ -13,23 +13,26 @@ export class CreatePostDto {
 	@IsNotEmpty()
 	title!: string
 
-	@ApiProperty({ description: '게시글 내용', example: '서울에서 꼭 가봐야 할 맛집들을 소개합니다.' })
+	@ApiProperty({
+		description: '게시글 내용',
+		example: '서울에서 꼭 가봐야 할 맛집들을 소개합니다.',
+	})
 	@IsString()
 	@IsNotEmpty()
 	content!: string
 
-	@ApiProperty({ 
+	@ApiProperty({
 		description: '게시글 타입',
 		enum: ['community', 'tips', 'trend'],
-		example: 'community'
+		example: 'community',
 	})
 	@IsEnum(['community', 'tips', 'trend'])
 	postType!: PostType
 
-	@ApiPropertyOptional({ 
+	@ApiPropertyOptional({
 		description: '게시글 카테고리',
 		enum: ['travel_tip', 'food_review', 'cafe_review', 'general'],
-		example: 'food_review'
+		example: 'food_review',
 	})
 	@IsOptional()
 	@IsEnum(['travel_tip', 'food_review', 'cafe_review', 'general'])
@@ -38,7 +41,7 @@ export class CreatePostDto {
 	@ApiPropertyOptional({
 		description: '게시글 상태',
 		enum: ['published', 'draft', 'hidden'],
-		default: 'published'
+		default: 'published',
 	})
 	@IsOptional()
 	@IsEnum(['published', 'draft', 'hidden'])
@@ -46,7 +49,7 @@ export class CreatePostDto {
 
 	@ApiPropertyOptional({
 		description: '이미지 URL (S3 등)',
-		example: 'https://example.com/image.jpg'
+		example: 'https://example.com/image.jpg',
 	})
 	@IsOptional()
 	@IsString()
@@ -63,15 +66,18 @@ export class UpdatePostDto {
 	@IsNotEmpty()
 	title?: string
 
-	@ApiPropertyOptional({ description: '게시글 내용', example: '서울에서 꼭 가봐야 할 맛집들을 소개합니다. (수정된 내용)' })
+	@ApiPropertyOptional({
+		description: '게시글 내용',
+		example: '서울에서 꼭 가봐야 할 맛집들을 소개합니다. (수정된 내용)',
+	})
 	@IsOptional()
 	@IsString()
 	@IsNotEmpty()
 	content?: string
 
-	@ApiPropertyOptional({ 
+	@ApiPropertyOptional({
 		description: '게시글 카테고리',
-		enum: ['travel_tip', 'food_review', 'cafe_review', 'general']
+		enum: ['travel_tip', 'food_review', 'cafe_review', 'general'],
 	})
 	@IsOptional()
 	@IsEnum(['travel_tip', 'food_review', 'cafe_review', 'general'])
@@ -79,7 +85,7 @@ export class UpdatePostDto {
 
 	@ApiPropertyOptional({
 		description: '게시글 상태',
-		enum: ['published', 'draft', 'hidden']
+		enum: ['published', 'draft', 'hidden'],
 	})
 	@IsOptional()
 	@IsEnum(['published', 'draft', 'hidden'])
@@ -87,7 +93,7 @@ export class UpdatePostDto {
 
 	@ApiPropertyOptional({
 		description: '이미지 URL (S3 등)',
-		example: 'https://example.com/image.jpg'
+		example: 'https://example.com/image.jpg',
 	})
 	@IsOptional()
 	@IsString()
@@ -98,25 +104,25 @@ export class UpdatePostDto {
  * 게시글 조회 쿼리 DTO
  */
 export class GetPostsQueryDto {
-	@ApiPropertyOptional({ 
+	@ApiPropertyOptional({
 		description: '게시글 타입 필터',
-		enum: ['community', 'tips', 'trend']
+		enum: ['community', 'tips', 'trend'],
 	})
 	@IsOptional()
 	@IsEnum(['community', 'tips', 'trend'])
 	postType?: PostType
 
-	@ApiPropertyOptional({ 
+	@ApiPropertyOptional({
 		description: '게시글 카테고리 필터',
-		enum: ['travel_tip', 'food_review', 'cafe_review', 'general']
+		enum: ['travel_tip', 'food_review', 'cafe_review', 'general'],
 	})
 	@IsOptional()
 	@IsEnum(['travel_tip', 'food_review', 'cafe_review', 'general'])
 	category?: PostCategory
 
-	@ApiPropertyOptional({ 
+	@ApiPropertyOptional({
 		description: '게시글 상태 필터',
-		enum: ['published', 'draft', 'hidden']
+		enum: ['published', 'draft', 'hidden'],
 	})
 	@IsOptional()
 	@IsEnum(['published', 'draft', 'hidden'])

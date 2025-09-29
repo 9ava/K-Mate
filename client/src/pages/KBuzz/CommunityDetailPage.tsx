@@ -1,10 +1,10 @@
 // src/pages/KBuzz/CommunityDetailPage.tsx
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { fetchPostDetail, likePost, updatePost, deletePost } from '../../api/kbuzz'
+import { fetchPostDetail, likePost, updatePost, deletePost, toggleInteraction, getInteractionStats } from '../../api/kbuzz'
 import { fetchComments, createComment, deleteComment } from '../../api/comments'
 import { useAuthStore } from '../../features/auth/auth.store'
-import { toKstFromUtc, toKstFromUtcShort } from '../../lib/date'
+import { toKmtFromUtc, toKmtFromUtcShort } from '../../lib/date'
 import { uploadToS3, generateCommunityImageKey, validateImageFile } from '../../api/s3'
 
 type Post = {
@@ -71,7 +71,9 @@ export default function CommunityDetailPage() {
 	const [isLiked, setIsLiked] = useState(false)
 	const [likeCount, setLikeCount] = useState(0)
 	const [isScraped, setIsScraped] = useState(false)
+	const [scrapCount, setScrapCount] = useState(0)
 	const [liking, setLiking] = useState(false)
+	const [scraping, setScraping] = useState(false)
 
 	// ===== 서버에서 상세 읽어와서 UI 형태로 매핑 =====
 	useEffect(() => {
@@ -88,9 +90,9 @@ export default function CommunityDetailPage() {
 					id: Number(res.id),
 					title: res.title,
 					asker: res.author?.name ?? 'User',
-					askedAt: toKstFromUtc(res.createdAt),
+					askedAt: toKmtFromUtc(res.createdAt),
 					editor: res.author?.name ?? 'User',
-					editedAt: toKstFromUtc(res.updatedAt),
+					editedAt: toKmtFromUtc(res.updatedAt),
 					body: (res.content || '').split(/\n{2,}/),
 					authorId: res.author?.id ?? 0,
 					likeCount: res.likeCount ?? 0,
@@ -102,7 +104,17 @@ export default function CommunityDetailPage() {
 				setPost(mapped)
 				setIsLiked(mapped.isLiked)
 				setLikeCount(mapped.likeCount)
-				setIsScraped(false)
+
+				// Load interaction stats (scrap info)
+				try {
+					const stats = await getInteractionStats(Number(res.id))
+					setIsScraped(stats.userInteractions.scrapped)
+					setScrapCount(stats.scrapCount)
+				} catch (e) {
+					// If user not logged in or stats fail, keep defaults
+					setIsScraped(false)
+					setScrapCount(0)
+				}
 			} catch (e: any) {
 				// noop
 			} finally {
@@ -132,7 +144,7 @@ export default function CommunityDetailPage() {
 					id: i.id,
 					author: i.author.name,
 					avatar: i.author.avatarUrl,
-					createdAt: toKstFromUtcShort(i.createdAt),
+					createdAt: toKmtFromUtcShort(i.createdAt),
 					content: i.content,
 					authorId: i.author.id,
 					likeCount: 0,
@@ -166,7 +178,7 @@ export default function CommunityDetailPage() {
 				id: created.id,
 				author: created.author.name,
 				avatar: created.author.avatarUrl,
-				createdAt: toKstFromUtcShort(created.createdAt),
+				createdAt: toKmtFromUtcShort(created.createdAt),
 				content: created.content,
 				authorId: created.author.id,
 				likeCount: 0,
@@ -218,8 +230,33 @@ export default function CommunityDetailPage() {
 		setEditDraft('')
 	}
 
-	// 스크랩/댓글 좋아요는 로컬 유지
-	const toggleScrap = () => setIsScraped((v) => !v)
+	// ✅ 게시글 스크랩: 서버 반영(토글) + 낙관적 업데이트 + 실패 롤백
+	async function toggleScrap() {
+		if (!id) return
+		if (!user) {
+			loginWithGoogle()
+			return
+		}
+		setScraping(true)
+		const prevScrapped = isScraped
+		const prevCount = scrapCount
+		const nextScrapped = !prevScrapped
+		setIsScraped(nextScrapped)
+		setScrapCount((c) => (nextScrapped ? c + 1 : Math.max(0, c - 1)))
+		try {
+			await toggleInteraction('scrap', Number(id))
+			// Optionally refresh the exact count from server
+			const fresh = await getInteractionStats(Number(id))
+			setScrapCount(fresh.scrapCount)
+		} catch (e) {
+			// 롤백
+			setIsScraped(prevScrapped)
+			setScrapCount(prevCount)
+			alert('스크랩 처리 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.')
+		} finally {
+			setScraping(false)
+		}
+	}
 	const toggleCommentLike = (commentId: number) => {
 		setComments((prev) =>
 			prev.map((c) =>
@@ -446,8 +483,8 @@ export default function CommunityDetailPage() {
 						<span>{likeCount}</span>
 					</button>
 
-					{/* Scrap (로컬만) */}
-					<button onClick={toggleScrap} className="inline-flex items-center gap-2">
+					{/* Scrap (서버 반영) */}
+					<button onClick={toggleScrap} disabled={scraping} className="inline-flex items-center gap-2">
 						<svg
 							viewBox="0 0 24 24"
 							className={`w-6 h-6 ${isScraped ? 'text-amber-500' : 'text-black'}`}
@@ -456,7 +493,8 @@ export default function CommunityDetailPage() {
 						>
 							<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z" />
 						</svg>
-						<span>{isScraped ? 'Saved' : 'Save'}</span>
+						<span>{scraping ? 'Saving...' : isScraped ? 'Saved' : 'Save'}</span>
+						{scrapCount > 0 && <span className="text-sm">({scrapCount})</span>}
 					</button>
 				</div>
 

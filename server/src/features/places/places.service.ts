@@ -122,13 +122,13 @@ export class PlacesService {
 			return await this.placeRepo.save(fallbackPlace)
 		}
 
-		let entity = await this.placeRepo.findOne({ where: { googlePlaceId } })
+		const entity = await this.placeRepo.findOne({ where: { googlePlaceId } })
 
 		const needsRefresh =
 			!entity?.lastSyncedAt ||
 			Date.now() - +new Date(entity.lastSyncedAt) > 1000 * 60 * 60 * 24 * 30
 
-		if (!needsRefresh) return entity!
+		if (!needsRefresh) return entity
 
 		// 필요한 필드만 마스크 (요금/성능 절약)
 		const mask = [
@@ -223,13 +223,13 @@ export class PlacesService {
 	 * - v1 searchText 사용
 	 * - 검색어와 언어 코드를 받아서 해당 언어로 결과 반환
 	 */
-	async searchText(params: { 
-		query: string; 
-		lat?: number; 
-		lng?: number; 
-		radius?: number; 
-		language?: string;
-		maxResults?: number;
+	async searchText(params: {
+		query: string
+		lat?: number
+		lng?: number
+		radius?: number
+		language?: string
+		maxResults?: number
 	}) {
 		const body: any = {
 			textQuery: params.query,
@@ -252,7 +252,7 @@ export class PlacesService {
 
 		const mask =
 			'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.photos'
-		
+
 		try {
 			const { data } = await firstValueFrom(
 				this.http.post(`${this.base}/places:searchText`, body, { headers: this.headers(mask) })
@@ -334,7 +334,7 @@ export class PlacesService {
 		}
 		if (dto.imageUrl) {
 			// Assuming the photosJson is an array of objects with a 'url' property
-			place.photosJson = [{ url: dto.imageUrl }];
+			place.photosJson = [{ url: dto.imageUrl }]
 		}
 		if (dto.category) {
 			const categoryMap: Record<string, 'travel' | 'food' | 'cafe'> = {
@@ -367,7 +367,7 @@ export class PlacesService {
 		}
 		if (dto.imageUrl) {
 			// Assuming the photosJson is an array of objects with a 'url' property
-			place.photosJson = [{ url: dto.imageUrl }];
+			place.photosJson = [{ url: dto.imageUrl }]
 		}
 		if (dto.category) {
 			const categoryMap: Record<string, 'travel' | 'food' | 'cafe'> = {

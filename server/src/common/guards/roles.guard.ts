@@ -11,13 +11,13 @@ export class RolesGuard implements CanActivate {
 			ctx.getClass(),
 		])
 		if (!required || required.length === 0) return true
-		
+
 		const { user } = ctx.switchToHttp().getRequest()
 		if (!user) return false
-		
+
 		const hasRequiredRole = required.includes(user.role)
 		if (!hasRequiredRole) return false
-		
+
 		const request = ctx.switchToHttp().getRequest()
 		if (request.method === 'POST' && request.body?.postType) {
 			const postType = request.body.postType

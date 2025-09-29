@@ -311,11 +311,22 @@ export default function TrendDetailPage() {
 				{/* 히어로 이미지 */}
 				<section className="relative mb-16">
 					<div className="overflow-hidden border rounded-2xl">
-						<img
-							src={article.image}
-							alt={article.title}
-							className="w-full h-[320px] md:h-[440px] object-cover"
-						/>
+						{article.image ? (
+							<img
+								src={article.image}
+								alt={article.title}
+								className="w-full h-[320px] md:h-[440px] object-cover"
+							/>
+						) : (
+							<div className="w-full h-[320px] md:h-[440px] bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+								<div className="text-center">
+									<svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+									</svg>
+									<p className="text-gray-400 text-sm">K-Trend Content</p>
+								</div>
+							</div>
+						)}
 					</div>
 
 					<aside className="absolute hidden md:block right-6 -bottom-10">
@@ -403,10 +414,10 @@ export default function TrendDetailPage() {
 
 				{/* ✏️ 수정 모달 */}
 				{editModalOpen && (
-					<div className="fixed inset-0 z-50 flex items-center justify-center">
+					<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 						<div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
-						<div className="relative z-10 w-[92vw] max-w-xl rounded-2xl bg-white shadow-2xl p-5">
-							<div className="flex items-center justify-between mb-3">
+						<div className="relative z-10 w-full max-w-xl max-h-[90vh] rounded-2xl bg-white shadow-2xl flex flex-col">
+							<div className="flex items-center justify-between p-5 border-b">
 								<h3 className="text-lg font-semibold">트렌드 아티클 수정</h3>
 								<button
 									onClick={closeEdit}
@@ -417,7 +428,8 @@ export default function TrendDetailPage() {
 								</button>
 							</div>
 
-							<form className="space-y-4" onSubmit={onSubmitEdit}>
+							<div className="flex-1 p-5 overflow-y-auto">
+								<form className="space-y-4" onSubmit={onSubmitEdit}>
 								{/* 제목 */}
 								<div>
 									<label className="block mb-1 text-sm font-medium">제목</label>
@@ -592,8 +604,12 @@ export default function TrendDetailPage() {
 										/>
 									</div>
 								)}
+								</form>
+							</div>
 
-								<div className="flex items-center justify-end gap-3 pt-2">
+							{/* Fixed footer with buttons */}
+							<div className="flex-shrink-0 p-5 border-t bg-gray-50">
+								<div className="flex items-center justify-end gap-3">
 									<button
 										type="button"
 										onClick={closeEdit}
@@ -603,6 +619,7 @@ export default function TrendDetailPage() {
 									</button>
 									<button
 										type="submit"
+										onClick={onSubmitEdit}
 										className="flex items-center gap-2 px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
 										disabled={uploading}
 									>
@@ -626,7 +643,7 @@ export default function TrendDetailPage() {
 										{uploading ? '업로드 중...' : '수정 완료'}
 									</button>
 								</div>
-							</form>
+							</div>
 						</div>
 					</div>
 				)}

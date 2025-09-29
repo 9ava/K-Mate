@@ -1,5 +1,6 @@
 // src/components/places/SearchList.tsx
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../features/auth/useAuth'
 import type { Place } from '../../types/place'
 
@@ -8,9 +9,11 @@ export type SearchListProps = {
 	onSelect: (p: Place) => void
 	title?: string // ✅ 추가
 	isBookmarkMode?: boolean // ✅ 북마크 모드 여부
+	onClose?: () => void // ✅ 닫기 콜백 추가
 }
 
-export default function SearchList({ places, onSelect, title = '장소 목록', isBookmarkMode = false }: SearchListProps) {
+export default function SearchList({ places, onSelect, title = '장소 목록', isBookmarkMode = false, onClose }: SearchListProps) {
+	const { t } = useTranslation()
 	const { isAuthed, role } = useAuth()
 
 	// 비로그인 상태에서 북마크 모드인 경우 안내 메시지 표시
@@ -35,15 +38,27 @@ export default function SearchList({ places, onSelect, title = '장소 목록', 
 		>
 			<div className="flex items-center justify-between p-4 text-lg font-bold border-b">
 				<span>{title}</span>
-				{isAuthed && role === 'admin' && (
-					<Link
-						to="/admin/map"
-						title="K-Map 관리자 페이지"
-						className="px-2 py-1 text-xs text-white transition-colors bg-gray-800 rounded hover:bg-gray-700"
-					>
-						⚙️ 관리
-					</Link>
-				)}
+				<div className="flex items-center gap-2">
+					{isAuthed && role === 'admin' && (
+						<Link
+							to="/admin/map"
+							title="K-Map 관리자 페이지"
+							className="px-2 py-1 text-xs text-white transition-colors bg-gray-800 rounded hover:bg-gray-700"
+						>
+							⚙️ 관리
+						</Link>
+					)}
+					{onClose && (
+						<button
+							onClick={onClose}
+							aria-label="닫기"
+							className="ml-2 text-xl text-gray-500 hover:text-gray-700 cursor-pointer"
+							title="목록 닫기"
+						>
+							✕
+						</button>
+					)}
+				</div>
 			</div>
 			
 			{showLoginMessage ? (
@@ -51,17 +66,42 @@ export default function SearchList({ places, onSelect, title = '장소 목록', 
 				<div className="p-8 text-center">
 					<div className="mb-4 text-4xl">🔒</div>
 					<div className="mb-2 text-lg font-semibold text-gray-700">
-						로그인이 필요합니다
+						{t('kmap.empty.login_required_title')}
 					</div>
 					<div className="mb-4 text-sm text-gray-500">
-						북마크 기능은 로그인 후 사용하실 수 있습니다.
+						{t('kmap.empty.login_required_message')}
 					</div>
-					<Link 
-						to="/login" 
+					<Link
+						to="/login"
 						className="inline-block px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
 					>
-						로그인하기
+						{t('kmap.empty.login_button')}
 					</Link>
+				</div>
+			) : sortedPlaces.length === 0 && isBookmarkMode ? (
+				// 북마크 모드에서 북마크가 없을 때 안내 메시지
+				<div className="p-8 text-center">
+					<div className="mb-4 text-4xl">📍</div>
+					<div className="mb-2 text-lg font-semibold text-gray-700">
+						{t('kmap.empty.no_bookmarks_title')}
+					</div>
+					<div className="mb-4 text-sm text-gray-500">
+						{t('kmap.empty.no_bookmarks_message')}
+					</div>
+					<div className="text-xs text-gray-400">
+						{t('kmap.empty.no_bookmarks_hint')}
+					</div>
+				</div>
+			) : sortedPlaces.length === 0 ? (
+				// 일반 모드에서 검색 결과가 없을 때
+				<div className="p-8 text-center">
+					<div className="mb-4 text-4xl">🔍</div>
+					<div className="mb-2 text-lg font-semibold text-gray-700">
+						{t('kmap.empty.no_results_title')}
+					</div>
+					<div className="text-sm text-gray-500">
+						{t('kmap.empty.no_results_message')}
+					</div>
 				</div>
 			) : (
 				// 일반 목록 표시
