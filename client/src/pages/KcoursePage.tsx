@@ -546,10 +546,12 @@ function TravelCourseGrid({
 	const advertisementCourses = courses.filter(course => course.isAdvertisement)
 	const nonAdvertisementCourses = courses.filter(course => !course.isAdvertisement)
 
-	// Monthly Top 3는 광고가 아닌 코스에서만 선택
+	// Monthly Top 3는 광고가 아닌 코스에서 최대 3개 선택
 	const monthlyTop3Courses = nonAdvertisementCourses.slice(0, 3)
 
-	// Other Courses는 광고 코스를 먼저 표시하고, 그 다음 남은 일반 코스들
+	// Other Courses는 모든 남은 코스들을 표시
+	// 1. 광고 코스 모두
+	// 2. Monthly Top 3에 포함되지 않은 일반 코스들
 	const remainingNonAdCourses = nonAdvertisementCourses.slice(3)
 	const otherCourses = [...advertisementCourses, ...remainingNonAdCourses]
 
@@ -774,23 +776,23 @@ export default function KCoursePage() {
 	const loadPublicCourses = async () => {
 		try {
 			setPublicCoursesLoading(true)
-			// 임시로 getPublicCourses 사용 (monthly-best API 문제 해결까지)
+			// 더 많은 코스를 가져와서 모든 코스가 표시되도록 함
 			try {
-				const response = await getMonthlyBestCourses(undefined, undefined, 12)
+				const response = await getMonthlyBestCourses(undefined, undefined, 50)
 				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
-				
+
 				// 백엔드에서 이미 정렬된 상태로 오지만, 프론트엔드에서도 한번 더 정렬
 				const sortedCourses = convertedCourses.sort((a, b) => {
 					if (a.isAdvertisement && !b.isAdvertisement) return -1
 					if (!a.isAdvertisement && b.isAdvertisement) return 1
 					return 0 // 기존 순서 유지
 				})
-				
+
 				setPublicCourses(sortedCourses)
 			} catch (monthlyBestError) {
 				console.warn('Monthly best API failed, falling back to public courses:', monthlyBestError)
 				// Fallback: 일반 공개 코스 API 사용
-				const response = await getPublicCourses(1, 12)
+				const response = await getPublicCourses(1, 50)
 				const convertedCourses = await Promise.all((response.data as Course[]).map(course => courseToTravelCourse(course, t)))
 				setPublicCourses(convertedCourses)
 			}
