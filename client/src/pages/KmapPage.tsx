@@ -1,6 +1,7 @@
 // src/pages/KmapPage.tsx
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import Sidebar from '../components/layout/Sidebar'
 import { getGoogleMapsLoader } from '../lib/map/googleMapsLoader'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
@@ -18,6 +19,7 @@ type Mode = 'type' | 'bookmarks'
 
 export default function KmapPage() {
 	const { t } = useTranslation()
+	const [searchParams] = useSearchParams()
 	const mapRef = useRef<HTMLDivElement>(null)
 	const mapObjRef = useRef<google.maps.Map | null>(null)
 	const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
@@ -51,6 +53,15 @@ export default function KmapPage() {
 
 	// 실시간 번역 적용되는 title
 	const listTitle = t(`kmap.titles.${titleKey}`)
+
+	// URL 파라미터에서 타입 설정
+	useEffect(() => {
+		const typeParam = searchParams.get('type')
+		if (typeParam && (typeParam === 'travel' || typeParam === 'food' || typeParam === 'cafe')) {
+			setType(typeParam as PlaceType)
+			setMode('type')
+		}
+	}, [searchParams])
 
 	// 로그인 상태 변경 시 북마크 목록 로드
 	useEffect(() => {

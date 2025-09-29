@@ -6,7 +6,8 @@
 		"success": "成功",
 		"cancel": "取消",
 		"confirm": "确认",
-		"language": "语言"
+		"language": "语言",
+		"language_switcher_tooltip": "在英语、韩语和中文语言选项之间切换"
 	},
 	"nav": {
 		"kmap": "K-地图",
@@ -296,7 +297,7 @@
 			},
 			"kcourse": {
 				"title": "K-Course",
-				"description": "涵盖韩语、文化、历史和传统的综合课程。通过互动课程和测验按自己的节奏学习。",
+				"description": "创建并分享个性化的韩国旅行路线。设计精选景点的行程安排，分享经验，发现其他旅行者创建的路线。",
 				"cta": "开始学习 →"
 			},
 			"kbuzz": {
@@ -306,10 +307,10 @@
 			}
 		},
 		"stats": {
-			"locations": "已映射位置",
-			"courses": "可用课程",
-			"members": "社区成员",
-			"satisfaction": "用户满意度"
+			"features": "核心功能",
+			"launched": "发布年份",
+			"availability": "全天候可用",
+			"pricing": "免费使用"
 		},
 		"cta": {
 			"title": "准备开始您的韩国之旅了吗？",

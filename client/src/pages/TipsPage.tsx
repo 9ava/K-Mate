@@ -108,7 +108,16 @@ export default function TipsPage() {
 			{/* 왼쪽 리스트 */}
 			<div className="w-[360px] border-r overflow-y-auto">
 				<div className="p-4">
-					<h2 className="text-lg font-semibold">TIPS</h2>
+					<div className="flex items-center justify-between mb-3">
+						<h2 className="text-lg font-semibold">TIPS</h2>
+						<button
+							onClick={() => navigate(-1)}
+							className="w-12 h-12 flex items-center justify-center text-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+							aria-label="닫기"
+						>
+							×
+						</button>
+					</div>
 
 					{/* ✅ 카테고리 탭: Transportation / Reservation 만 노출 */}
 					<div className="flex gap-2 mt-3 mb-4">
@@ -179,14 +188,14 @@ export default function TipsPage() {
 			{selected && (
 				<div className="w-[520px] border-r overflow-y-auto" key={selectedId}>
 					<div className="p-5">
-						{/* 상단: 공통 헤더 삭제, Close만 유지 */}
-						<div className="flex items-start justify-between">
+						{/* 상단: X 버튼으로 변경 */}
+						<div className="flex justify-end mb-4">
 							<button
 								onClick={() => setSelectedId(null)}
-								className="ml-auto px-3 py-1.5 text-sm rounded border hover:bg-gray-50"
+								className="w-12 h-12 flex items-center justify-center text-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
 								aria-label="닫기"
 							>
-								Close
+								×
 							</button>
 						</div>
 

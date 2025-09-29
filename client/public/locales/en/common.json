@@ -6,8 +6,9 @@
 		"success": "Success",
 		"cancel": "Cancel",
 		"confirm": "Confirm",
-		"language": "Language"
-	},
+		"language": "Language",
+		"language_switcher_tooltip": "Switch between English, Korean, and Chinese language options"
+	}
 	"nav": {
 		"kmap": "K-Map",
 		"kcourse": "K-Course",
@@ -294,7 +295,7 @@
 			},
 			"kcourse": {
 				"title": "K-Course",
-				"description": "Comprehensive courses covering Korean language, culture, history, and traditions. Learn at your own pace with interactive lessons and quizzes.",
+				"description": "Create and share personalized travel courses for Korea. Design itineraries with curated stops, share experiences, and discover routes created by other travelers.",
 				"cta": "Start Learning →"
 			},
 			"kbuzz": {
@@ -304,10 +305,10 @@
 			}
 		},
 		"stats": {
-			"locations": "Locations Mapped",
-			"courses": "Courses Available",
-			"members": "Community Members",
-			"satisfaction": "User Satisfaction"
+			"features": "Core Features",
+			"launched": "Year Launched",
+			"availability": "Always Available",
+			"pricing": "To Use"
 		},
 		"cta": {
 			"title": "Ready to Start Your Korean Journey?",

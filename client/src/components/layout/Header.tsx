@@ -30,11 +30,16 @@ export default function Header() {
 				<div className="flex items-center justify-between h-full px-3 mx-auto sm:px-4 max-w-screen-2xl">
 					{/* 좌측: 로고 */}
 					<div className="flex items-center">
-						<Link to="/" className="flex items-center gap-1.5 sm:gap-2">
-							<div className="grid text-xs font-bold text-white bg-black rounded-full w-7 h-7 sm:w-8 sm:h-8 sm:text-sm place-items-center">
-								K
+						<Link to="/" className="flex items-center gap-2 sm:gap-3 group transition-all duration-200 hover:opacity-80">
+							<div className="flex items-center">
+								<span className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+									K
+								</span>
+								<div className="w-1 h-6 sm:h-7 bg-red-500 mx-1 rounded-full"></div>
+								<span className="text-xl sm:text-2xl font-light text-gray-700 tracking-wide">
+									Mate
+								</span>
 							</div>
-							<span className="text-sm font-semibold sm:text-base">- Mate</span>
 						</Link>
 					</div>
 

@@ -6,7 +6,8 @@
 		"success": "성공",
 		"cancel": "취소",
 		"confirm": "확인",
-		"language": "언어"
+		"language": "언어",
+		"language_switcher_tooltip": "영어, 한국어, 중국어 언어 옵션 간 전환"
 	},
 	"nav": {
 		"kmap": "K-맵",
@@ -294,9 +295,9 @@
 			},
 			"kcourse": {
 				"title": "K-Course",
-				"description": "한국어, 문화, 역사, 전통을 다루는 종합적인 코스입니다. 인터랙티브 레슨과 퀴즈로 자신만의 속도로 학습하세요.",
+				"description": "한국을 위한 개인화된 여행 코스를 만들고 공유하세요. 엄선된 장소로 여행 일정을 설계하고, 경험을 공유하며, 다른 여행자들이 만든 루트를 발견해보세요.",
 				"cta": "학습 시작하기 →"
-			},
+			}
 			"kbuzz": {
 				"title": "K-Buzz",
 				"description": "최신 한국 트렌드, 뉴스, 커뮤니티 토론을 업데이트받으세요. 한국 애호가들과 연결하고 경험을 공유하세요.",
@@ -304,10 +305,10 @@
 			}
 		},
 		"stats": {
-			"locations": "매핑된 장소",
-			"courses": "이용 가능한 코스",
-			"members": "커뮤니티 멤버",
-			"satisfaction": "사용자 만족도"
+			"features": "핵심 기능",
+			"launched": "런칭 연도",
+			"availability": "항상 이용 가능",
+			"pricing": "무료 사용"
 		},
 		"cta": {
 			"title": "한국 여행을 시작할 준비가 되셨나요?",
