@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import Backend from 'i18next-http-backend'
 
-const VERSION = import.meta.env.VITE_I18N_VERSION || '3'
+const VERSION = import.meta.env.VITE_I18N_VERSION || '4'
 
 i18n
 	.use(Backend)
@@ -22,11 +22,12 @@ i18n
 			loadPath: '/locales/{{lng}}/{{ns}}.json?v=' + VERSION,
 		},
 		detection: {
-			order: ['querystring'],
-			caches: [],
+			order: ['localStorage', 'querystring'],
+			caches: ['localStorage'],
 			lookupQuerystring: 'lng',
 		},
 		saveMissing: false,
 	})
+
 
 export default i18n

@@ -78,6 +78,17 @@
 			"first_course": "첫 번째 코스 만들기",
 			"unsave_course": "저장된 코스 삭제"
 		},
+		"badges": {
+			"advertisement": "광고",
+			"private": "비공개",
+			"share_count": "공유 횟수",
+			"comment_view": "댓글 보기",
+			"share_course": "코스 공유하기"
+		},
+		"actions": {
+			"share": "공유",
+			"comment": "댓글"
+		},
 		"titles": {
 			"my_travel_course": "나의 여행코스",
 			"monthly_best_9": "월간 Best 9",
@@ -106,7 +117,11 @@
 			"create_course_message": "나만의 여행코스를 만들어보세요!",
 			"confirm_unsave": "정말로 이 코스를 저장 목록에서 삭제하시겠습니까?",
 			"unsave_success": "코스가 저장 목록에서 삭제되었습니다.",
-			"unsave_failed": "코스 삭제에 실패했습니다."
+			"unsave_failed": "코스 삭제에 실패했습니다.",
+			"no_public_courses": "아직 공개된 코스가 없습니다",
+			"create_first_course": "첫 번째 코스를 만들어보세요!",
+			"no_monthly_top3": "아직 Monthly Top 3 코스가 없습니다",
+			"create_course_cta": "코스 만들어보기"
 		}
 	},
 	"planner": {

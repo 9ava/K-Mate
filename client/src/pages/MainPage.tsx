@@ -12,7 +12,7 @@ export default function MainPage() {
 		refresh()
 	}, [])
 
-	if (!ready) return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+	if (!ready) return <div className="flex items-center justify-center min-h-screen">{t('common.loading', 'Loading...')}</div>
 
 	return (
 		<div className="min-h-screen bg-white">

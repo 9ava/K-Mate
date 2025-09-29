@@ -49,6 +49,22 @@ export class DbInitService implements OnModuleInit {
 
 	private async addHasMultilingualMenuColumn() {
 		try {
+			console.log('Checking if has_multilingual_menu column exists...')
+
+			// Check if column already exists
+			const result = await this.dataSource.query(`
+				SELECT COUNT(*) as count
+				FROM INFORMATION_SCHEMA.COLUMNS
+				WHERE TABLE_SCHEMA = DATABASE()
+				AND TABLE_NAME = 'places'
+				AND COLUMN_NAME = 'has_multilingual_menu'
+			`)
+
+			if (result[0].count > 0) {
+				console.log('has_multilingual_menu column already exists, skipping...')
+				return
+			}
+
 			console.log('Adding has_multilingual_menu column to places table...')
 			await this.dataSource.query(`
 				ALTER TABLE places
@@ -56,11 +72,7 @@ export class DbInitService implements OnModuleInit {
 			`)
 			console.log('has_multilingual_menu column added successfully')
 		} catch (error) {
-			if (error.code === 'ER_DUP_FIELDNAME') {
-				console.log('has_multilingual_menu column already exists')
-			} else {
-				console.log('Error adding has_multilingual_menu column:', error.message)
-			}
+			console.log('Error managing has_multilingual_menu column:', error.message)
 		}
 	}
 }

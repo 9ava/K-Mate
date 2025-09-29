@@ -8,10 +8,12 @@ let internalUpdate = false
 export const useLocaleStore = create<LocaleState>()(
 	persist(
 		(set, get) => ({
-			lang: 'en', // Default to English
+			lang: 'ko', // Default to Korean
 			setLang: (lng) => {
 				if (get().lang === lng) return
 				internalUpdate = true
+				// Set to localStorage for i18next to detect
+				localStorage.setItem('i18nextLng', lng)
 				i18n.changeLanguage(lng).finally(() => (internalUpdate = false))
 				set({ lang: lng })
 			},
@@ -21,6 +23,7 @@ export const useLocaleStore = create<LocaleState>()(
 			onRehydrateStorage: () => (state) => {
 				// After rehydration, sync i18next with the stored language
 				if (state?.lang && state.lang !== i18n.language) {
+					localStorage.setItem('i18nextLng', state.lang)
 					i18n.changeLanguage(state.lang)
 				}
 			},

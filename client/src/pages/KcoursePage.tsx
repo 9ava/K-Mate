@@ -351,14 +351,14 @@ function TravelCourseCard({
 						{/* 광고 배지 */}
 						{course.isAdvertisement && (
 							<span className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-full">
-								광고 ⓘ
+								{t('kcourse.badges.advertisement')} ⓘ
 							</span>
 						)}
 						
 						{/* Private 코스 배지 */}
 						{course.visibility === 'private' && (
 							<span className="flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-yellow-100 border border-yellow-300 rounded-full">
-								🔒 비공개
+								🔒 {t('kcourse.badges.private')}
 							</span>
 						)}
 					</div>
@@ -445,10 +445,10 @@ function TravelCourseCard({
 				<div className="flex items-center justify-between pt-2 border-t border-gray-100">
 					<div className="flex items-center space-x-3 text-xs text-gray-500">
 						{course.shareCount !== undefined && (
-							<span title="공유 횟수">🔗 {course.shareCount}</span>
+							<span title={t('kcourse.badges.share_count')}>🔗 {course.shareCount}</span>
 						)}
 						{course.saveCount !== undefined && (
-							<span title="저장 횟수">⭐ {course.saveCount}</span>
+							<span title={t('kcourse.labels.saved')}>⭐ {course.saveCount}</span>
 						)}
 					</div>
 					<div className="flex items-center space-x-2">
@@ -458,22 +458,22 @@ function TravelCourseCard({
 								navigate(`/kcourse/${course.id}#comments`)
 							}}
 							className="flex items-center px-2 py-1 text-xs text-gray-600 transition-colors rounded bg-gray-50 hover:bg-gray-100 cursor-pointer"
-							title="댓글 보기"
+							title={t('kcourse.badges.comment_view')}
 						>
 							<svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.418 8-9.93 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.418-8 9.93-8s9.93 3.582 9.93 8z" />
 							</svg>
-							댓글({course.commentCount || 0})
+							{t('kcourse.actions.comment')}({course.commentCount || 0})
 						</button>
 						<button
 							onClick={handleShare}
 							className="flex items-center px-2 py-1 text-xs text-blue-600 transition-colors rounded bg-blue-50 hover:bg-blue-100 cursor-pointer"
-							title="코스 공유하기"
+							title={t('kcourse.badges.share_course')}
 						>
 							<svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
 							</svg>
-							공유
+							{t('kcourse.actions.share')}
 						</button>
 					</div>
 				</div>
@@ -528,13 +528,13 @@ function TravelCourseGrid({
 					</div>
 
 					<div className="py-20 text-center">
-						<div className="text-lg text-gray-500">아직 공개된 코스가 없습니다</div>
-						<div className="mt-2 text-sm text-gray-500">첫 번째 코스를 만들어보세요!</div>
+						<div className="text-lg text-gray-500">{t('kcourse.messages.no_public_courses')}</div>
+						<div className="mt-2 text-sm text-gray-500">{t('kcourse.messages.create_first_course')}</div>
 						<button
 							onClick={onCreate}
 							className="px-8 py-3 mt-6 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
 						>
-							코스 만들어보기
+							{t('kcourse.messages.create_course_cta')}
 						</button>
 					</div>
 				</div>
@@ -589,7 +589,7 @@ function TravelCourseGrid({
 						</div>
 					) : (
 						<div className="text-center py-8 text-gray-500">
-							아직 Monthly Top 3 코스가 없습니다
+							{t('kcourse.messages.no_monthly_top3')}
 						</div>
 					)}
 				</div>
