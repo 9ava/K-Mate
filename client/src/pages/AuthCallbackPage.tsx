@@ -10,7 +10,11 @@ export default function AuthCallbackPage() {
 	useEffect(() => {
 		;(async () => {
 			await refresh() // ✅ 쿠키 세션 확인
-			const to = sessionStorage.getItem('post_login_redirect') || '/'
+			let to = sessionStorage.getItem('post_login_redirect') || '/'
+			// 로그인 페이지로 리다이렉트하지 않도록 방지
+			if (to === '/login') {
+				to = '/'
+			}
 			sessionStorage.removeItem('post_login_redirect')
 			navigate(to, { replace: true })
 		})()

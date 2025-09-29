@@ -7,7 +7,6 @@ import { getGoogleMapsLoader } from '../lib/map/googleMapsLoader'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import { getPlaceDetail, listPlaces } from '../api/places'
 import { listMyBookmarks } from '../api/bookmarks'
-import { useMapStore } from '../features/map/map.store'
 import { useAuth } from '../features/auth/useAuth'
 import type { Place, PlaceType } from '../types/place'
 import SidePanel from '../components/places/SidePanel'
@@ -26,7 +25,6 @@ export default function KmapPage() {
 	const infoRef = useRef<google.maps.InfoWindow | null>(null)
 	const clustererRef = useRef<MarkerClusterer | null>(null) // 클러스터러 참조 추가
 
-	const { getMarkersByPlaceType } = useMapStore()
 	const { isAuthed } = useAuth()
 
 	const [mode, setMode] = useState<Mode>('type') // ✅ 현재 보기 모드
