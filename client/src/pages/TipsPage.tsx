@@ -101,7 +101,9 @@ export default function TipsPage() {
 			<div className="w-16 bg-white border-r shrink-0">
 				<Sidebar
 					active=""
-					onSelectType={(t) => navigate(`/kmap?type=${t}`)} // ← KMap 용 (그대로 둠)
+					onSelectType={(t) => {
+						navigate(`/kmap?type=${t}`)
+					}}
 				/>
 			</div>
 
@@ -112,10 +114,17 @@ export default function TipsPage() {
 						<h2 className="text-lg font-semibold">TIPS</h2>
 						<button
 							onClick={() => navigate(-1)}
-							className="w-12 h-12 flex items-center justify-center text-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+							className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all duration-200 cursor-pointer"
 							aria-label="닫기"
 						>
-							×
+							<svg
+								className="w-4 h-4"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+							</svg>
 						</button>
 					</div>
 
@@ -192,10 +201,17 @@ export default function TipsPage() {
 						<div className="flex justify-end mb-4">
 							<button
 								onClick={() => setSelectedId(null)}
-								className="w-12 h-12 flex items-center justify-center text-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+								className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all duration-200 cursor-pointer"
 								aria-label="닫기"
 							>
-								×
+								<svg
+									className="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+								</svg>
 							</button>
 						</div>
 

@@ -1,6 +1,6 @@
 // src/components/layout/Sidebar.tsx
 import type React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import type { PlaceType } from '../../types/place'
 
 type Props = {
@@ -21,6 +21,7 @@ const Sidebar: React.FC<Props> = ({
 	isBookmarkMode = false,
 }) => {
 	const navigate = useNavigate()
+	const location = useLocation()
 	const menuItems: Array<{
 		icon: string
 		label: string
@@ -65,7 +66,12 @@ const Sidebar: React.FC<Props> = ({
 			<div className="space-y-2">
 				<button
 					onClick={() => navigate('/tips')}
-					className="flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer hover:bg-gray-100"
+					className={[
+						'flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer transition-colors',
+						location.pathname === '/tips'
+							? 'bg-gray-700 text-white' // 활성화 상태
+							: 'hover:bg-gray-100', // 비활성화 상태
+					].join(' ')}
 					title="K-Tips"
 				>
 					<span className="text-sm font-bold">TIPS</span>

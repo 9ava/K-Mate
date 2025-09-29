@@ -60,8 +60,19 @@ export default function KmapPage() {
 		if (typeParam && (typeParam === 'travel' || typeParam === 'food' || typeParam === 'cafe')) {
 			setType(typeParam as PlaceType)
 			setMode('type')
+			setShowSearchList(false) // 검색 리스트 닫기
+			setSelected(null) // 선택된 항목 초기화
 		}
 	}, [searchParams])
+
+	// 컴포넌트 마운트 시에도 URL 파라미터 확인
+	useEffect(() => {
+		const typeParam = searchParams.get('type')
+		if (typeParam && (typeParam === 'travel' || typeParam === 'food' || typeParam === 'cafe')) {
+			setType(typeParam as PlaceType)
+			setMode('type')
+		}
+	}, [])
 
 	// 로그인 상태 변경 시 북마크 목록 로드
 	useEffect(() => {
@@ -374,7 +385,6 @@ export default function KmapPage() {
 
 	// 모드/타입 변화에 따라 목록 불러오기
 	useEffect(() => {
-		if (!mapObjRef.current) return
 		;(async () => {
 			setLoading(true)
 			setLoadingState('places')
@@ -391,7 +401,11 @@ export default function KmapPage() {
 
 					setPlaces(items)
 					setLoadingState('markers')
-					await renderMarkers(items)
+
+					// 지도가 준비되었을 때만 마커 렌더링
+					if (mapObjRef.current) {
+						await renderMarkers(items)
+					}
 
 					// fitBounds 제거 - 지도 위치 유지
 					setSelected(null)
@@ -438,7 +452,7 @@ export default function KmapPage() {
 			}
 		})()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [mode, type, getMarkersByPlaceType])
+	}, [mode, type, isAuthed])
 
 	// 반경 또는 사용자 위치 변경 시 마커 재렌더링 - 비활성화
 	// useEffect(() => {

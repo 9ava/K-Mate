@@ -145,13 +145,13 @@ export default function CourseDetailPage() {
 		loadCourse()
 	}, [courseId])
 
-	// 해시 스크롤 처리
+	// 스크롤 처리
 	useEffect(() => {
 		if (!loading && !isEditing) {
-			// 페이지 로딩이 완료되고 편집 모드가 아닐 때만 스크롤 처리
+			// 페이지 로딩이 완료되고 편집 모드가 아닐 때 스크롤 처리
 			const hash = window.location.hash
 			if (hash === '#comments') {
-				// 약간의 지연을 두고 스크롤 (DOM 렌더링 완료 대기)
+				// 댓글 링크를 클릭한 경우: 댓글 섹션으로 부드럽게 스크롤
 				setTimeout(() => {
 					const commentsElement = document.getElementById('comments')
 					if (commentsElement) {
@@ -161,6 +161,9 @@ export default function CourseDetailPage() {
 						})
 					}
 				}, 100)
+			} else {
+				// 일반 코스 링크를 클릭한 경우: 맨 위에 바로 표시 (애니메이션 없음)
+				window.scrollTo({ top: 0, behavior: 'instant' })
 			}
 		}
 	}, [loading, isEditing])
