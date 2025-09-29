@@ -4,6 +4,7 @@ import { useAuth } from '../../features/auth/useAuth'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import LanguageSwitcher from '../common/LanguageSwitcher'
+import ContactModal from '../common/ContactModal'
 
 function LoginButton() {
 	const { t } = useTranslation('common')
@@ -21,6 +22,7 @@ export default function Header() {
 	const { isAuthed, initial, email, logout, role } = useAuth()
 	const { t } = useTranslation('common')
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+	const [isContactModalOpen, setIsContactModalOpen] = useState(false)
 
 	return (
 		<>
@@ -70,8 +72,16 @@ export default function Header() {
 						</NavLink>
 					</nav>
 
-					{/* 우측: 언어 스위처 + 관리자 버튼 + 로그인/아바타 + 모바일 메뉴 버튼 */}
+					{/* 우측: 문의하기 버튼 + 언어 스위처 + 관리자 버튼 + 로그인/아바타 + 모바일 메뉴 버튼 */}
 					<div className="flex items-center gap-2 sm:gap-3">
+						{/* 문의하기 버튼 (데스크탑만) */}
+						<button
+							onClick={() => setIsContactModalOpen(true)}
+							className="hidden px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700 bg-white border rounded-full shadow hover:bg-gray-50 transition-colors sm:block cursor-pointer"
+						>
+							{t('contact.title', '문의하기')}
+						</button>
+
 						{/* 언어 스위처 (데스크탑만) */}
 						<div className="hidden sm:block">
 							<LanguageSwitcher />
@@ -206,8 +216,21 @@ export default function Header() {
 								</NavLink>
 							</div>
 							
-							{/* 언어 스위처 (모바일) */}
+							{/* 문의하기 버튼 (모바일) */}
 							<div className="px-4 py-3 mt-2 border-t border-gray-100">
+								<button
+									onClick={() => {
+										setIsContactModalOpen(true)
+										setIsMobileMenuOpen(false)
+									}}
+									className="block w-full px-3 py-3 text-base font-medium text-left transition-colors text-gray-700 hover:bg-gray-50 rounded-md"
+								>
+									{t('contact.title', '문의하기')}
+								</button>
+							</div>
+
+							{/* 언어 스위처 (모바일) */}
+							<div className="px-4 py-3 border-t border-gray-100">
 								<div className="flex items-center justify-between">
 									<span className="text-sm font-medium text-gray-700">{t('common.language', '언어')}</span>
 									<LanguageSwitcher />
@@ -217,6 +240,12 @@ export default function Header() {
 					</div>
 				</div>
 			)}
+
+			{/* Contact Modal */}
+			<ContactModal
+				isOpen={isContactModalOpen}
+				onClose={() => setIsContactModalOpen(false)}
+			/>
 		</>
 	)
 }

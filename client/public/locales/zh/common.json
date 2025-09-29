@@ -329,5 +329,25 @@
 			"facebook": "Facebook",
 			"copyright": "© 2026 K-Mate. 版权所有。"
 		}
+	},
+	"contact": {
+		"title": "联系我们",
+		"name": "姓名",
+		"email": "邮箱",
+		"subject": "主题",
+		"message": "信息",
+		"name_placeholder": "请输入您的姓名",
+		"email_placeholder": "请输入您的邮箱",
+		"subject_placeholder": "请选择咨询类型",
+		"message_placeholder": "请详细描述您的咨询内容",
+		"general": "一般咨询",
+		"technical": "技术问题",
+		"feature": "功能建议",
+		"bug": "错误报告",
+		"other": "其他",
+		"send": "发送",
+		"sending": "发送中...",
+		"success": "您的咨询已成功发送。",
+		"error": "咨询发送失败，请重试。"
 	}
 }

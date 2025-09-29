@@ -327,5 +327,25 @@
 			"facebook": "페이스북",
 			"copyright": "© 2026 K-Mate. 모든 권리 보유."
 		}
+	},
+	"contact": {
+		"title": "문의하기",
+		"name": "이름",
+		"email": "이메일",
+		"subject": "제목",
+		"message": "메시지",
+		"name_placeholder": "이름을 입력해주세요",
+		"email_placeholder": "이메일을 입력해주세요",
+		"subject_placeholder": "문의 유형을 선택해주세요",
+		"message_placeholder": "문의하실 내용을 자세히 작성해주세요",
+		"general": "일반 문의",
+		"technical": "기술적 문제",
+		"feature": "기능 제안",
+		"bug": "버그 신고",
+		"other": "기타",
+		"send": "전송하기",
+		"sending": "전송 중...",
+		"success": "문의사항이 성공적으로 전송되었습니다.",
+		"error": "문의사항 전송에 실패했습니다. 다시 시도해주세요."
 	}
 }

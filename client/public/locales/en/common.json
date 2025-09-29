@@ -327,5 +327,25 @@
 			"facebook": "Facebook",
 			"copyright": "© 2026 K-Mate. All rights reserved."
 		}
+	},
+	"contact": {
+		"title": "Contact Us",
+		"name": "Name",
+		"email": "Email",
+		"subject": "Subject",
+		"message": "Message",
+		"name_placeholder": "Enter your name",
+		"email_placeholder": "Enter your email",
+		"subject_placeholder": "Select inquiry type",
+		"message_placeholder": "Please describe your inquiry in detail",
+		"general": "General Inquiry",
+		"technical": "Technical Issue",
+		"feature": "Feature Request",
+		"bug": "Bug Report",
+		"other": "Other",
+		"send": "Send",
+		"sending": "Sending...",
+		"success": "Your inquiry has been sent successfully.",
+		"error": "Failed to send inquiry. Please try again."
 	}
 }
