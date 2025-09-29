@@ -333,8 +333,8 @@ function TravelCourseCard({
 	}
 
 	return (
-		<div 
-			className="overflow-hidden transition-all duration-300 border border-gray-200 rounded-lg cursor-pointer group hover:shadow-lg"
+		<div
+			className="overflow-hidden transition-all duration-300 border border-gray-200 rounded-lg cursor-pointer group hover:shadow-lg h-full flex flex-col"
 			onClick={handleClick}
 		>
 			<div className="relative">
@@ -431,8 +431,8 @@ function TravelCourseCard({
 				)}
 			</div>
 
-			<div className="p-4 space-y-2">
-				<h3 className="text-lg font-bold leading-tight text-gray-900 line-clamp-2">
+			<div className="p-4 space-y-2 flex-1 flex flex-col">
+				<h3 className="text-lg font-bold leading-tight text-gray-900 line-clamp-2 min-h-[3.5rem]">
 					{course.title}
 				</h3>
 				<p className="text-sm text-gray-500">{course.location}</p>
@@ -440,9 +440,9 @@ function TravelCourseCard({
 					<span>{course.author}</span>
 					<span>{course.date}</span>
 				</div>
-				
+
 				{/* 통계 및 버튼들 */}
-				<div className="flex items-center justify-between pt-2 border-t border-gray-100">
+				<div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
 					<div className="flex items-center space-x-3 text-xs text-gray-500">
 						{course.shareCount !== undefined && (
 							<span title={t('kcourse.badges.share_count')}>🔗 {course.shareCount}</span>
