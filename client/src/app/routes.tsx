@@ -19,8 +19,11 @@ import UserManagePage from '../pages/admin/UserManagePage'
 import StatisticsPage from '../pages/admin/StatisticsPage'
 
 const AppRouter = () => {
+	// GitHub Pages 배포 시 base path 적용
+	const basename = import.meta.env.BASE_URL
+
 	return (
-		<BrowserRouter>
+		<BrowserRouter basename={basename}>
 			<Header />
 			<main className="pt-14">
 				<Routes>
