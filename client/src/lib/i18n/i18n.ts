@@ -3,7 +3,8 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import Backend from 'i18next-http-backend'
 
-const BASE = import.meta.env.VITE_I18N_BASE_URL || ''
+// Vite가 자동으로 주입하는 base URL 사용 (vite.config.ts의 base 설정)
+const BASE = import.meta.env.BASE_URL || ''
 const VERSION = import.meta.env.VITE_I18N_VERSION || '1'
 
 i18n
@@ -19,7 +20,8 @@ i18n
 		debug: import.meta.env.DEV,
 		interpolation: { escapeValue: true },
 		backend: {
-			loadPath: `${BASE || ''}/locales/{{lng}}/{{ns}}.json?v=${VERSION}`,
+			// BASE_URL은 trailing slash 포함 (예: '/K-Mate/')
+			loadPath: `${BASE}locales/{{lng}}/{{ns}}.json?v=${VERSION}`,
 		},
 		detection: {
 			order: ['localStorage', 'querystring', 'navigator'],
