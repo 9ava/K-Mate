@@ -1,5 +1,6 @@
 // client/src/api/comments.ts
-import { api } from './client'
+import { api, isMockMode } from './client'
+import { mockCommentsApi } from '../mocks/api'
 
 export type CommentItem = {
 	id: number
@@ -35,6 +36,9 @@ export async function fetchComments(
 	page = 1,
 	limit = 10
 ): Promise<CommentList> {
+	if (isMockMode) {
+		return mockCommentsApi.fetchComments(postId, page, limit)
+	}
 	const { data } = await api.get(`/comments/post/${postId}`, { params: { page, limit } })
 	const rows = data?.data?.comments ?? data?.data ?? []
 	const total = data?.data?.total ?? rows.length
@@ -51,11 +55,17 @@ export async function createComment(
 	postId: number | string,
 	content: string
 ): Promise<CommentItem> {
+	if (isMockMode) {
+		return mockCommentsApi.createComment(postId, content)
+	}
 	const { data } = await api.post(`/comments/post/${postId}`, { content })
 	return mapOne(data.data)
 }
 
 // 삭제: DELETE /comments/:id  (쿠키 인증 필요)
 export async function deleteComment(commentId: number | string) {
+	if (isMockMode) {
+		return mockCommentsApi.deleteComment(commentId)
+	}
 	await api.delete(`/comments/${commentId}`)
 }

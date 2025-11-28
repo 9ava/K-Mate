@@ -164,7 +164,8 @@ export default function TrendDetailPage() {
 		setLikeCount((c) => (next ? c + 1 : Math.max(0, c - 1)))
 		// TODO: 서버 반영이 필요하면 연결
 	}
-	const toggleScrap = () => setIsScraped((v) => !v)
+	// toggleScrap 기능 - 나중에 사용 예정
+	void setIsScraped
 
 	// ✅ 저장: 서버에는 title / content만 반영, 이미지·ABOUT은 로컬에 저장
 	const onSubmitEdit = async (e: React.FormEvent) => {

@@ -1,5 +1,6 @@
 // src/api/kbuzz.ts
-import { api } from './client'
+import { api, isMockMode } from './client'
+import { mockPostsApi } from '../mocks/api'
 
 /** ---------- Types (서버 스키마에 맞춤) ---------- */
 export type PostType = 'community' | 'tips' | 'trend'
@@ -48,6 +49,9 @@ type ListParams = {
 
 // 목록: GET /posts?postType=&status=&page=&limit=&category=&search=
 export async function fetchPosts(params: ListParams): Promise<KBuzzList> {
+	if (isMockMode) {
+		return mockPostsApi.fetchPosts(params)
+	}
 	const { page = 1, limit = 10, ...rest } = params
 	const { data } = await api.get('/posts', { params: { page, limit, ...rest } })
 	const posts: KBuzzItem[] = data.data.posts
@@ -62,12 +66,18 @@ export async function fetchPosts(params: ListParams): Promise<KBuzzList> {
 
 // 상세: GET /posts/:id
 export async function fetchPostDetail(id: number | string): Promise<KBuzzItem> {
+	if (isMockMode) {
+		return mockPostsApi.fetchPostDetail(id)
+	}
 	const { data } = await api.get(`/posts/${id}`)
 	return data.data as KBuzzItem
 }
 
 // 좋아요(토글): POST /posts/buzz/:id/like  (쿠키 인증 필요)
 export async function likePost(id: number | string) {
+	if (isMockMode) {
+		return mockPostsApi.likePost(id)
+	}
 	return api.post(`/posts/buzz/${id}/like`)
 }
 
@@ -81,6 +91,9 @@ export async function createPost(input: {
 	category?: Exclude<PostCategory, null>
 	status?: PostStatus
 }) {
+	if (isMockMode) {
+		return mockPostsApi.createPost(input)
+	}
 	const { data } = await api.post('/posts', input)
 	return data.data as KBuzzItem
 }
@@ -95,12 +108,18 @@ export async function updatePost(
 		status?: PostStatus
 	}
 ) {
+	if (isMockMode) {
+		return mockPostsApi.updatePost(id, input)
+	}
 	const { data } = await api.put(`/posts/${id}`, input)
 	return data.data as KBuzzItem
 }
 
 // 삭제: DELETE /posts/:id  (작성자 or admin)
 export async function deletePost(id: number | string) {
+	if (isMockMode) {
+		return mockPostsApi.deletePost(id)
+	}
 	await api.delete(`/posts/${id}`)
 }
 

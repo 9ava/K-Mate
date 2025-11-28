@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>K-Mate</title>
+    <script>
+      // GitHub Pages SPA 라우팅 지원
+      // 모든 경로를 index.html로 리다이렉트
+      const path = window.location.pathname;
+      const repo = '/K-Mate';
+
+      // 이미 루트에 있으면 리다이렉트 안함
+      if (path !== repo && path !== repo + '/') {
+        // 경로 정보를 sessionStorage에 저장하고 루트로 이동
+        sessionStorage.setItem('redirect', path);
+        window.location.replace(repo + '/');
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>JavaScript를 활성화해주세요.</noscript>
+  </body>
+</html>

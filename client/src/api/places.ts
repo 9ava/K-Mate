@@ -1,5 +1,6 @@
 // src/api/places.ts
-import { api } from './client'
+import { api, isMockMode } from './client'
+import { mockPlacesApi } from '../mocks/api'
 import type { Place, PlaceListResponse, PlaceType } from '../types/place'
 
 export async function listPlaces(params: {
@@ -8,6 +9,9 @@ export async function listPlaces(params: {
 	page?: number
 	pageSize?: number
 }): Promise<PlaceListResponse> {
+	if (isMockMode) {
+		return mockPlacesApi.listPlaces(params)
+	}
 	const { data } = await api.get('/places', { params })
 	// 서버: { success: true, data: {...} }
 	const payload = data?.data as PlaceListResponse
@@ -18,6 +22,9 @@ export async function listPlaces(params: {
 }
 
 export async function getPlaceDetail(googlePlaceId: string): Promise<Place> {
+	if (isMockMode) {
+		return mockPlacesApi.getPlaceDetail(googlePlaceId)
+	}
 	const { data } = await api.get(`/places/${googlePlaceId}`)
 	const p = data?.data as Place
 
@@ -29,6 +36,9 @@ export async function getPlaceDetail(googlePlaceId: string): Promise<Place> {
 }
 
 export async function fetchMyBookmarks() {
+	if (isMockMode) {
+		return mockPlacesApi.listMyBookmarks()
+	}
 	const { data } = await api.get<Place[]>('/places/bookmarks/me')
 	return data
 }

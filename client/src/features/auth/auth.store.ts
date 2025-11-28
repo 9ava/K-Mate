@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools, persist, createJSONStorage } from 'zustand/middleware'
-import { api } from '../../api/client'
+import { api, isMockMode } from '../../api/client'
+import { mockUsers } from '../../mocks/data'
 
 export type Role = 'user' | 'admin'
 export interface Me {
@@ -59,6 +60,11 @@ export const useAuthStore = create<State & Actions>()(
 				async bootstrap() {
 					try {
 						set({ error: null })
+						// Mock 모드: 데모 유저로 자동 로그인
+						if (isMockMode) {
+							set({ user: mockUsers.user1, ready: true })
+							return
+						}
 						// 권장 경로
 						const { data } = await api.get('/auth/me')
 						let u = normalizeMe(data)
@@ -69,6 +75,10 @@ export const useAuthStore = create<State & Actions>()(
 				},
 
 				async logout() {
+					if (isMockMode) {
+						set({ user: null, ready: true })
+						return
+					}
 					try {
 						await api.post('/auth/logout')
 					} catch {}
@@ -76,12 +86,24 @@ export const useAuthStore = create<State & Actions>()(
 				},
 
 				loginWithGoogle() {
+					// Mock 모드: 데모 유저로 로그인
+					if (isMockMode) {
+						set({ user: mockUsers.user1, ready: true })
+						return
+					}
 					// 서버가 콜백/쿠키를 처리하고 /auth/callback 으로 리다이렉트함
 					const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 					window.location.href = `${base}/auth/google?prompt=select_account consent`
 				},
 
 				switchAccount() {
+					// Mock 모드: 어드민으로 전환
+					if (isMockMode) {
+						const current = get().user
+						const nextUser = current?.role === 'admin' ? mockUsers.user1 : mockUsers.admin
+						set({ user: nextUser, ready: true })
+						return
+					}
 					// Force account selection by adding prompt parameter
 					const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 					window.location.href = `${base}/auth/google?prompt=select_account consent`
