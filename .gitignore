@@ -13,6 +13,9 @@ dist/
 .DS_Store
 .idea/
 
+# Claude Code
+.claude/
+
 # 빌드 산출물
 build/
 out/
