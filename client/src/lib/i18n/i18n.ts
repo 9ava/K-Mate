@@ -12,6 +12,7 @@ i18n
 	.use(LanguageDetector)
 	.use(initReactI18next)
 	.init({
+		lng: 'en', // 기본 언어를 영어로 고정
 		fallbackLng: 'en',
 		supportedLngs: ['en', 'ko', 'zh'],
 		load: 'languageOnly',
@@ -24,7 +25,8 @@ i18n
 			loadPath: `${BASE}locales/{{lng}}/{{ns}}.json?v=${VERSION}`,
 		},
 		detection: {
-			order: ['localStorage', 'querystring', 'navigator'],
+			// localStorage에 저장된 언어만 감지 (사용자가 직접 변경한 경우)
+			order: ['localStorage'],
 			caches: ['localStorage'],
 		},
 		saveMissing: false,
